@@ -1,6 +1,6 @@
 # source("C:/Users/Siddarta.Jairam/Documents/R files/iterateHYSPLIT.R")
 rm(list=ls(all=TRUE))
-options(show.error.locations=TRUE)
+# options(show.error.locations=TRUE)
 tic <- Sys.time()
 
 base <- "C:/hysplit4/exec"
@@ -12,7 +12,7 @@ pltfile <- paste0(plt,".ps")
 #direcOut <- "X:\\2 Westbrook, John\\Sid\\Hysplit Out Moth table"
 direcOut <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
 
-runNum <- "MaineMultiSec"
+runNum <- "FakeSpeed"
 year <- 11
 invPlotFlag <- 10 #the day that you want to start outputing the plots
 plotWriteFlag <- 1
@@ -150,8 +150,9 @@ makeLife <- function(flagMoth,loc,GDD,origin){
 	
 	life <- list()
 	if (length(dim(loc))<2){
-		life$grid <- t(as.matrix(loc))
+		loc <- t(as.matrix(loc))
 	}
+	life$grid <- loc
 	life$origin <- origin
 	
 	if (flagMoth) {
@@ -544,11 +545,11 @@ testFakeHysplit <- function(tgrd){
 }
 
 cleanGrid <-function(pop,thres=1){
-	vec <- pop$grid[,3]
-	gmax <- which.max(vec)
-	allSet <- 1:length(vec)
-	testDieHard <- which(is.na(vec)| vec <0)
-	testDieSoft <- which(vec < thres)
+	amt <- pop$grid[,3]
+	gmax <- which.max(amt)
+	allSet <- 1:length(amt)
+	testDieHard <- which(is.na(amt)| amt <0)
+	testDieSoft <- which(amt < thres)
 	
 	softSet <- testDieSoft[!is.element(testDieSoft,testDieHard)]
 	pop$grid[gmax,3] <- pop$grid[gmax,3] + sum(pop$grid[softSet,3])
@@ -574,15 +575,7 @@ cleanGrid <-function(pop,thres=1){
 }
 
 cleanPop <- function(stPop){
-	test <- lapply(stPop,function(x) dim(x[[1]])[1])
-  indmat <- which(vapply(test,function(x) length(x),1)==0)
-  if (length(indmat)>0){
-    for (g in indmat){
-      stPop[[g]]$grid <- t(as.matrix(stPop[[g]]$grid))
-    }
-    test <- lapply(stPop,function(x) dim(x[[1]])[1])
-  }
-  
+	test <- vapply(stPop,function(x) dim(x[[1]])[1],1)
 	ind <- which(test==0)
 	if (length(ind)>0) stPop <- stPop[-ind,drop = FALSE]
 	if (length(stPop)==0) stPop=list()
@@ -590,6 +583,13 @@ cleanPop <- function(stPop){
 	return(stPop)
 }
 
+cleanAll<- function(lpop,thres=1){
+	if(length(lpop)>0){
+		lpop <- lapply(lpop,function(x) cleanGrid(x,thres))
+		lpop <- cleanPop(lpop)
+	}
+	return(lpop)
+}
 willFly <- function(pop, day, genFlag){
 	#From the population figure out how many fly than make two knew populations (stayFAW and mFAW)
 	
@@ -746,7 +746,6 @@ growMoths <- function(pop,di){
 				ind <- which(remEggs==niq[q])
 				opop[[q]]$grid <- pop$grid[ind,,drop=F]
 				opop[[q]]$numEggs <- niq[q]
-# 				opop[[q]] <- cleanGrid(opop[[q]],thres=mothThres)
 			}
 		} else opop$numEggs <- niq
 	}
@@ -766,9 +765,7 @@ migrateDeath <- function(pop){
 		yi <-map2block(mgrd[r,2],2,1)
 		xlo <-(mgrd[r,1] != sort(c(bndx,mgrd[r,1]))[2])
 		ylo <-(mgrd[r,2] != sort(c(bndy,mgrd[r,2]))[2])
-		#extCorn <- ifelse((pop$origin=="FL" && di<130),
-		#		sum(apr$Corn[(xi-1):(xi+1),yi],na.rm = TRUE) + sum(apr$Corn[xi,(yi-1):(yi+1)],na.rm = TRUE) - apr$Corn[xi,yi],
-		#		apr$Corn[xi,yi])
+
 		grdCorn <- apr$Corn[xi,yi]
 		grdCornGDD <- apr$CornGDD[xi,yi,di]
 		Cornlo <- ifelse((pop$origin=="FL" && di<altCornDay),
@@ -792,14 +789,13 @@ migrateDeath <- function(pop){
 deconst <- function(lpop){
 
 	if (length(lpop)>0){
-	numRow <- vapply(lpop, function(x) dim(makeRowVec(x$grid))[1],1)
+	numRow <- vapply(lpop, function(x) dim(x$grid)[1],1)
 	needsDecon <- which(numRow>1)
 	if (length(needsDecon)>0){
 	for (n in needsDecon){
 		for (r in seq(2,numRow[n])){
 			lpop<-lappend(lpop,lpop[[n]])
-			lpop[[length(lpop)]]$grid<-lpop[[n]]$grid[r,,drop=F]
-			#lpop[[length(lpop)]]$GDD<-lpop[[n]]$GDD[r]
+			lpop[[length(lpop)]]$grid<-lpop[[n]]$grid[r,,drop=FALSE]
 		}
 		lpop[[n]]$grid<-lpop[[n]]$grid[1,,drop = FALSE]
 	}
@@ -828,65 +824,49 @@ makePopTable <- function(lpop,desOrigin =0,verboseNames=0){
 
 	subpop <- deconst(subpop)
 	
-	mat <- t(as.matrix(vapply(subpop, function(x)x$grid,c(1,1,1))))
-	mat <- cbind(mat,vapply(subpop,function(x)x[[3]],1))
-	mat <- cbind(mat,vapply(subpop,function(x)switch(x$origin,TX=0,FL=1),1))
-	#mat <-matrix(nrow=1,ncol=5)
-	#for (n in seq(1,length(subpop))){
-	#	gr<- makeRowVec(subpop[[n]]$grid)
-	#	if (length(gr)>1){
-	#		#gr[[2]] <- sort(cbind(gr[[2]],bndy))[2]
-	#		mat<-rbind(mat,cbind(
-	#			gr,
-	#			subpop[[n]][[3]][1],
-	#			switch(subpop[[n]]$origin,TX=0,FL=1)
-	#			))
-	#	}
-	#}
-
-	rownames(mat)<-NULL
-	colnames(mat)<-NULL
-#	mat<-mat[2:dim(mat)[1],,drop=FALSE]
+	mat <- t(vapply(subpop, function(x){
+		cbind(x$grid,
+			x[[3]],
+			switch(x$origin,TX=0,FL=1))
+		},c(1,1,1,1,1)))
 	
 	if(verboseNames){
-		colnames(mat) <- c("Lat","lon","Amt","Age","Origin")
+		colnames(mat) <- c("Lon","Lat","Amt","Age","Origin")
 		mat[,5] <- vapply(mat[,5],function(x) ifelse(x!=0,"FL","TX"),"TE")
 	}
-	
 	
 	return(mat)
 	}
 }
 
-combinePop <- function(lpop,thres=1){
+combineEggs <- function(lpop,thres=1){
 
-	totPop <-deconst(lpop)
-	if (length(totPop)>1){
-	tab <- makePopTable(totPop)
+	if (length(lpop)>1){
+	tab <- makePopTable(lpop)
 	xs <-vapply(tab[,1],function(x) map2block(x,1,1),1)
 	ys <-vapply(tab[,2],function(x) map2block(x,2,1),1)
-	checktab <- cbind(xs,ys,tab[,5])
-	intDups <- which(duplicated(checktab))
+	mat <- cbind(xs,ys,tab[,5])
 	
-	for (r in intDups){
-		#same location, within the threshold of GDD, and same origin
-		pot <- intDups[r+1:length(intDups)]
-		vec <- which((tab[pot,1]==tab[r,1] &
-				 tab[pot,2]==tab[r,2] & 
-				abs(tab[pot,4]-tab[r,4])<=thres &
-				tab[pot,5]==tab[r,5] ))
-		if (length(vec)>1){
-			totPop[[r]]$grid[3] <- round(sum(tab[vec,3]),1)
-			totPop[[r]][[3]] <- floor(mean(tab[vec,4]))
-			delVec <- vec[which(vec!=r)]
-			totPop <- totPop[-delVec,drop = FALSE]
-			tab <- tab[-delVec,,drop = FALSE]
-			intDups <- intDups[!is.element(intDups,delVec)]
+	allDups <- duplicated(mat)
+	needComb <- allDups
+	
+	baseVals <- which(!allDups & duplicated(mat,fromLast=TRUE))
+	for (r in baseVals){
+		
+		vec <- (mat[needComb,1]==mat[r,1] &
+							mat[needComb,2]==mat[r,2] & 
+							mat[needComb,3]==mat[r,3])
+		vec <- which(needComb)[vec]
+		
+		if (length(vec)>0){
+			lpop[[r]]$grid[1,3] <- tab[r,3] + sum(tab[vec,3])
+			needComb[vec] <- FALSE
 		}
 				
 	}
+	lpop <- lpop[!allDups,drop = FALSE]
 	}
-	return(totPop)
+	return(lpop)
 	
 }
 
@@ -895,31 +875,64 @@ combinelPop <- function(lpop){
   #Mostly to make the Hysplit run much shorter
   #don't use if changing GDD instead of Days old or any other var with memory
   olpop <- lpop
-  m <- 1
-  while (m<length(lpop)){
-	org <- vapply(lpop,function(x)x$origin,"")
-		
-
-  	age <- vapply(lpop,function(x)x[[3]],1)
-	fght <- vapply(lpop,function(x)x$succFlight,1)
-    	vec <- which((org==org[[m]]
-    		& age==age[[m]]
-    		& fght==fght[[m]]
-    		))
-
-    if(length(vec)>1){
-      delVec <- vec[which(vec!=m)]
-      for (do in delVec){
-        lpop[[m]]$grid <- rbind(lpop[[m]]$grid,lpop[[do]]$grid)
-      }
-			#lpop[[m]]$numEggs <- min(vapply(lpop[delVec],function(x) x$numEggs,1))
-      lpop <- lpop[-delVec,drop = FALSE]
-      
-    }
-	m <- m+1
+  mat <- t(vapply(lpop, function(x){
+  	cbind(x[[3]],
+			switch(x$origin,TX=0,FL=1),
+  		x$succFlight)
+  	},c(1,1,1)))
+  
+  allDups <- duplicated(mat)
+  needComb <- allDups
+  
+  baseVals <- which(!allDups & duplicated(mat,fromLast=TRUE))
+  for (r in baseVals){
+  	
+  	vec <- (mat[needComb,1]==mat[r,1] &
+						mat[needComb,2]==mat[r,2] & 
+						mat[needComb,3]==mat[r,3])
+  	vec <- which(needComb)[vec]
+  	
+  	if (length(vec)>0){
+  		#If they have the same stuff, paste the grids together
+  		lpop[[r]]$grid <- makePopTable(lpop[c(r,vec)])[,1:3,drop=FALSE]
+  		needComb[vec] <- FALSE
+  	}
+  	
   }
-  if (length(lpop)>0) {return(lpop)
-  } else return(olpop)
+  lpop <- lpop[!allDups,drop = FALSE]
+  
+  if (length(lpop)==0) {return(olpop)
+  } else{
+  	
+  	#go through the grids to see if any are at the same location ->add the amt
+  	for (gg in seq(1,length(lpop))){
+  		xs <-vapply(lpop[[gg]]$grid[,1],function(x) map2block(x,1,1),1)
+  		ys <-vapply(lpop[[gg]]$grid[,2],function(x) map2block(x,2,1),1)
+  		mat <- cbind(xs,ys)
+  		
+  	
+  		allDups <- duplicated(mat)
+  		needComb <- allDups
+  		
+  		baseVals <- which(!allDups & duplicated(mat,fromLast=TRUE))
+  		for (r in baseVals){
+  			
+  			vec <- (mat[needComb,1]==mat[r,1] &
+  								mat[needComb,2]==mat[r,2])
+  			vec <- which(needComb)[vec]
+  			
+  			if (length(vec)>0){
+  				#If they have the same stuff, add amounts
+  				lpop[[gg]]$grid[r,3] <- sum(lpop[[gg]]$grid[c(r,vec),3])
+  				needComb[vec] <- FALSE
+  			}
+  			
+  		}
+  		
+  		lpop[[gg]]$grid <- lpop[[gg]]$grid[!allDups,,drop = FALSE]
+  	}
+		return(lpop)
+  }
 }
 
 
@@ -1059,7 +1072,7 @@ for (ig in seq(1,dim(intGrids)[1])){
 	winterPop[[ig]] <- makeLife(0,intGrids[ig,],0,tag)
 }
 # get the start day from the overwinter populations
-startDay <- 45
+startDay <- 45 #first guess
 repeat{
 	Bvec <- overWinter(winterPop,startDay)
 	if (length(which(Bvec==1)>0)){
@@ -1086,8 +1099,8 @@ for(di in seq(startDay,endDay)){
 	#
 	#add the newly emited moths to their "career paths"
 	#
-	youngAdults <- lapply(youngAdults,function(x) cleanGrid(x))
-	youngAdults <- cleanPop(youngAdults)
+	
+	youngAdults <- cleanAll(youngAdults,mothThres)
 
 	if (length(youngAdults)>0){
 	for (ya in seq(1, length(youngAdults))){
@@ -1174,9 +1187,9 @@ for(di in seq(startDay,endDay)){
 			#Migrate the species
 			#####################################################
 			shouldPlot <-ifelse((di >=invPlotFlag && mig%%10==0),1,0)
-			mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
+			#mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
 			#mMoth[[mi]]$grid <- runHysplit(.1,shouldPlot)
-			#mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
+			mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
 
 			mig <- mig+1
 
@@ -1197,14 +1210,12 @@ for(di in seq(startDay,endDay)){
 	}
 	}
   	#cat(length(mMoth))
-	mMoth <- lapply(mMoth,function(x) cleanGrid(x))
-	Moth <- lapply(Moth,function(x) cleanGrid(x))
-	mMoth <- cleanPop(mMoth)
-	Moth <- cleanPop(Moth)
-  	#cat(length(mMoth))
-  #combine the migrants
-	try(mMoth <- combinelPop(mMoth))
-  	#cat(length(mMoth),"\n")
+	mMoth <- cleanAll(mMoth,mothThres)
+	Moth <- cleanAll(Moth,mothThres)
+	
+	mMoth <- combinelPop(mMoth)
+	Moth  <- combinelPop(Moth)
+
 	#Test to see if it needs to output every day
 	txtFlag <- (di==sort(c(outEveryDayStart,outEveryDayEnd,di))[2])
 	if(txtFlag){
@@ -1218,22 +1229,21 @@ for(di in seq(startDay,endDay)){
 		#End of week
     
 		#combine moths
-		Moth <- combinelPop(Moth)
-		mMoth <- combinelPop(mMoth)
-#		mMoth <- combinelPop(mMoth)
-		Eggs <- combinePop(Eggs)
+		
+		Eggs <- combineEggs(Eggs)
+
 		youngMig <- list()
+		if (di < 150){
+			fldie <- c("TX")
+			fldie <- c(fldie,vapply(Cohort,function(x)x$origin,""))
+			fldie <- c(fldie,vapply(Moth,function(x)x$origin,""))
+			fldie <- c(fldie,vapply(mMoth,function(x)x$origin,""))
+			fldie <- c(fldie,vapply(Eggs,function(x)x$origin,""))
 		
-		fldie <- c("TX")
-		fldie <- c(fldie,vapply(Cohort,function(x)x$origin,""))
-		fldie <- c(fldie,vapply(Moth,function(x)x$origin,""))
-		fldie <- c(fldie,vapply(mMoth,function(x)x$origin,""))
-		fldie <- c(fldie,vapply(Eggs,function(x)x$origin,""))
-		
-		if(length(which(fldie=="FL"))==0){
-			stop("FL died off, abandon ship")
+			if(length(which(fldie=="FL"))==0){
+				stop("FL died off, abandon ship")
+			}
 		}
-		
 		#get all the outputs
 		#txtFlag <- (di==sort(c(outEveryDayStart,outEveryDayEnd,di))[2])
 		if (length(Cohort)>0) CohortOut <- makeOutput(Cohort,CohortOut)
@@ -1253,9 +1263,8 @@ for(di in seq(startDay,endDay)){
 			Cohort <- lappend(Cohort,Eggs)
 		}
 		Eggs=list() 
-
-		k<-1
 		youngAdults <-list()
+		
 		ci<-1
 		while (ci<=length(Cohort)){
 		#for (ci in seq(1,length(Cohort))){
@@ -1291,12 +1300,13 @@ for(di in seq(startDay,endDay)){
 		}
 
 		#Clean cohort
-		badint <-which(vapply(Cohort,function(x) x$grid[3]<cohortThres,TRUE))
-		if (length(badint)>0){
-			for(ci in seq(1,length(badint))){
-				Cohort <- Cohort[-badint[ci],drop = FALSE]
-			}
-		}
+		Cohort <- cleanAll(Cohort,cohortThres)
+# 		badint <-which(vapply(Cohort,function(x) x$grid[3]<cohortThres,TRUE))
+# 		if (length(badint)>0){
+# 			for(ci in seq(1,length(badint))){
+# 				Cohort <- Cohort[-badint[ci],drop = FALSE]
+# 			}
+# 		}
 			
 					
 	}
