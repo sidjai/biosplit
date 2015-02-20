@@ -52,9 +52,11 @@ CornThres <- att.get.ncdf(nc,0,"CornThres")$value
 apr<-lapply(varNames, function(x) get.var.ncdf(nc,x))
 names(apr) <- varNames
 close.ncdf(nc)
+xmapvec <- nc$dim$lon$vals
+ymapvec <- nc$dim$lat$vals
 
-bndx <- c(min(nc$dim$lon$vals),max(nc$dim$lon$vals))
-bndy <- c(min(nc$dim$lat$vals),max(nc$dim$lat$vals))
+bndx <- c(min(xmapvec),max(xmapvec))
+bndy <- c(min(ymapvec),max(ymapvec))
 
 ###################################################################
 #Intial conditions
@@ -72,7 +74,7 @@ oviDay <- 2 #day when the moth lays eggs
 capEggs <- 125 #total number of eggs that a moth has
 eggsPerInfest <- 17 # number of eggs laid at the same time
 #startDay <- 40
-endDay <- 360
+endDay <- 300
 metDataType <- "edas"
 skip <- c(241,242) #skip because the ARL data is missing (2011)
 #skip <- c(0)
@@ -202,19 +204,16 @@ makeREADME <- function(readmeLoc,rundirec,masFlag){
 }
 
 map2block <-function(vin,coor, direction){
-	tol <-.3
-	box <-c(vin+tol,vin-tol)
-	box <-box[order(box)]
+	tol <-.25
+	box <-cbind(vin-tol,vin+tol)
 
-	if (coor ==1) {
-		mapdim <-nc$dim$lon$val
-	} else {
-		mapdim <-nc$dim$lat$val
-	}
-
+	mapdim <- (if(coor ==1) xmapvec else ymapvec)
+	
 	if (direction ==1){
 		#go from map units to a block number
-		val<-which((mapdim>box[1] & mapdim<box[2]))[1]
+		val <- vapply(1:length(vin),function(x){
+			which((mapdim>box[x,1]) & mapdim<max(box[x,2]))[1]
+			},1)
 		
 	} else {
 		# go from block number to map units
@@ -226,6 +225,11 @@ map2block <-function(vin,coor, direction){
 }
 
 testEnv <- function(lpop,w=-9999){
+	
+	#profName <- "C:/Users/Siddarta.Jairam/Documents/iterateProf2.out"
+	#Rprof(profName,memory.profiling = TRUE)
+	#Rprof("")
+	#summaryRprof(profName)
 	popType <- switch(names(lpop[[1]])[3],daysOld=1,GDD=0)
 	if (w <0){
 		lpop <- deconst(lpop)
@@ -667,18 +671,10 @@ willFly <- function(pop, day, genFlag){
 lappend <- function(lst, obj) {
 	num<-length(obj)
 	if (num>0){
-		if (length(names(obj))!=0){
-			lst[[length(lst)+1]] <- obj
-		} else {
-			for (r in seq(1,num)){
-    				lst[[length(lst)+1]] <- obj[[r]]
-			}
-
-		}
-
+		if (length(names(obj))!=0) obj <- list(obj)
+		lst <- c(lst,obj)
 	}
-
-    	return(lst)
+	return(lst)
 }
 
 growMoths <- function(pop,di){
@@ -755,6 +751,41 @@ growMoths <- function(pop,di){
 	
 	out <- list(opop,newEggs)
 	return(out)
+}
+
+growCohort <- function(lpop,di){
+	
+	tab <- makePopTable(lpop)
+	xs <-map2block(tab[,1],1,1)
+	ys <-map2block(tab[,2],2,1)
+	org <- ifelse(tab[,5],"FL","TX")
+	
+	#growth
+	aDD <- tab[,4]
+	for (t in seq(di,di+6)){
+		aDD <- aDD + apr$FawGDD[cbind(xs,ys,t)]
+	}
+	
+	#tests for death and adulthood
+	if (di<altCornDay) {deadTest <- (apr$Corn[cbind(xs,ys)] < 1)
+	}	else deadTest <- (apr$CornGDD[cbind(xi,yi,di)] < infestThres)
+	
+	adultTest <- (aDD > cohortGDDThres)
+	
+	removeTest <- (adultTest | deadTest)
+	
+	#Creat adults
+	tadult <- lapply(which(adultTest),function(x) makeLife(1,tab[x,1:3],0,org[x]))
+	
+	#set GDD for those that remain
+	for (gg in which(!removeTest)){
+		lpop[[gg]]$GDD <- aDD[gg]
+	}
+	
+	#remove the ones that died or turned into an adult
+	lpop <- lpop[!removeTest]
+	
+	return(list(lpop,tadult))
 }
 
 migrateDeath <- function(pop){
@@ -1262,52 +1293,16 @@ for(di in seq(startDay,endDay)){
 		if (length(Eggs)>0){
 			Cohort <- lappend(Cohort,Eggs)
 		}
-		Eggs=list() 
-		youngAdults <-list()
+		Eggs <- list()
+		youngAdults <- list()
 		
-		ci<-1
-		while (ci<=length(Cohort)){
-		#for (ci in seq(1,length(Cohort))){
-			grd<-Cohort[[ci]]$grid
-			xi <-map2block(grd[1],1,1)
-			yi <-map2block(grd[2],2,1)
-			
-			#Growth
-			Cohort[[ci]]$GDD <- Cohort[[ci]]$GDD+sum(apr$FawGDD[xi,yi,di:(di+6)])
-			Cohort[[ci]]$GDD <- round(Cohort[[ci]]$GDD,2)
-			
-
-			#Death
-			#condCornTop <- apr$CornGDD[[xi,yi,di]] > cohortGDDLmt
-			condCornTop <- FALSE
-			condCornBot <- ifelse(di<altCornDay,					
-				apr$Corn[[xi,yi]]<1 ,apr$CornGDD[[xi,yi,di]] < infestThres)
-			condAdult <- (Cohort[[ci]]$GDD > cohortGDDThres)
-			
-			if (condCornTop || condCornBot) Cohort<-Cohort[-ci,drop = FALSE]
-			else if (condAdult){
-				#Adulthood - emit insects every day for a week
-				tadult <- list()
-
-				tadult <- makeLife(1,cbind(grd[1],grd[2],grd[3]),0,Cohort[[ci]]$origin)
-				
-				youngAdults <-lappend(youngAdults,tadult)
-				#Cohort turn into adults so delete the cohort
-				Cohort<-Cohort[-ci,drop = FALSE]
-			} else {
-			ci<-ci+1
-			}
-		}
+		#Clean cohort
+		tCoh <- growCohort(Cohort,di)
 
 		#Clean cohort
-		Cohort <- cleanAll(Cohort,cohortThres)
-# 		badint <-which(vapply(Cohort,function(x) x$grid[3]<cohortThres,TRUE))
-# 		if (length(badint)>0){
-# 			for(ci in seq(1,length(badint))){
-# 				Cohort <- Cohort[-badint[ci],drop = FALSE]
-# 			}
-# 		}
-			
+		Cohort <- cleanAll(tCoh[[1]],cohortThres)
+		
+		youngAdults <- tCoh[[2]]	
 					
 	}
 	
