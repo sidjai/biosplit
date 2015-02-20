@@ -1,6 +1,6 @@
 # source("C:/Users/Siddarta.Jairam/Documents/R files/iterateHYSPLIT.R")
 rm(list=ls(all=TRUE))
-# options(show.error.locations=TRUE)
+options(show.error.locations=TRUE)
 tic <- Sys.time()
 
 base <- "C:/hysplit4/exec"
@@ -12,7 +12,7 @@ pltfile <- paste0(plt,".ps")
 #direcOut <- "X:\\2 Westbrook, John\\Sid\\Hysplit Out Moth table"
 direcOut <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
 
-runNum <- "FakeSpeed"
+runNum <- "MaineBoost"
 year <- 11
 invPlotFlag <- 10 #the day that you want to start outputing the plots
 plotWriteFlag <- 1
@@ -22,7 +22,7 @@ makeReadmeFlag <- 1 # make an automated readme file?
 
 codeChanges <- "Made some of the functions faster(deconst)"
 outEveryDayStart <- 120
-outEveryDayEnd <- 240
+outEveryDayEnd <- 220
 
 require(rgdal)
 require(raster)
@@ -226,10 +226,10 @@ map2block <-function(vin,coor, direction){
 
 testEnv <- function(lpop,w=-9999){
 	
-	#profName <- "C:/Users/Siddarta.Jairam/Documents/iterateProf2.out"
-	#Rprof(profName,memory.profiling = TRUE)
+	#profName <- 
+	#Rprof("C:/Users/Siddarta.Jairam/Documents/iterateProf3.out",memory.profiling = TRUE)
 	#Rprof("")
-	#summaryRprof(profName)
+	#summaryRprof("C:/Users/Siddarta.Jairam/Documents/iterateProf3.out")
 	popType <- switch(names(lpop[[1]])[3],daysOld=1,GDD=0)
 	if (w <0){
 		lpop <- deconst(lpop)
@@ -598,8 +598,8 @@ willFly <- function(pop, day, genFlag){
 	#From the population figure out how many fly than make two knew populations (stayFAW and mFAW)
 	
 	stayFaw <- mFaw <- pop
-	xs <-vapply(pop$grid[,1],function(x) map2block(x,1,1),1)
-	ys <-vapply(pop$grid[,2],function(x) map2block(x,2,1),1)
+	xs <- map2block(pop$grid[,1],1,1)
+	ys <- map2block(pop$grid[,2],2,1)
 	inds <- cbind(xs,ys,day)
 	wind <- apr$TailWind[inds]
 	cGDD <- apr$CornGDD[inds]
@@ -719,7 +719,7 @@ growMoths <- function(pop,di){
 			nEggs <- eggsPerInfest*mgrd[r,3]
 			remEggs[r] <- pop$numEggs-eggsPerInfest
 
-			newEggs <- lappend(newEggs,makeLife(0,cbind(mgrd[r,1],mgrd[r,2],nEggs),
+			newEggs <- lappend(newEggs,makeLife(0,cbind(mgrd[r,1],mgrd[r,2],nEggs[1]),
 				0,pop$origin))
 			#pop$hasEggs <-0
 	
@@ -756,8 +756,8 @@ growMoths <- function(pop,di){
 growCohort <- function(lpop,di){
 	
 	tab <- makePopTable(lpop)
-	xs <-map2block(tab[,1],1,1)
-	ys <-map2block(tab[,2],2,1)
+	xs <- map2block(tab[,1],1,1)
+	ys <- map2block(tab[,2],2,1)
 	org <- ifelse(tab[,5],"FL","TX")
 	
 	#growth
@@ -833,8 +833,6 @@ deconst <- function(lpop){
 	}
 	}
 	
-	
-
 	return(lpop)
 }
 
@@ -844,7 +842,7 @@ makeRowVec<-function(x){
 	return(vec)
 }
 
-makePopTable <- function(lpop,desOrigin =0,verboseNames=0){
+makePopTable <- function(lpop,desOrigin=0,verboseNames=FALSE){
 	if ( is.numeric(desOrigin))subpop <- lpop
 	else {
 		orgs <- vapply(lpop,function(x)x$origin,"")
@@ -855,6 +853,7 @@ makePopTable <- function(lpop,desOrigin =0,verboseNames=0){
 
 	subpop <- deconst(subpop)
 	
+
 	mat <- t(vapply(subpop, function(x){
 		cbind(x$grid,
 			x[[3]],
@@ -874,8 +873,8 @@ combineEggs <- function(lpop,thres=1){
 
 	if (length(lpop)>1){
 	tab <- makePopTable(lpop)
-	xs <-vapply(tab[,1],function(x) map2block(x,1,1),1)
-	ys <-vapply(tab[,2],function(x) map2block(x,2,1),1)
+	xs <- map2block(tab[,1],1,1)
+	ys <- map2block(tab[,2],2,1)
 	mat <- cbind(xs,ys,tab[,5])
 	
 	allDups <- duplicated(mat)
@@ -937,8 +936,8 @@ combinelPop <- function(lpop){
   	
   	#go through the grids to see if any are at the same location ->add the amt
   	for (gg in seq(1,length(lpop))){
-  		xs <-vapply(lpop[[gg]]$grid[,1],function(x) map2block(x,1,1),1)
-  		ys <-vapply(lpop[[gg]]$grid[,2],function(x) map2block(x,2,1),1)
+  		xs <- map2block(lpop[[gg]]$grid[,1],1,1)
+  		ys <- map2block(lpop[[gg]]$grid[,2],2,1)
   		mat <- cbind(xs,ys)
   		
   	
@@ -986,8 +985,8 @@ makeOutput <- function(lpop,out, lpop2=0, txtonlyFlag =0){
 	} else poptype <- "Cohort"
 	
 	
-	xs <-vapply(tab[,1],function(x) map2block(x,1,1),1)
-	ys <-vapply(tab[,2],function(x) map2block(x,2,1),1)
+	xs <- map2block(tab[,1],1,1)
+	ys <- map2block(tab[,2],2,1)
 	week<-as.integer(strftime(tPos,"%U"))
 	#reorganize sparse matrix into full matrix
 	slice <- list(array(0, dim=c(dim(apr$Corn))),array(0, dim=c(dim(apr$Corn))))
@@ -999,7 +998,7 @@ makeOutput <- function(lpop,out, lpop2=0, txtonlyFlag =0){
     
 	}
 	if (!txtonlyFlag){
-  	for (pt in length(out)){
+  	for (pt in seq(1:length(out))){
   		out[[pt]][,,week] <- slice[[pt]]
   	}
 	}
@@ -1218,9 +1217,9 @@ for(di in seq(startDay,endDay)){
 			#Migrate the species
 			#####################################################
 			shouldPlot <-ifelse((di >=invPlotFlag && mig%%10==0),1,0)
-			#mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
+			mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
 			#mMoth[[mi]]$grid <- runHysplit(.1,shouldPlot)
-			mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
+			#mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
 
 			mig <- mig+1
 
