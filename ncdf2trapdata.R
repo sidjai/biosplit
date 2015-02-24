@@ -6,14 +6,14 @@ ptm <- proc.time()
 direcNC <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
 #runName <-"runcornThres"
 runName <- "runTiredFix"
-runName <- "runMaineMultiLife"
+runName <- "runMaineBoost"
 year <- 11
 trapDir <- "C:/Users/Siddarta.Jairam/Documents/Documentation"
 trapName <- "FAW Data Locations 2011 (3nd version).csv"
 #trapName  <- "Selected FAW Trap Locations.csv"
 trapLoc <- paste(trapDir,trapName, sep="/")
 
-totFlag <- 0 #Use the single nc file, or the single nc files
+totFlag <- 1 #Use the single nc file, or the single nc files
  
 require(rgdal)
 require(raster)

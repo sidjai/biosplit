@@ -12,7 +12,7 @@ pltfile <- paste0(plt,".ps")
 #direcOut <- "X:\\2 Westbrook, John\\Sid\\Hysplit Out Moth table"
 direcOut <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
 
-runNum <- "MaineBoost"
+runNum <- "FakeSpeed2"
 year <- 11
 invPlotFlag <- 10 #the day that you want to start outputing the plots
 plotWriteFlag <- 1
@@ -61,6 +61,7 @@ bndy <- c(min(ymapvec),max(ymapvec))
 ###################################################################
 #Intial conditions
 ###################################################################
+simType <- "Fake"
 stAmount <- 1000000
 mothThres <- 2
 cohortThres <-1
@@ -94,7 +95,7 @@ intGrids <- rbind(intGrids,c(-98.2, 26.2, stAmount*.3))
 Flnum <- 2
 ###################################################################
 
-vars <- c('stAmount','mothThres','cohortThres',
+vars <- c('simType','stAmount','mothThres','cohortThres',
 					'cohortGDDThres','windThres',
 					'infestThres','infestLmt','lifeSpan','oviDay',
 					'capEggs','eggsPerInfest','endDay',
@@ -105,7 +106,6 @@ Assump <- c(Assump,"Starting locations")
 
 for (ff in seq(1,dim(intGrids)[1])){
 	Assump <- c(Assump,toString(intGrids[ff,]))
-
 }
 
 Assump <- c(Assump,
@@ -140,6 +140,7 @@ simData <- rbind(simData,"Deposition = |", paste(intCon[depo] ,collapse = '|'))
 simData <-paste(simData,collapse = ' ')
 simData <- gsub(",",";",simData)
 
+simEmploy <- switch(simType,HYSPLIT=2,Fake=3,1)
 
 mMothOut <- CohortOut <- list(array(0, dim=c(dim(apr$Corn),52)),array(0, dim=c(dim(apr$Corn),52)))
 
@@ -677,57 +678,44 @@ lappend <- function(lst, obj) {
 	return(lst)
 }
 
-growMoths <- function(pop,di){
+growMoths <- function(pop,day){
 	newEggs <- list()
-	mgrd <- pop$grid
-	remEggs <- vapply(pop$grid[,1],function(x)pop$numEggs,1)
+	grd <- pop$grid
+	grdLen <- dim(grd)[1]
+	remEggs <- rep.int(pop$numEggs,grdLen)
 
 	#first do growth and death
 	pop$daysOld <- pop$daysOld+1
-	for (r in seq(1,dim(mgrd)[1])){
-		xi <-map2block(mgrd[r,1],1,1)
-		yi <-map2block(mgrd[r,2],2,1)
-
-		#growth
-
-		#add <- ifelse(is.na(apr$FawGDD[xi,yi,di]),0,apr$FawGDD[xi,yi,di])
-		#pop$GDD[r] <- pop$GDD[r] + add
-
-		
-		#Death
-		if (length(xi)==0 
-			||length(yi)==0 
-			||pop$daysOld>lifeSpan) {
-
-			#dead <- rpois(1,mgrd[r,3]*(0.9))
-			#pop$grid[r,3] <- pop$grid[r,3]-dead
-			#90% still to great a number left, they are living to be 2 months old. 
-			pop$grid[r,3] <- (-9999)
-			
-
-		}
-
-		#birth
-		
-		if (pop$daysOld>oviDay 
-		   && pop$numEggs > eggsPerInfest
-		   && !is.na(apr$Corn[xi,yi])
-		   && mgrd[r,3] > 0
-		   && apr$CornGDD[xi,yi,di] < infestLmt
-		   && apr$CornGDD[xi,yi,di] > infestThres){
-
-			nEggs <- eggsPerInfest*mgrd[r,3]
-			remEggs[r] <- pop$numEggs-eggsPerInfest
-
-			newEggs <- lappend(newEggs,makeLife(0,cbind(mgrd[r,1],mgrd[r,2],nEggs[1]),
-				0,pop$origin))
-			#pop$hasEggs <-0
 	
-				
-		}
+	xs <- map2block(grd[,1],1,1)
+	ys <- map2block(grd[,2],2,1)
+	
+	#Death
+	if (pop$daysOld > lifeSpan){
+		deathTest <- !logical(grdLen)
+	} else {
+		deathTest <- (is.na(xs) | is.na(ys))
+	}
+	
+	pop$grid[deathTest,3] <- (-9999)
+	
+	
+	#Lay Eggs?
+	if (pop$daysOld>oviDay 
+			&& pop$numEggs > eggsPerInfest){
+		#row specific checks
+		ind <- cbind(xs,ys,rep.int(day,grdLen))
+		grCorn <- apr$CornGDD[ind]
+		layTest <- (grd[,3] > 0
+			& grCorn < infestLmt
+			& grCorn > infestThres)
 		
-
 		
+		remEggs[layTest] <- pop$numEggs-eggsPerInfest
+		
+		nEggs <- eggsPerInfest*grd[layTest,3]
+		newEggs <- lapply(which(layTest),function(x) makeLife(
+			0,cbind(grd[x,1],grd[x,2],grd[x,3]*eggsPerInfest),0,pop$origin))
 		
 	}
 	
@@ -740,7 +728,7 @@ growMoths <- function(pop,di){
 			for (q in seq(1,length(niq))){
 				opop[[q]] <- pop
 				ind <- which(remEggs==niq[q])
-				opop[[q]]$grid <- pop$grid[ind,,drop=F]
+				opop[[q]]$grid <- pop$grid[ind,,drop=FALSE]
 				opop[[q]]$numEggs <- niq[q]
 			}
 		} else opop$numEggs <- niq
@@ -1217,9 +1205,13 @@ for(di in seq(startDay,endDay)){
 			#Migrate the species
 			#####################################################
 			shouldPlot <-ifelse((di >=invPlotFlag && mig%%10==0),1,0)
-			mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
-			#mMoth[[mi]]$grid <- runHysplit(.1,shouldPlot)
-			#mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
+			if (simEmploy == 1){
+				mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
+			} else if (simEmploy == 2){
+				mMoth[[mi]]$grid <- runHysplit(.1,shouldPlot)
+			} else {
+				mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
+			}
 
 			mig <- mig+1
 
