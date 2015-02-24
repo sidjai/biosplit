@@ -776,34 +776,34 @@ growCohort <- function(lpop,di){
 	return(list(lpop,tadult))
 }
 
-migrateDeath <- function(pop){
+migrateDeath <- function(pop,day){
 	
-	mgrd <- pop$grid
-	for (r in seq(1,dim(mgrd)[1])){
-		xi <-map2block(mgrd[r,1],1,1)
-		yi <-map2block(mgrd[r,2],2,1)
-		xlo <-(mgrd[r,1] != sort(c(bndx,mgrd[r,1]))[2])
-		ylo <-(mgrd[r,2] != sort(c(bndy,mgrd[r,2]))[2])
-
-		grdCorn <- apr$Corn[xi,yi]
-		grdCornGDD <- apr$CornGDD[xi,yi,di]
-		Cornlo <- ifelse((pop$origin=="FL" && di<altCornDay),
-				grdCorn < 0.01,
-				howLivable(grdCornGDD)==0)
-
-		pop$grid[r,3] <- ifelse ((length(xi)==0 
-				||length(yi)==0
-				||xlo
-				||ylo
-				||is.na(grdCorn)
-				||Cornlo),
-				(-9999),round(pop$grid[r,3],2))
-				
+	grd <- pop$grid
+	grdLen <- dim(grd)[1]
+	
+	xs <- map2block(grd[,1],1,1)
+	ys <- map2block(grd[,2],2,1)
+	ind <- cbind(xs,ys,rep.int(day,grdLen))
+	
+	outOfMap  <- (is.na(xs) | is.na(ys))
+	
+	grCorn <- apr$Corn[cbind(xs,ys)]
+	grCornGDD <- apr$CornGDD[ind]
+	
+	if(pop$origin=="FL" && di < altCornDay){
+		bakersfield <- (is.na(grCorn) | grCorn < 0.01)
+	} else {
+		bakersfield <- howLivable(grCornGDD)==0
 	}
+	
+	deathTest <- (outOfMap | bakersfield)
+	
+	pop$grid[deathTest,3] <- (-9999)
+	pop$grid[!deathTest,3] <- round(pop$grid[!deathTest,3],2)
+	
 	pop <- cleanGrid(pop,thres=mothThres)
 	return(pop)
 }
-
 
 deconst <- function(lpop){
 
@@ -1219,7 +1219,7 @@ for(di in seq(startDay,endDay)){
 			#mMoth[[mi]]$GDD <- rep(mMoth[[mi]]$GDD,dim(mMoth[[mi]]$grid)[1])
 
 			#get rid of the Moths that went out of bounds
-			mMoth[[mi]] <- migrateDeath(mMoth[[mi]])
+			mMoth[[mi]] <- migrateDeath(mMoth[[mi]],di)
 			if (dim(mMoth[[mi]]$grid)[1]==0)  mMoth <- mMoth[-mi,drop = FALSE]
 			else {
 				mMoth[[mi]]$succFlight <- mMoth[[mi]]$succFlight + 1
