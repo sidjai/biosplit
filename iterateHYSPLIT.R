@@ -12,7 +12,7 @@ pltfile <- paste0(plt,".ps")
 #direcOut <- "X:\\2 Westbrook, John\\Sid\\Hysplit Out Moth table"
 direcOut <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
 
-runNum <- "FakeSpeed2"
+runNum <- "LimFlight"
 year <- 11
 invPlotFlag <- 10 #the day that you want to start outputing the plots
 plotWriteFlag <- 1
@@ -20,7 +20,7 @@ plotPop <- "FL"
 writeFlag <- 1 #do you want to ouput textfiles of the Moth and Cohort pops?
 makeReadmeFlag <- 1 # make an automated readme file?
 
-codeChanges <- "Made some of the functions faster(deconst)"
+codeChanges <- "Further Vectorized Moth utilities, migrateDeath and growMoth"
 outEveryDayStart <- 120
 outEveryDayEnd <- 220
 
@@ -61,7 +61,7 @@ bndy <- c(min(ymapvec),max(ymapvec))
 ###################################################################
 #Intial conditions
 ###################################################################
-simType <- "Fake"
+simType <- "Multi Hysplit"
 stAmount <- 1000000
 mothThres <- 2
 cohortThres <-1
@@ -80,7 +80,7 @@ metDataType <- "edas"
 skip <- c(241,242) #skip because the ARL data is missing (2011)
 #skip <- c(0)
 altCornDay  <- 100 #lower corn thres for Florida in the first half of the year
-succFlightLim <- 4 #num of nights that a moth can fly in succession
+succFlightLim <- 3 #num of nights that a moth can fly in succession
 flightPropAfterSilk <- 0.9
 flightPropBeforeSilk <- 0.1
 #location
@@ -704,8 +704,8 @@ growMoths <- function(pop,day){
 	if (pop$daysOld>oviDay 
 			&& pop$numEggs > eggsPerInfest){
 		#row specific checks
-		ind <- cbind(xs,ys,rep.int(day,grdLen))
-		grCorn <- apr$CornGDD[ind]
+		orind <- cbind(xs,ys,rep.int(day,grdLen))
+		grCorn <- apr$CornGDD[orind]
 		layTest <- (grd[,3] > 0
 			& grCorn < infestLmt
 			& grCorn > infestThres)
@@ -714,9 +714,12 @@ growMoths <- function(pop,day){
 		remEggs[layTest] <- pop$numEggs-eggsPerInfest
 		
 		nEggs <- eggsPerInfest*grd[layTest,3]
-		newEggs <- lapply(which(layTest),function(x) makeLife(
-			0,cbind(grd[x,1],grd[x,2],grd[x,3]*eggsPerInfest),0,pop$origin))
-		
+		for (r in which(layTest)){
+			nEggs = pop$grid[r,3]*eggsPerInfest
+			newEggs <- lappend(newEggs, 
+				makeLife(0,cbind(grd[r,1],grd[r,2],nEggs),0,pop$origin))
+		}
+
 	}
 	
 	opop <- pop

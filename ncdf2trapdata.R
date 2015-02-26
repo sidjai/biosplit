@@ -6,7 +6,7 @@ ptm <- proc.time()
 direcNC <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
 #runName <-"runcornThres"
 runName <- "runTiredFix"
-runName <- "runMaineBoost"
+runName <- "runLimFlight"
 year <- 11
 trapDir <- "C:/Users/Siddarta.Jairam/Documents/Documentation"
 trapName <- "FAW Data Locations 2011 (3nd version).csv"
