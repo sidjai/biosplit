@@ -1,5 +1,8 @@
 rm(list=ls(all=TRUE))
 
+meteoLoc <- "C:/Program Files (x86)/MeteoInfo"
+goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
+
 runScript <- function(file,args=""){
 	langFlag <- switch(strsplit(file,"[.]")[[1]][2], R=1,BAS=2,py=3,-9999)
 	if (langFlag==-9999){
@@ -8,29 +11,33 @@ runScript <- function(file,args=""){
 		
 	if (langFlag==1){
 		#Rscripts
-		scrDir <- getwd()
+		scrDir <- paste(getwd(),"R Code",sep="/")
 		command <- paste("CD",scrDir)
 		command[2] <- paste("Rscript",file,args)
 		
 	} else if (langFlag==2){
 		#Visual basic from Scripter
-		scrDir <- getwd()
+		scrDir <- paste(getwd(),"Scripter Code",sep="/")
 		command <- paste("CD",scrDir)
-		command[2] <- paste("Rscript",file,args)
+		command[2] <- paste(
+			paste0("\"",paste(goldLoc,"Scripter","Scripter.exe",sep="/"),"\"")
+			,"-x",file)
+		cat("scripterArgs.txt",paste(args,collapse="\n"))
 		
 	} else if (langFlag==3){
 		#IronPython or Jython from MeteoInfo
-		scrDir <- getwd()
+		scrDir <- paste(getwd(),"Python Code",sep="/")
 		command <- paste("CD",scrDir)
-		command[2] <- paste("Rscript",file,args)
+		command[2] <- paste(
+			paste0("\"",paste(MeteoLoc,"MIScript.exe",sep="/"),"\"")
+			,file,args)
 		
 	}
 	if (!file.exists(paste(scrDir,file,sep="/"))){
 		stop(paste("Code:",file, "| Does not exist"))
 	}
 		
-	command <- paste("CD",getwd())
-	command[2] <- paste("Rscript",file,args)
+	
 	input <- paste(command,collapse=" && ")
 	
 	cat("\n","#######", paste("calling", file),"\n")
