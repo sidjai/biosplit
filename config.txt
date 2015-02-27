@@ -1,0 +1,61 @@
+#######
+#File Locations
+#######
+
+
+CropDir = C:/Users/Siddarta.Jairam/Documents/Crop Data
+SimOutDir = C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table
+MetARLDir = C:/Users/Siddarta.Jairam/Documents/ARL packed files
+AirTempDir = C:/Users/Siddarta.Jairam/Documents/Hysplit temp data
+SoilTempDir = C:/Users/Siddarta.Jairam/Documents/Hysplit soilT data
+WindDir = C:/Users/Siddarta.Jairam/Documents/Hysplit wind data
+docuDir = C:/Users/Siddarta.Jairam/Documents/Documentation
+
+#hysplit locations
+HyBase = C:/hysplit4/exec
+HyConc = hycs_std.exe
+HyPlt = concplot.exe
+HyWorkDirec = C:/hysplit4/working
+
+
+
+######
+#Global variables
+######
+
+year = 2011
+runName = runLimFlight
+
+#Cropscape m 
+xmin = -1005735
+xmax = 2274265
+ymin = 284055
+ymax = 2924055
+
+spc = 40000
+
+#####
+#Program specific vars
+#####
+
+#iterateHYSPLIT.R
+
+#the day that you want to start outputing the plots
+invPlotFlag = 10 
+plotWriteFlag = 1
+plotPop = FL
+#do you want to ouput textfiles of the Moth and Cohort pops?
+writeFlag = 1
+# make an automated readme file?
+makeReadmeFlag = 1 
+metSimType = edas
+
+codeChanges = Further Vectorized Moth utilities, migrateDeath and growMoth
+outEveryDayStart = 120
+outEveryDayEnd = 220
+
+#ncdf2trapdata.R
+
+trapName = FAW Data Locations 2011 (3nd version).csv
+#Use the single nc file (1) or the slice nc files (per day) (0)
+totFlag = 1
