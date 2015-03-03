@@ -1,4 +1,5 @@
-rm(list=ls(all=TRUE))
+#! C:/Program Files/R/R-3.1.1/bin/x64/Rscript.exe
+
 options(show.error.locations=TRUE)
 require(httr)
 

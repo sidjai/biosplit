@@ -3,7 +3,8 @@
 rm(list=ls(all=TRUE))
 cfgFile <- "config.txt"
 
-raw <- readLines(cfgFile)
+raw <- readLines(gsub("R Code",cfgFile,getwd()))
+#raw <- readLines(cfgFile)
 nice <- grep("[=]",raw,value=TRUE)
 nice <- gsub("^\\s+|\\s+$", "", nice)
 nice <- nice[!grepl("[#]",nice)]
@@ -55,4 +56,16 @@ cfg$MetARLFold <- paste(cfg$MetARLDir,toString(cfg$year),cfg$metSimType,sep="/")
 cfg$AprioriLoc <- paste(cfg$AirTempDir,toString(cfg$year),"aprioriVars.nc",sep="/")
 cfg$TrapLoc <- paste(cfg$docuDir,cfg$trapName,sep="/")
 
+# make folders
+foldSet <- grep("Fold",names(cfg))
+
+for (y in foldSet){
+	for(x in seq(1,length(cfg[[y]]))){
+		dir.create(cfg[[y]][[x]],showWarnings = FALSE, recursive = TRUE)
+	}
+}
+back <- paste(cfg,collapse=" \n")
+back <- strsplit(back," \n")[[1]]
+names(back) <- paste(names(cfg),"=")
+write.table(back,file="cfg.txt")
 save(cfg,file="cfg.Rout")

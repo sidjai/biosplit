@@ -15,7 +15,7 @@ docuDir = C:/Users/Siddarta.Jairam/Documents/Documentation
 HyBase = C:/hysplit4/exec
 HyConc = hycs_std.exe
 HyPlt = concplot.exe
-HyWorkDirec = C:/hysplit4/working
+HyWorking = C:/hysplit4/working
 
 
 
@@ -23,7 +23,7 @@ HyWorkDirec = C:/hysplit4/working
 #Global variables
 ######
 
-year = 2011
+year = 2012
 runName = runLimFlight
 
 #Cropscape m 
