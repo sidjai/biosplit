@@ -3,7 +3,7 @@
 rm(list=ls(all=TRUE))
 cfgFile <- "config.txt"
 
-raw <- readLines(gsub("R Code",cfgFile,getwd()))
+raw <- readLines(gsub("r_code",cfgFile,getwd()))
 #raw <- readLines(cfgFile)
 nice <- grep("[=]",raw,value=TRUE)
 nice <- gsub("^\\s+|\\s+$", "", nice)

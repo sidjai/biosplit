@@ -11,13 +11,13 @@ runScript <- function(file,args=""){
 		
 	if (langFlag==1){
 		#Rscripts
-		scrDir <- paste(getwd(),"R Code",sep="/")
+		scrDir <- paste(getwd(),"r_code",sep="/")
 		command <- paste("CD",scrDir)
 		command[2] <- paste("Rscript",file,args)
 		
 	} else if (langFlag==2){
 		#Visual basic from Scripter
-		scrDir <- paste(getwd(),"Scripter Code",sep="/")
+		scrDir <- paste(getwd(),"surf_code",sep="/")
 		command <- paste("CD",scrDir)
 		command[2] <- paste(
 			paste0("\"",paste(goldLoc,"Scripter","Scripter.exe",sep="/"),"\"")
@@ -26,7 +26,7 @@ runScript <- function(file,args=""){
 		
 	} else if (langFlag==3){
 		#IronPython or Jython from MeteoInfo
-		scrDir <- paste(getwd(),"Python Code",sep="/")
+		scrDir <- paste(getwd(),"Python_code",sep="/")
 		command <- paste("CD",scrDir)
 		command[2] <- paste(
 			paste0("\"",paste(MeteoLoc,"MIScript.exe",sep="/"),"\"")
