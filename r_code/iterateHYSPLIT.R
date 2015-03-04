@@ -231,7 +231,7 @@ changeInput <- function(dateChangeFlag, date,pop,PID=0){
 		"YYYY MM DD HH MM DURATION(hhmm) LAT LON HGT(m) RATE(/h) AREA(m2) HEAT(w)")
 	base <- paste(strftime(date,"%Y %m %d"),"00")
 	
-	newEmit[3] <-paste(cfg$HyBase,"0001",newSrc)
+	newEmit[3] <-paste(base,"0001",newSrc)
 	
 
 	xmap <- list()
@@ -244,7 +244,7 @@ changeInput <- function(dateChangeFlag, date,pop,PID=0){
 		ymap[ind] <- toString(map2block(yi,2,0))
 		areaCorn <- toString(ifelse(is.na(apr$Corn[xi,yi]),0,apr$Corn[xi,yi]*10000))
 		
-		newEmit[3+ind]  <- paste(cfg$HyBase, "00 0100", ymap[[ind]], xmap[[ind]], "500.0", toString(item[ind,3]), areaCorn, "0.0")	
+		newEmit[3+ind]  <- paste(base, "00 0100", ymap[[ind]], xmap[[ind]], "500.0", toString(item[ind,3]), areaCorn, "0.0")	
 	}
 	
 	#done with emit file
