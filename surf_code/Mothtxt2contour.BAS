@@ -24,7 +24,7 @@ runName = "runTiredFix"
 runName = "runTest4"
 runName = "runMaineMultiLife"
 runName = "runMaineBoost"
-runName = "runLimFlight"
+runName = "runLimFlight2"
 
 Dim logLevels(5) As Double
 numLevels = 5

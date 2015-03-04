@@ -23,8 +23,8 @@ HyWorking = C:/hysplit4/working
 #Global variables
 ######
 
-year = 2012
-runName = runLimFlight
+year = 2011
+runName = runLimFlight2
 
 #Cropscape m 
 xmin = -1005735
@@ -48,9 +48,8 @@ plotPop = FL
 writeFlag = 1
 # make an automated readme file?
 makeReadmeFlag = 1 
-metSimType = edas
 
-codeChanges = Further Vectorized Moth utilities, migrateDeath and growMoth
+codeChanges = Made a main driver code for all the programs using a global config file 
 outEveryDayStart = 120
 outEveryDayEnd = 220
 
@@ -65,3 +64,41 @@ totFlag = 1
 #Biological Assumptions
 ############################
 
+simType = Multi Hysplit
+stAmount = 1000000
+mothThres = 2
+cohortThres = 1
+cohortGDDThres = 346.2
+#cohortGDDLmt = 2400
+windThres = (-9999)
+#Corn GDD check for laying eggs
+infestThres = 100 
+infestLmt = 2000
+#days old for moths
+lifeSpan = 18
+#day when the moth lays eggs
+oviDay = 2
+#total number of eggs that a moth has
+capEggs = 125
+# number of eggs laid at the same time
+eggsPerInfest = 17
+#startDay = 40
+endDay = 300
+metDataType = edas
+#skip because the ARL data is missing (2011)
+skip = c(241,242) 
+#skip = c(0)
+#lower corn thres for Florida in the first half of the year
+altCornDay  = 100
+#num of nights that a moth can fly in succession
+succFlightLim = 2
+flightPropAfterSilk = 0.9
+flightPropBeforeSilk = 0.1
+
+
+relAmtFL = 0.1
+OverwinterFL = -82.37, 26.9
+OverwinterFL = -80.5, 26.1
+OverwinterTX = -98.2, 26.8
+OverwinterTX = -99, 26.9
+OverwinterTX = -98.2, 26.2

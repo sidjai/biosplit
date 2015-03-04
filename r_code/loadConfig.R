@@ -3,8 +3,8 @@
 rm(list=ls(all=TRUE))
 cfgFile <- "config.txt"
 
-raw <- readLines(gsub("r_code",cfgFile,getwd()))
-#raw <- readLines(cfgFile)
+#raw <- readLines(gsub("r_code",cfgFile,getwd()))
+raw <- readLines(cfgFile)
 nice <- grep("[=]",raw,value=TRUE)
 nice <- gsub("^\\s+|\\s+$", "", nice)
 nice <- nice[!grepl("[#]",nice)]
@@ -12,6 +12,15 @@ nice <- nice[!grepl("[#]",nice)]
 split <- strsplit(nice," = ")
 firstHalf <- vapply(split,function(x) x[1],"e")
 secondHalf <- vapply(split,function(x) x[2],"e")
+
+#Initial overwinter populations
+
+winterSet <- grepl("Overwinter",firstHalf)
+FLset <- grepl("FL",firstHalf[winterSet])
+xygrid <- t(vapply(which(winterSet),function(x) as.numeric(strsplit(secondHalf[[x]],",")[[1]]),rep(1,2)))
+
+firstHalf <- firstHalf[!winterSet]
+secondHalf <- secondHalf[!winterSet]
 
 #ARL indv changes
 dirNum <- grep("Air|Soil|Wind",firstHalf)
@@ -27,10 +36,11 @@ addComm <- vapply(1:length(addLeft),function(x){
 	},"e")
 
 #turn the strings into literal strings
-digSet  <- grepl("\\d",secondHalf)
-alpSet  <- grepl("[:alpha:]",secondHalf)
+vecSet <- grepl("c\\(",secondHalf)
+digSet <- grepl("\\d",secondHalf)
+alpSet <- grepl("[:alpha:]",secondHalf)
 
-numSet <- (digSet & !alpSet)
+numSet <- (digSet & !alpSet) | vecSet
 secondHalf[!numSet] <- paste0("\"",secondHalf[!numSet],"\"")
 
 commands <- paste0("cfg$",firstHalf," <- ",secondHalf)
@@ -52,9 +62,24 @@ cfg$SimOutFold <- paste(cfg$SimOutDir,toString(cfg$year),cfg$runName,sep="/")
 cfg$READMELoc <- paste(cfg$SimOutDir,toString(cfg$year),"README.txt",sep="/")
 cfg$CropFold[1] <- paste(cfg$CropDir,toString(cfg$year),"RawNASS",sep="/")
 cfg$CropFold[2] <- paste(cfg$CropDir,toString(cfg$year),"Projected",sep="/")
-cfg$MetARLFold <- paste(cfg$MetARLDir,toString(cfg$year),cfg$metSimType,sep="/")
+cfg$MetARLFold <- paste(cfg$MetARLDir,toString(cfg$year),cfg$metDataType,sep="/")
+cfg$ncSliceFold <- paste(cfg$SimOutFold,"ncs",sep="/")
+cfg$rawHyPlotFold <- paste(cfg$SimOutFold,"HysplitPlots/", sep="/")
 cfg$AprioriLoc <- paste(cfg$AirTempDir,toString(cfg$year),"aprioriVars.nc",sep="/")
 cfg$TrapLoc <- paste(cfg$docuDir,cfg$trapName,sep="/")
+
+# add amounts to input grids
+cfg$Flnum <- length(which(FLset))
+FLamt <- cfg$stAmount *((cfg$relAmtFL)/cfg$Flnum)
+TXamt <- cfg$stAmount *((1-cfg$relAmtFL)/length(which(!FLset)))
+
+grdAmt <- vapply(FLset,function(x){
+	if(x){FLamt}
+	else {TXamt}
+},1)
+
+intGrids <- cbind(xygrid,grdAmt,deparse.level = 0)
+
 
 # make folders
 foldSet <- grep("Fold",names(cfg))
@@ -67,5 +92,6 @@ for (y in foldSet){
 back <- paste(cfg,collapse=" \n")
 back <- strsplit(back," \n")[[1]]
 names(back) <- paste(names(cfg),"=")
+
 write.table(back,file="cfg.txt")
-save(cfg,file="cfg.Rout")
+save(cfg,intGrids,file="cfg.Rout")
