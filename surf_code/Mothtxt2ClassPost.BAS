@@ -12,9 +12,9 @@ Sub Main
 	Dim beg As Integer
 
 
-
-yr=2011
-direc = "C:\Users\Siddarta.Jairam\Documents\Hysplit Out Moth table"
+inp = CStr(Command$)
+'yr=2011
+'direc = "C:\Users\Siddarta.Jairam\Documents\Hysplit Out Moth table"
 
 'runName = "runwkend3standw"
 'runName = "runlowerStart"
@@ -27,14 +27,14 @@ direc = "C:\Users\Siddarta.Jairam\Documents\Hysplit Out Moth table"
 'runName = "runIsobar4"
 'runName = "runIsobarQuickFix"
 'runName = "runTiredFix"
-runName = "runTest4"
-runName = "runMaineBoost"
-runName = "runLimFlight"
+'runName = "runTest4"
+'runName = "runMaineBoost"
+'runName = "runLimFlight2"
 
 On Error GoTo coda
 
-direc = direc & "\" &  Join(Array(yr)) & "\" & runName & "\"
-
+'direc = direc & "\" &  Join(Array(yr)) & "\" & runName & "\"
+direc = inp & "/"
 
 
 If (yr<0) Then 'just to make this code not run in normal circumstances
@@ -45,7 +45,7 @@ If (yr<0) Then 'just to make this code not run in normal circumstances
 End If
 
 MkDir(direc & "jpeg")
-MkDir(direc & "jpeg\ClassPost")
+MkDir(direc & "jpeg/ClassPost")
 
 templateName ="C:\Users\Siddarta.Jairam\Documents\Documentation\tempOutL.srf"
 'Open template
@@ -175,7 +175,7 @@ While Len(file)>0
 	des = Split(file,".")(0)
 
 	myPlot.Shapes.AddText(texx,texy,des).Font.Size = 14
-	outfile =direc+"jpeg\ClassPost\"+des+".jpg"
+	outfile =direc+"jpeg/ClassPost/"+des+".jpg"
 	myPlot.Export2(outFile,Options:="HDPI=900,VDPI=900", FilterId:="jpg")
 
 	'Clean things up

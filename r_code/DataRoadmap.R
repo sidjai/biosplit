@@ -2,6 +2,7 @@ rm(list=ls(all=TRUE))
 
 meteoLoc <- "C:/Program Files (x86)/MeteoInfo"
 goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
+realWd <- gsub("/r_code","",ifelse(grepl("System",getwd()),dirname(sys.frame(1)$ofile),getwd()))
 
 runScript <- function(file,args=""){
 	langFlag <- switch(strsplit(file,"[.]")[[1]][2], R=1,BAS=2,py=3,-9999)
@@ -21,8 +22,8 @@ runScript <- function(file,args=""){
 		command <- paste("CD",scrDir)
 		command[2] <- paste(
 			paste0("\"",paste(goldLoc,"Scripter","Scripter.exe",sep="/"),"\"")
-			,"-x",file)
-		cat("scripterArgs.txt",paste(args,collapse="\n"))
+			,"-x",file,args)
+		#cat("scripterArgs.txt",paste(args,collapse="\n"))
 		
 	} else if (langFlag==3){
 		#IronPython or Jython from MeteoInfo
@@ -41,13 +42,14 @@ runScript <- function(file,args=""){
 	input <- paste(command,collapse=" && ")
 	
 	cat("\n","#######", paste("calling", file),"\n")
+	#cat(input)
 	shell(input)
 }
 
 #Load configuration for this set
 
 runScript("loadConfig.R")
-load("cfg.Rout")
+load(paste(realWd,"cfg.Rout",sep="/"))
 
 
 #####Crop#####################################
@@ -56,6 +58,7 @@ load("cfg.Rout")
 
 
 #Download the files directly from NASS cropscape
+runScript("NASS2TIFs.R")
 
 #convert the downloaded Tiff 30m blocks to 40 km blocks in .grd format
 #Require Scripter
@@ -106,9 +109,9 @@ runScript("ncdf2trapdata.R")
 
 #Make the maps
 #require scripter
-runScript("Mothtxt2ClassPost.BAS")
+runScript("Mothtxt2ClassPost.BAS",cfg$SimOutFold)
 
 #require scripter
-runScript("Mothtxt2contour.BAS")
+runScript("Mothtxt2contour.BAS",cfg$SimOutFold)
 
 

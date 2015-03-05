@@ -1,29 +1,16 @@
+#! C:/Program Files/R/R-3.1.1/bin/x64/Rscript.exe
+realWd <- gsub("/r_code","",ifelse(grepl("System",getwd()),dirname(sys.frame(1)$ofile),getwd()))
+load(paste(realWd,"cfg.Rout",sep="/"))
 
-rm(list=ls(all=TRUE))
-
-ptm <- proc.time()
-
-direcNC <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
-#runName <-"runcornThres"
-runName <- "runTiredFix"
-runName <- "runLimFlight"
-year <- 11
-trapDir <- "C:/Users/Siddarta.Jairam/Documents/Documentation"
-trapName <- "FAW Data Locations 2011 (3nd version).csv"
-#trapName  <- "Selected FAW Trap Locations.csv"
-trapLoc <- paste(trapDir,trapName, sep="/")
-
-totFlag <- 1 #Use the single nc file, or the single nc files
  
 require(rgdal)
 require(raster)
 require(ncdf)
 
 
+ncFile <- paste(cfg$SimOutFold,"Final.nc",sep="/")
+outFile <-paste(cfg$SimOutFold,"TrapFinal",sep="/")
 
-ncFile <- paste(direcNC,(year+2000),runName,"Final.nc",sep="/")
-outFile <-paste(direcNC,(year+2000),runName,"TrapFinal",sep="/")
-sliceFiles <- paste(direcNC,(year+2000),runName,"ncs",sep="/")
 nc <- open.ncdf(ncFile)
 
 Assump <- att.get.ncdf(nc,0,"Assumptions")$value
@@ -50,7 +37,7 @@ addAppendix <- function(res){
 	width <- dim(res)[2]
 	res <- rbind(res,vapply(1:width,function(x) "",""), c(paste("#",Assump),vapply(1:(width-1),function(x) "","")))
 	res <- rbind(res,c(paste("#",simData),vapply(1:(width-1),function(x) "","")))
-	res <- rbind(res,c(paste("#Trap file",trapName),vapply(1:(width-1),function(x) "","")))
+	res <- rbind(res,c(paste("#Trap file",cfg$trapName),vapply(1:(width-1),function(x) "","")))
 	return(res)
 }
 
@@ -58,7 +45,7 @@ rebuildNc <- function(){
 	di <- seq(8,365,7)
 	dates <- vapply(di, function(x){
 	strftime(
-		strptime(paste(toString(x),toString(2000+year)),"%j %Y")
+		strptime(paste(toString(x),toString(cfg$year)),"%j %Y")
 		,"Moth_%m%d%y.nc")
 	},"")
 	Txfiles <- vapply(dates,function(x)paste0(sliceFiles,"/TX",x),"")
@@ -79,7 +66,7 @@ rebuildNc <- function(){
 	return(out)
 }
 
-inputs <- read.csv(trapLoc,stringsAsFactors=FALSE)
+inputs <- read.csv(cfg$TrapLoc,stringsAsFactors=FALSE)
 LonIn <- inputs$Lon
 LonIn[which(LonIn>0)] <- (-LonIn[which(LonIn>0)])
 xb <- vapply(LonIn,function(x) trap2block(x,1),1)
@@ -104,7 +91,7 @@ for (el in seq(1, inSize[1])){
 	tab[fi+1,inSize[2]+1] <-"TX"
 
 	#do Time series
-	if (!totFlag) mod <- rebuildNc()
+	if (!cfg$totFlag) mod <- rebuildNc()
 	tSer[fi,] <- mod$FLMoth[xb[el],yb[el],]
 	tSer[fi+1,] <- mod$TXMoth[xb[el],yb[el],]
 
@@ -118,7 +105,7 @@ colnames(tab) <-c(names(inputs),"Origin")
 days <- seq(8,365,7)
 colnames(tSer) <- vapply(days, function(x)
 	strftime(
-		strptime(paste(toString(x),toString(2000+year)),"%j %Y")
+		strptime(paste(toString(x),toString(cfg$year)),"%j %Y")
 	," %m/%d/%y"),"")
 
 outh <- cbind(tab,tSer)
@@ -146,5 +133,3 @@ outv <- addAppendix(outv)
 
 write.csv(outh,paste0(outFile,"h.csv"),row.names=FALSE)
 write.csv(outv,paste0(outFile,"v.csv"),row.names=FALSE)
-
-print(proc.time() - ptm)

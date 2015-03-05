@@ -1,3 +1,4 @@
+#! C:/Program Files/R/R-3.1.1/bin/x64/Rscript.exe
 # source("C:/Users/Siddarta.Jairam/Documents/MothMigrationModel/r_code/iterateHYSPLIT.R")
 rm(list=ls(all=TRUE))
 #options(show.error.locations=TRUE)
@@ -7,7 +8,8 @@ require(rgdal)
 require(raster)
 require(ncdf)
 
-load(gsub("r_code","cfg.Rout",dirname(sys.frame(1)$ofile)))
+realWd <- gsub("/r_code","",ifelse(grepl("System",getwd()),dirname(sys.frame(1)$ofile),getwd()))
+load(paste(realWd,"cfg.Rout",sep="/"))
 nc <- open.ncdf(cfg$AprioriLoc)
 
 varNames <- names(nc$var)
@@ -1237,7 +1239,7 @@ if (cfg$writeFlag){
 			 var.def.ncdf('FLCohort', '#Immature moths',dims,1.e30),
 			 var.def.ncdf('TXMoth', '#Moths',dims,1.e30),
 			 var.def.ncdf('FLMoth', '#Moths',dims,1.e30))
-	onc <-create.ncdf(paste0(cfg$SimOutDir,"Final.nc"),fVars)
+	onc <-create.ncdf(paste(cfg$SimOutFold,"Final.nc",sep="/"),fVars)
 
 	put.var.ncdf(onc,"TXCohort",CohortOut[[1]])
 	put.var.ncdf(onc,"FLCohort",CohortOut[[2]])

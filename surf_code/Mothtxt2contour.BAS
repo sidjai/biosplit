@@ -15,16 +15,17 @@ Sub Main
 
 
 	Set doc = Surf.Documents
-yr=2011
+
+inp = CStr(Command$)
+Debug.Print (inp)
+'inp = "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table/2011/runLimFlight2"
+Debug.Print (inp)
+'yr=2011
 'runName = "runsecond"
 'runName = "runcornThres"
 'runName = "runIsobarQuickFix"
 'runName = "runIsobar3"
-runName = "runTiredFix"
-runName = "runTest4"
-runName = "runMaineMultiLife"
-runName = "runMaineBoost"
-runName = "runLimFlight2"
+'runName = "runLimFlight2"
 
 Dim logLevels(5) As Double
 numLevels = 5
@@ -32,11 +33,11 @@ Origin (0) ="Wide Downward Diagonal" 'TX
 Origin (1)  = "Wide Upward Diagonal" 'FL
 Origin (2) ="Wide Downward Diagonal" 'TXCohort
 Origin (3)  = "Wide Upward Diagonal" 'FLCohort
-direc = "C:\Users\Siddarta.Jairam\Documents\Hysplit Out Moth table"
+'direc = "C:\Users\Siddarta.Jairam\Documents\Hysplit Out Moth table"
 
 On Error GoTo coda
 
-If (yr<0) Then
+If (numLevels<0) Then
 	coda:
 				If (InStr(Err.Description,"planar")>0) Then
 					Err = 0
@@ -56,13 +57,14 @@ If (yr<0) Then
 End If
  'Resume Next
 
-mainFol = direc & "\" &  Join(Array(yr)) & "\" & runName
-outFinal = mainFol & "\"
-outFol =mainFol & "\jpeg\
+'mainFol = direc & "\" &  Join(Array(yr)) & "\" & runName
+mainFol = inp
+outFinal = mainFol & "/"
+outFol =mainFol & "/jpeg/"
 MkDir(outFol)
-outFol =outFol & "Contours\"
+outFol =outFol & "Contours/"
 MkDir(outFol)
-mainFol = mainFol &"\ncs\"
+mainFol = mainFol &"/ncs/"
 
 popDes(0) = "FLMoth"
 popDes(1) = "TXMoth"
@@ -133,7 +135,7 @@ For wk = 1 To GetLast(fileList)
 		Else
 			tfile = TXlist(wk)
 		End If
-		temp = Split(tfile,"\")
+		temp = Split(tfile,"/")
 		k=0
 		For Each i In temp
 			k=k+1

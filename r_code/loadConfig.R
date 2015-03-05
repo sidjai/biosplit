@@ -1,9 +1,8 @@
 #! C:/Program Files/R/R-3.1.1/bin/x64/Rscript.exe
-
 rm(list=ls(all=TRUE))
-cfgFile <- "config.txt"
+realWd <- gsub("/r_code","",ifelse(grepl("System",getwd()),dirname(sys.frame(1)$ofile),getwd()))
+cfgFile <- paste0(realWd,"/config.txt")
 
-#raw <- readLines(gsub("r_code",cfgFile,getwd()))
 raw <- readLines(cfgFile)
 nice <- grep("[=]",raw,value=TRUE)
 nice <- gsub("^\\s+|\\s+$", "", nice)
@@ -93,5 +92,5 @@ back <- paste(cfg,collapse=" \n")
 back <- strsplit(back," \n")[[1]]
 names(back) <- paste(names(cfg),"=")
 
-write.table(back,file="cfg.txt")
-save(cfg,intGrids,file="cfg.Rout")
+write.table(back,file=paste(realWd,"cfg.txt",sep="/"))
+save(cfg,intGrids,file=paste(realWd,"cfg.Rout",sep="/"))
