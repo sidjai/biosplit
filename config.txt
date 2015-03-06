@@ -24,7 +24,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2011
-runName = runLimFlight2
+runName = runMaineBoost
 
 #Cropscape m 
 xmin = -1005735
@@ -55,7 +55,7 @@ outEveryDayEnd = 220
 
 #ncdf2trapdata.R
 
-trapName = FAW Data Locations 2011 (3nd version).csv
+trapName = FAW Data Locations 2011 (3.1 version).csv
 #Use the single nc file (1) or the slice nc files (per day) (0)
 totFlag = 1
 
@@ -91,7 +91,7 @@ skip = c(241,242)
 #lower corn thres for Florida in the first half of the year
 altCornDay  = 100
 #num of nights that a moth can fly in succession
-succFlightLim = 2
+succFlightLim = 4
 flightPropAfterSilk = 0.9
 flightPropBeforeSilk = 0.1
 

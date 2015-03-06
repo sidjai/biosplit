@@ -1,8 +1,12 @@
 rm(list=ls(all=TRUE))
 
-meteoLoc <- "C:/Program Files (x86)/MeteoInfo"
+#meteoLoc <- "C:/Program Files (x86)/MeteoInfo"
+meteoLoc <- "C:/Users/Siddarta.Jairam/Desktop/sid/MeteoInfo1.2"
 goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
-realWd <- gsub("/r_code","",ifelse(grepl("System",getwd()),dirname(sys.frame(1)$ofile),getwd()))
+RLoc <- "C:/Program Files/R/R-3.1.1"
+
+#realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
+realWd <- "C:/Users/Siddarta.Jairam/Documents/MothMigrationModel"
 
 runScript <- function(file,args=""){
 	langFlag <- switch(strsplit(file,"[.]")[[1]][2], R=1,BAS=2,py=3,-9999)
@@ -12,13 +16,15 @@ runScript <- function(file,args=""){
 		
 	if (langFlag==1){
 		#Rscripts
-		scrDir <- paste(getwd(),"r_code",sep="/")
+		scrDir <- paste(realWd,"r_code",sep="/")
 		command <- paste("CD",scrDir)
-		command[2] <- paste("Rscript",file,args)
+		command[2] <- paste(
+			paste0("\"",paste(RLoc,"bin","Rscript.exe",sep="/"),"\"")
+			,file,args)
 		
 	} else if (langFlag==2){
 		#Visual basic from Scripter
-		scrDir <- paste(getwd(),"surf_code",sep="/")
+		scrDir <- paste(realWd,"surf_code",sep="/")
 		command <- paste("CD",scrDir)
 		command[2] <- paste(
 			paste0("\"",paste(goldLoc,"Scripter","Scripter.exe",sep="/"),"\"")
@@ -27,10 +33,10 @@ runScript <- function(file,args=""){
 		
 	} else if (langFlag==3){
 		#IronPython or Jython from MeteoInfo
-		scrDir <- paste(getwd(),"Python_code",sep="/")
-		command <- paste("CD",scrDir)
+		scrDir <- paste(realWd,"Python_code",sep="/")
+		command <- paste("CD",scrLoc)
 		command[2] <- paste(
-			paste0("\"",paste(MeteoLoc,"MIScript.exe",sep="/"),"\"")
+			paste0("\"",paste(meteoLoc,"meteoinfo.bat",sep="/"),"\"")
 			,file,args)
 		
 	}
@@ -42,7 +48,7 @@ runScript <- function(file,args=""){
 	input <- paste(command,collapse=" && ")
 	
 	cat("\n","#######", paste("calling", file),"\n")
-	#cat(input)
+	cat(input)
 	shell(input)
 }
 
@@ -72,7 +78,7 @@ runScript("TIFFR2GRD.BAS")
 
 #Go through the ARL data 
 #Require MeteoInfo
-runScript("ARS2GRD.py")
+runScript("ARL2GRD.py",paste(realWd,"cfg.txt",sep="/"))
 
 #Change the extent of the data
 #Require Scripter (port now this is ridonk)
