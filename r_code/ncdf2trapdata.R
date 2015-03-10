@@ -35,10 +35,18 @@ trap2block <-function(vin,coor){
 }
 addAppendix <- function(res){
 	width <- dim(res)[2]
-	res <- rbind(res,vapply(1:width,function(x) "",""), c(paste("#",Assump),vapply(1:(width-1),function(x) "","")))
-	res <- rbind(res,c(paste("#",simData),vapply(1:(width-1),function(x) "","")))
-	res <- rbind(res,c(paste("#Trap file",cfg$trapName),vapply(1:(width-1),function(x) "","")))
+	res <- rbind(res, fillWid("",width))
+	res <- rbind(res, fillWid(paste("#",Assump),width))
+	res <- rbind(res, fillWid(paste("#",simData),width))
+	res <- rbind(res, fillWid(paste("# Trap file:",cfg$trapName),width))
+	res <- rbind(res, fillWid("",width))
+	res <- rbind(res, fillWid(paste("# Used Nearest neighbor:",
+		paste(nnSet[-1],collapse=", ")),width))
+	
 	return(res)
+}
+fillWid <- function(str,wid){
+	val <- c(str,vapply(1:(wid-1),function(x) "",""))
 }
 
 rebuildNc <- function(){
@@ -80,6 +88,7 @@ tSer <- matrix(nrow=2*inSize[1],ncol=52)
 #intiatialize the out table
 add <- c("TX","FL")
 fi<-1
+nnSet <- ""
 
 for (el in seq(1, inSize[1])){
 	for(co in seq(1, inSize[2])){
@@ -94,10 +103,35 @@ for (el in seq(1, inSize[1])){
 	if (!cfg$totFlag) mod <- rebuildNc()
 	tSer[fi,] <- mod$FLMoth[xb[el],yb[el],]
 	tSer[fi+1,] <- mod$TXMoth[xb[el],yb[el],]
-
+	
+	#If no moths in area, try nearest neighbor
+	#Reasons: Beach area, near national park, dead spot in corn
+	totMoth <- sum(tSer[fi,],tSer[fi+1,])
+	if (totMoth == 0){
+		nnind <- matrix(data = 0, nrow = 1, ncol = 2)
+		#load up inds
+		for(xp in seq(xb[el]-1,xb[el]+1)){
+			for(yp in seq(yb[el]-1,yb[el]+1)){
+				nnind <- rbind(nnind,cbind(xp,yp))
+			}
+		}
+		nnind <- nnind[-1,]
+		
+		nnk <- 1
+		while(totMoth==0 && nnk <= dim(nnind)[1]){
+			nns <- rbind(mod$FLMoth[nnind[nnk,1],nnind[nnk,2],],
+				mod$TXMoth[nnind[nnk,1],nnind[nnk,2],])
+			totMoth <- sum(nns)
+			nnk <- nnk+1
+		}
+		if (nnk <= dim(nnind)[1]){
+			tSer[fi,] <- nns[1,]
+			tSer[fi+1,] <- nns[2,]
+			nnSet <- c(nnSet,tab[fi,2])
+		}
+	}
 
 	fi<-fi+2
-
 }
 tSer <-tSer[,1:52]
 colnames(tab) <-c(names(inputs),"Origin")

@@ -68,7 +68,7 @@ runScript("NASS2TIFs.R")
 
 #convert the downloaded Tiff 30m blocks to 40 km blocks in .grd format
 #Require Scripter
-runScript("TIFFR2GRD.BAS")
+runScript("TIFFR2GRD.BAS",paste(cfg$CropDir,cfg$year,sep="/"))
 
 
 ######ARL####################################
@@ -105,6 +105,8 @@ runScript("aprioriVars.R")
 #Call the model
 runScript("iterateHysplit.R")
 
+#runScript("loadConfig.R")
+#load(paste(realWd,"cfg.Rout",sep="/"))
 ####Post-Process####################################
 # Make maps and JUMP ready tables for the model output
 ####

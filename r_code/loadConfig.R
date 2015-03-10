@@ -6,6 +6,7 @@ cfgFile <- paste0(realWd,"/config.txt")
 raw <- readLines(cfgFile)
 nice <- grep("[=]",raw,value=TRUE)
 nice <- gsub("^\\s+|\\s+$", "", nice)
+nice <- gsub("[\\]", "/", nice)
 nice <- nice[!grepl("[#]",nice)]
 
 split <- strsplit(nice," = ")

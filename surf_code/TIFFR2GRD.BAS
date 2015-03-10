@@ -9,15 +9,16 @@ Dim yr, newArea,j As Double
 
 Set Surf = CreateObject("Surfer.Application")
 
-yr=2011
+inp = CStr(Command$)
+yr=2012
 newArea = 40000
-direc="C:\Users\Siddarta.Jairam\Documents\Crop Data\"
+'direc="C:\Users\Siddarta.Jairam\Documents\Crop Data\"
 
-direc=direc&Join(Array(yr))&"\"
+'direc=direc&Join(Array(yr))&"\"
+direc = inp & "/"
+outGrd = direc&"Projected/"&"Crop_Grid_"&Join(Array(yr))
 
-outGrd = direc&"Projected\"&"Crop_Grid_"&Join(Array(yr))
-
-direc = direc & "rawNASS\"
+direc = direc & "RawNASS/"
 
 
 'Get all the GeoTiff files in the NASS crop downloaded files
