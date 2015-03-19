@@ -110,8 +110,9 @@ for (el in seq(1, inSize[1])){
 	if (totMoth == 0){
 		nnind <- matrix(data = 0, nrow = 1, ncol = 2)
 		#load up inds
-		for(xp in seq(xb[el]-1,xb[el]+1)){
-			for(yp in seq(yb[el]-1,yb[el]+1)){
+		dist <- ifelse(grepl("Miami",tab[fi,2]),3,1)
+		for(xp in seq(xb[el]-dist,xb[el]+dist)){
+			for(yp in seq(yb[el]-dist,yb[el]+dist)){
 				nnind <- rbind(nnind,cbind(xp,yp))
 			}
 		}

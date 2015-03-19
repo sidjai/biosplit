@@ -23,8 +23,8 @@ HyWorking = C:/hysplit4/working
 #Global variables
 ######
 
-year = 2011
-runName = runMaineBoost
+year = 2012
+runName = runHelloWorld
 
 #Cropscape m 
 xmin = -1005735

@@ -1,15 +1,17 @@
+#! C:/Program Files/R/R-3.1.1/bin/x64/Rscript.exe
+realWd <- gsub("/r_code","",ifelse(grepl("System",getwd()),dirname(sys.frame(1)$ofile),getwd()))
+load(paste(realWd,"cfg.Rout",sep="/"))
 
-rm(list=ls(all=TRUE))
-#direcC<-"C:\\Users\\Siddarta.Jairam\\Downloads\\Crop r"
-direcs<-list()
-direcs[[1]]<-"C:/Users/Siddarta.Jairam/Documents/Crop data"
-direcs[[2]]<-"C:/Users/Siddarta.Jairam/Documents/Hysplit temp data"
-direcs[[3]]<-"C:/Users/Siddarta.Jairam/Documents/Hysplit wind data"
-direcs[[4]]<-"C:/Users/Siddarta.Jairam/Documents/Hysplit soilT data"
+args <- commandArgs(trailingOnly = TRUE)
+
+cornFlag  <- grepl("c",paste(args,collapse="")
+
+direcs[[1]] <- cfg$CropFold
+direcs[[2]] <- cfg$AirTempFold
+direcs[[3]] <- cfg$WindFold
+direcs[[4]] <- cfg$SoilTempFold
 
 resName <- "Crop_Grid"
-
-year <- 2011
 
 cornFlag <- 1
 tempFlag <- list(1,1,1)
@@ -24,17 +26,9 @@ orgFile <- paste(direcs[[1]],paste(year, "Corn", "1.tif", sep="_"), sep="/")
 resFile <- paste(direcs[[1]],"Projected", paste(resName,year, sep="_"), sep="/")
 cdatFile <- paste(resFile,".dat", sep="")
 
-tdatFold <- lapply(direcs,function(x)paste(x,"ParseAndExtract", sep="/"))
-tdatFold <- tdatFold[2:length(tdatFold)]
-tresFold <- lapply(direcs,function(x)paste(x,"Projected/", sep="/"))
-tresFold <- tresFold[2:length(tresFold)]
-
 combFile <- lapply(tresFold,function(x)paste(x,"Combined", sep=""))
 
 addList <- list("H.nc","L.nc","C.nc")
-
-#resFile <- paste(direc,year,paste(resName,year, sep="_"), sep="/")
-#resultFilenc <- paste(direc,resNamenc, sep="/")
 
 require(rgdal)
 require(raster)

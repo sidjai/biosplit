@@ -49,7 +49,7 @@ runScript <- function(file,args=""){
 	
 	cat("\n","#######", paste("calling", file),"\n")
 	cat(input)
-	shell(input)
+	shell(input,mustWork=TRUE)
 }
 
 #Load configuration for this set
@@ -65,10 +65,10 @@ load(paste(realWd,"cfg.Rout",sep="/"))
 
 #Download the files directly from NASS cropscape
 runScript("NASS2TIFs.R")
+stop("good job")
 
-#convert the downloaded Tiff 30m blocks to 40 km blocks in .grd format
-#Require Scripter
-runScript("TIFFR2GRD.BAS",paste(cfg$CropDir,cfg$year,sep="/"))
+#convert the downloaded Tiff 30m blocks to 40 km blocks and get rid of projection
+runScript("rawCrop2nicenc.R")
 
 
 ######ARL####################################
@@ -81,8 +81,8 @@ runScript("TIFFR2GRD.BAS",paste(cfg$CropDir,cfg$year,sep="/"))
 runScript("ARL2GRD.py",paste(realWd,"cfg.txt",sep="/"))
 
 #Change the extent of the data
-#Require Scripter (port now this is ridonk)
-runScript("ARSparsed2extgrid.BAS")
+
+runScript("rawCrop2nicenc.R")
 
 
 
@@ -90,9 +90,6 @@ runScript("ARSparsed2extgrid.BAS")
 ######Clean###################################
 #Clean up and deriving section
 ####
-
-#get the raw measured ncdf data for Corn and ARL
-runScript("XYZ402Map.R")
 
 #Transform this raw data into the derived variables used by the program
 runScript("aprioriVars.R")
