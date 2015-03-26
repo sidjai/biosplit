@@ -49,7 +49,7 @@ writeFlag = 1
 # make an automated readme file?
 makeReadmeFlag = 1 
 
-codeChanges = Made a main driver code for all the programs using a global config file 
+codeChanges = Made the data collection more reproducible and streamlined. Adjusted the projection to follow the data closer.
 outEveryDayStart = 120
 outEveryDayEnd = 220
 
@@ -63,6 +63,16 @@ totFlag = 1
 ############################
 #Biological Assumptions
 ############################
+
+#aprioriVars.R
+
+#The minimum amount of corn (hectares/1600 km2) that can support a Moth population
+CornThres = 75
+plantTimes = c(25, 39, 44, 136)
+harvestTimes = c(25, 39, 195, 300)
+
+
+#iterateHYSPLIT.R
 
 simType = Multi Hysplit
 stAmount = 1000000
@@ -86,12 +96,12 @@ eggsPerInfest = 17
 endDay = 300
 metDataType = edas
 #skip because the ARL data is missing (2011)
-skip = c(241,242) 
-#skip = c(0)
+#skip = c(241,242) 
+skip = c(0)
 #lower corn thres for Florida in the first half of the year
 altCornDay  = 100
 #num of nights that a moth can fly in succession
-succFlightLim = 4
+succFlightLim = 3
 flightPropAfterSilk = 0.9
 flightPropBeforeSilk = 0.1
 

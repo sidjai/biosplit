@@ -2,6 +2,8 @@
 realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
 load(paste(realWd,"cfg.Rout",sep="/"))
 
+tic <- Sys.time()
+
 require(rgdal)
 require(raster)
 require(ncdf)
@@ -67,5 +69,4 @@ for (ty in seq(1,length(metTree))){
 	}
 }
 
-
-
+toc <- round(as.double(Sys.time() - tic, units = "mins"),2)

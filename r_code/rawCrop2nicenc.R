@@ -2,14 +2,14 @@
 rm(list=ls(all=TRUE))
 realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
 load(paste(realWd,"cfg.Rout",sep="/"))
-
+tic <- Sys.time()
 require(rgdal)
 require(raster)
 require(ncdf)
 
 args <- paste(commandArgs(),collapse=",")
 
-
+cornConversion <- (0.09/.391019607843) #pixels to hectares
 cropProj <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
 
 goodProj <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
@@ -37,7 +37,7 @@ processCrop <- function(f){
 	
 	zvals <- vapply(1:lastx,function(xi){
 		ext <- extent(xLft[xi], xRgt[xi], bot, top)
-		sum(extract(ras, ext),na.rm=TRUE)
+		cornConversion*(sum(extract(ras, ext),na.rm=TRUE))
 	},1)
 	ras <- 999
 	return(zvals)
@@ -72,3 +72,4 @@ ras <- projectRaster(ras,finGrid)
 dataType(ras) <- 'INT4S'
 sult <- try(writeRaster(ras,filename=gsub("dat","nc",outName),
 	format="CDF", overwrite=TRUE),silent=TRUE)
+toc <- round(as.double(Sys.time() - tic, units = "mins"),2)

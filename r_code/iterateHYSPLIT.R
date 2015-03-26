@@ -1,4 +1,4 @@
-#! C:/Program Files/R/R-3.1.1/bin/x64/Rscript.exe
+#!C:/Program Files/R/R-3.1.1/bin/x64/Rscript.exe
 # source("C:/Users/Siddarta.Jairam/Documents/MothMigrationModel/r_code/iterateHYSPLIT.R")
 rm(list=ls(all=TRUE))
 #options(show.error.locations=TRUE)
@@ -8,7 +8,7 @@ require(rgdal)
 require(raster)
 require(ncdf)
 
-realWd <- gsub("/r_code","",ifelse(grepl("System",getwd()),dirname(sys.frame(1)$ofile),getwd()))
+realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
 load(paste(realWd,"cfg.Rout",sep="/"))
 nc <- open.ncdf(cfg$AprioriLoc)
 
@@ -83,6 +83,9 @@ makeLife <- function(flagMoth,loc,GDD,origin){
 	if (length(dim(loc))<2){
 		loc <- t(as.matrix(loc))
 	}
+	colnames(loc) <- NULL
+	rownames(loc) <- NULL
+	
 	life$grid <- loc
 	life$origin <- origin
 	
@@ -133,7 +136,7 @@ makeREADME <- function(readmeLoc,rundirec,masFlag){
 }
 
 map2block <-function(vin,coor, direction){
-	tol <-.25
+	tol <-.29
 	box <-cbind(vin-tol,vin+tol)
 
 	mapdim <- (if(coor ==1) xmapvec else ymapvec)
@@ -171,7 +174,7 @@ testEnv <- function(lpop,w=-9999){
 	ybs <- vapply(as.numeric(tab[,2]),function(x) map2block(x,2,1),1)
 	ind  <- cbind(xbs,ybs)
 	cAmt <- apr$Corn[ind]
-	cGDD <- round(apr$CornGDD[cbind(ind,di)],2)
+	cGDD <- round(apr$CornGDD[cbind(ind,di)]/10,2)
 	Livability <- howLivable(cGDD)
 	#Livability <- vapply(cGDD,function(x) howLivable(x),1)
 	if(popType){
@@ -532,7 +535,7 @@ willFly <- function(pop, day, genFlag){
 	ys <- map2block(pop$grid[,2],2,1)
 	inds <- cbind(xs,ys,day)
 	wind <- apr$TailWind[inds]
-	cGDD <- apr$CornGDD[inds]
+	cGDD <- apr$CornGDD[inds]/10
 	
 	if (genFlag) {expVal <- pop$grid[,3] * genFlightProp(cGDD)
 	} else expVal <- pop$grid[,3] * (1-howLivable(cGDD))
@@ -634,7 +637,7 @@ growMoths <- function(pop,day){
 			&& pop$numEggs > cfg$eggsPerInfest){
 		#row specific checks
 		orind <- cbind(xs,ys,rep.int(day,grdLen))
-		grCorn <- apr$CornGDD[orind]
+		grCorn <- apr$CornGDD[orind]/10
 		layTest <- (grd[,3] > 0
 			& grCorn < cfg$infestLmt
 			& grCorn > cfg$infestThres)
@@ -674,6 +677,7 @@ growMoths <- function(pop,day){
 }
 
 growCohort <- function(lpop,di){
+	if (length(lpop)<1) return(lpop)
 	
 	tab <- makePopTable(lpop)
 	xs <- map2block(tab[,1],1,1)
@@ -683,12 +687,14 @@ growCohort <- function(lpop,di){
 	#growth
 	aDD <- tab[,4]
 	for (t in seq(di,di+6)){
-		aDD <- aDD + apr$FawGDD[cbind(xs,ys,t)]
+		aDD <- aDD + apr$FawGDD[cbind(xs,ys,t)]/10
 	}
 	
 	#tests for death and adulthood
 	if (di<cfg$altCornDay) {deadTest <- (apr$Corn[cbind(xs,ys)] < 1)
-	}	else deadTest <- (apr$CornGDD[cbind(xi,yi,di)] < cfg$infestThres)
+	}	else {
+		deadTest <- (apr$CornGDD[cbind(xs,ys,di)]/10 < cfg$infestThres)
+	}
 	
 	adultTest <- (aDD > cfg$cohortGDDThres)
 	
@@ -720,7 +726,7 @@ migrateDeath <- function(pop,day){
 	outOfMap  <- (is.na(xs) | is.na(ys))
 	
 	grCorn <- apr$Corn[cbind(xs,ys)]
-	grCornGDD <- apr$CornGDD[ind]
+	grCornGDD <- apr$CornGDD[ind]/10
 	
 	if(pop$origin=="FL" && di < cfg$altCornDay){
 		bakersfield <- (is.na(grCorn) | grCorn < 0.01)
@@ -778,7 +784,7 @@ makePopTable <- function(lpop,desOrigin=0,verboseNames=FALSE){
 		cbind(x$grid,
 			x[[3]],
 			switch(x$origin,TX=0,FL=1))
-		},c(1,1,1,1,1)))
+		},c(1,1,1,1,1), USE.NAMES=FALSE))
 	
 	if(verboseNames){
 		colnames(mat) <- c("Lon","Lat","Amt","Age","Origin")
@@ -829,7 +835,7 @@ combinelPop <- function(lpop){
   	cbind(x[[3]],
 			switch(x$origin,TX=0,FL=1),
   		x$succFlight)
-  	},c(1,1,1)))
+  	},c(1,1,1),USE.NAMES=FALSE))
   
   allDups <- duplicated(mat)
   needComb <- allDups
@@ -989,7 +995,7 @@ overWinter <- function(InputMoth,day){
 		xi <-map2block(InputMoth[[i]]$grid[1],1,1)
 		yi <-map2block(InputMoth[[i]]$grid[2],2,1)
 		
-		if (apr$CornGDD[[xi,yi,day]] >= cfg$infestThres){
+		if (apr$CornGDD[[xi,yi,day]]/10 >= cfg$infestThres){
 			test[i] <- 1
 			
 		}
