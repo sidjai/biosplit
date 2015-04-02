@@ -70,3 +70,4 @@ for (ty in seq(1,length(metTree))){
 }
 
 toc <- round(as.double(Sys.time() - tic, units = "mins"),2)
+cat(toc,'\n')

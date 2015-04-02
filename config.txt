@@ -23,8 +23,8 @@ HyWorking = C:/hysplit4/working
 #Global variables
 ######
 
-year = 2012
-runName = runHelloWorld
+year = 2013
+runName = runInterYear
 
 #Cropscape m 
 xmin = -1005735
@@ -49,7 +49,7 @@ writeFlag = 1
 # make an automated readme file?
 makeReadmeFlag = 1 
 
-codeChanges = Made the data collection more reproducible and streamlined. Adjusted the projection to follow the data closer.
+codeChanges = Same as 2012:runHelloWorld
 outEveryDayStart = 120
 outEveryDayEnd = 220
 
@@ -107,8 +107,8 @@ flightPropBeforeSilk = 0.1
 
 
 relAmtFL = 0.1
-OverwinterFL = -82.37, 26.9
-OverwinterFL = -80.5, 26.1
+OverwinterFL = -81, 26.9
+OverwinterFL = -80.5, 25.8
 OverwinterTX = -98.2, 26.8
 OverwinterTX = -99, 26.9
 OverwinterTX = -98.2, 26.2

@@ -1,86 +1,106 @@
-#--------------------------------------------------------        
-# Author: Yaqiang Wang                                           
-# Date: 2012-12-31                                               
-# Purpose: Convert GRIB data to ARL data  
-# Note: Sample                                                   
-#-----------------------------------------------------------
-import clr
-from System import *
-from System.Collections.Generic import *
-clr.AddReference("MeteoInfoC.dll")
-from MeteoInfoC import *
-from MeteoInfoC.Data import *
-from MeteoInfoC.Data.MeteoData import *
 
-#---- Set directories
-dataDir = "D:\\Temp\\"
+from org.meteoinfo.data import DataMath
+from org.meteoinfo.data.meteodata import MeteoDataInfo
+from org.meteoinfo.data import GridData
+from org.meteoinfo.data.meteodata.arl import DataLabel
+import org.meteoinfo.map.MapView
+from org.meteoinfo.projection import ProjectionInfo, Reproject
+from org.meteoinfo.global import Extent
+from org.meteoinfo.geoprocess.analysis import ResampleMethods
+from org.meteoinfo.data.meteodata.arl import ARLDataInfo
+from calendar import *
+import os.path
+import sys
+import os
+import re
 
-#---- Set output data file
-outFile = dataDir + 'arl\\test1.arl'
+configLoc = os.path.dirname(os.path.realpath('__file__')).replace("Python_code","cfg.txt")
+configTxt = open(configLoc)
+raw = configTxt.readlines()[1:]
+cfg = {"x":"hello"}
+for line in raw:
+    nice = line.strip('"').strip('"\n').split(' ="')
 
-#---- Read a GRIB data file
-mydata = MeteoDataInfo()
-infile = dataDir + 'grib\\fnl_20110416_00_00'
-mydata.OpenGRIBData(infile)
+    key = nice[1].strip(' "')
+    if re.search('c\(\\\\',key) is not None:
+        key = re.findall('[^"]+',key)[1::2]
+    
+    cfg.update({nice[0]:key})
+
+#Get all the files in the directory
+
+#take file name and splice into a dictionary of:
+#{correspondingARLvariable: file, ncvariable,level,sttimeInd,endtimeInd}
+
+varDict = {'pr':'precipitation','tanp':'T02M','ps':'PRSS','uas':'U10M','vas':'V10M','husnp','RELH0m',\
+	'hus':'RELH','ua':'UWND','va':'VWND','zg':'HGTS','ta':'TEMP'}
+groundVars = ['PRSS','T02M','U10M','V10M']
+atmVars = ['HGTS','TEMP','UWND','VWND','WWND','RELH']
+
+ncDict = {"x":"hello"}
+#files = os.listdir(cfg['NARCCAPFold'])
+files = os.listdir('C:/Users/Siddarta.Jairam/Documents/NARCCAP')
+for f in files:
+	tok = re.split("[_]",f)
+	ncVar = tok[0]
+	lv = re.match('p\d+',tok[3])
+	if lv is None: lv = 0
+	
+	#start and end index
+		
+	ncDict.update({varDict[ncVar]:\
+		{'filename':f,'ncVar':ncVar,'stTimeInd':stInd,'endTimeInd':endInd,'level':lv})
+print ncDict
+Met = MeteoDataInfo()
 
 #---- Set output ARL data info
-arlDI = ARLDataInfo()
-
+ARLDI = ARLDataInfo()
+#RH = 0.263*p(pa)*spH*1/[exp((17.67*(T−273.15))/(T−29.65))]
 #---- Set variable and level list
-gvars = ['Pressure@surface','Temperature@height_above_ground',\
-   'U-component_of_wind@height_above_ground','V-component_of_wind@height_above_ground',\
-   'Total_precipitation@surface','Geopotential_height@pressure','Temperature@pressure',\
-   'U-component_of_wind@pressure','V-component_of_wind@pressure','Vertical_velocity@pressure',\
-   'Relative_humidity@pressure']
-avars = ['PRSS','T02M','U10M','V10M','TPP6','HGTS','TEMP','UWND','VWND','WWND','RELH']
-levels = [0,10,20,30,50,70,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,\
-   850,900,925,950,975,1000]
-for l in levels:
-   arlDI.levels.Add(l)
-   if l == 0:
-      arlDI.LevelVarList.Add(List[str](['PRSS','T02M','U10M','V10M','TPP6']))
-   elif l < 100:
-      arlDI.LevelVarList.Add(List[str](['HGTS','TEMP','UWND','VWND']))
-   else:
-      arlDI.LevelVarList.Add(List[str](['HGTS','TEMP','UWND','VWND','WWND','RELH']))
+ncvars = ['Pressure_surface','Temperature_height_above_ground',\
+	'u-component_of_wind_height_above_ground','v-component_of_wind_height_above_ground',\
+	'Geopotential_height_isobaric','Temperature_isobaric',\
+	'u-component_of_wind_isobaric','v-component_of_wind_isobaric','Vertical_velocity_pressure_isobaric',\
+	'Relative_humidity_isobaric']
+
+levels = [0,1000,975,950,925,900,875,850,825,800,775,750,700,\
+	650,600,550,500,450,400,350,300,250,225,200,175,150,\
+    125,100,70,50,30,20,10,7,5,3,2,1]
+for lv in levels:
+    ARLDI.levels.add(lv)
+    if lv == 0:
+        ARLDI.LevelVarList.add(groundVars)
+    else:
+        ARLDI.LevelVarList.add(atmVars)
 
 #---- Write ARL data file
-arlDI.CreateDataFile(outFile)
-arlDI.X = mydata.GetX()
-arlDI.Y = mydata.GetY()
-variables = mydata.GetVariables()
-tNum = mydata.GetTimeNumber()
-for t in range(0, tNum):
-   mydata.TimeIndex = t
-   atime = mydata.GetTime(t)
-   print atime.ToString("yyyy-MM-dd HH")
-   aDH = arlDI.GetDataHead(mydata.ProjInfo, 'FNL1', 2)
-   arlDI.WriteIndexRecord(atime, aDH)
-   lidx = 0
-   for l in arlDI.levels:
-      print l
-      for v in arlDI.LevelVarList[lidx]:
-         vName = gvars[avars.index(v)]
-         print vName
-         if lidx == 0:
-            mydata.LevelIndex = lidx
-         else:
-            variable = mydata.GetVariable(vName)
-            nlidx = variable.Levels.IndexOf(l)
-            mydata.LevelIndex = nlidx
-         gData = mydata.GetGridData(vName)
-         if v == 'PRSS' or v == 'WWND':
-            gData = gData / 100
-         elif v == 'TPP6':
-            gData = gData / 1000
-         aDL = DataLabel(atime)
-         aDL.Level = lidx
-         aDL.Variable = v
-         aDL.Grid = 99
-         aDL.Forecast = 0
-         arlDI.WriteGridData(aDL, gData)
-      lidx += 1
 
-arlDI.CloseDataFile()
+ARLDI.createDataFile(outFile)
 
-print 'Finished!'
+ncProj = Met.getProjectionInfo()
+modelName = 'FNL1'
+print ncProj
+for var, ids in ncDict.iteritems():
+	Met.openNetCDFData(ids['filename'])
+	NCDI = Met.getDataInfo()
+	for ti in range(ids['startInd'],ids['endInd']):
+			Met.setTimeIndex(ti)
+   		atime = NCDI.getTimes().get(ti)
+    	dataHead = ARLDI.getDataHead(ncProj, modelName, 2)
+			ARLDI.writeIndexRecord(atime, dataHead)
+			Met.SetLevelIndex(ids['level'])
+			ncData = Met.getGridData(ids['ncVarName'])
+			if var == 'PRSS' or var == 'WWND':
+				ncData = ncData.divide(100)
+			if var == 'RELH':
+				#ncData = 0.263*p(pa)*ncData.mult(1/(exp((17.67*(T−273.15))/(T−29.65))))
+			label = DataLabel(atime)
+      label.setLevel(lidx)
+      label.setVarName(var)
+      label.setGrid(99)
+      label.setForecast(0)
+      ARLDI.writeGridData(label, ncData)
+
+ARLDI.X = NCDI.getXDimension().getValues()
+ARLDI.Y = NCDI.getYDimension().getValues()
+ARLDI.closeDataFile()

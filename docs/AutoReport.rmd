@@ -1,0 +1,60 @@
+---
+title: "AutoReport"
+author: "Siddarta Jairam"
+date: "Tuesday, March 31, 2015"
+output: word_document
+---
+
+This report will compare these runs:
+
+```{r, echo=FALSE}
+SimDir <- 'C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table'
+runs <- c('runDataRedo','runHelloWorld','runInterYear','runHelloWorld')
+years <- c('2011','2012','2013','2014')
+runs <- c('runDataRedo','runHelloWorld')
+years <- c('2011','2012')
+rwyear <- paste(years,runs,sep='/')
+fullDir <- paste(SimDir,rwyear,sep='/')
+disp(rwyear)
+```
+
+The conditions that the run was done in is as follows:
+
+```{r, echo=FALSE}
+condFiles <- vapply(fullDir,function(x){
+	readLines(paste(x,'Conditions.txt',sep='/'))
+	},rep('1',5))
+```
+
+The differences are as follows:
+##Biological Assumptions
+```{r,echo=FALSE}
+cond <- strsplit(condFiles[3,],';')
+diff <- ''
+for (ci in seq(1,length(cond[1]))){
+	if(is.na(match(cond[[1]][ci],cond[[2]][ci]))){
+		diff <- paste0(diff,cond[[1]][ci], ' != ',cond[[2]][ci],'\n')
+	}
+}
+cat(diff)
+
+
+```
+
+##Simulation Parameters
+```{r,echo=FALSE}
+cond <- strsplit(condFiles[4,],';')
+diff <- ''
+for (ci in seq(1,length(cond[1]))){
+	if(is.na(match(cond[[1]][ci],cond[[2]][ci]))){
+		diff <- paste0(diff,cond[[1]][ci], ' != ',cond[[2]][ci],'\n')
+	}
+}
+cat(diff)
+
+
+```
+
+Here is the ouput
+
+'r 

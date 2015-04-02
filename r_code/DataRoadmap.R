@@ -34,7 +34,7 @@ runScript <- function(file,args=""){
 	} else if (langFlag==3){
 		#IronPython or Jython from MeteoInfo
 		scrDir <- paste(realWd,"Python_code",sep="/")
-		command <- paste("CD",scrLoc)
+		command <- paste("CD",scrDir)
 		command[2] <- paste(
 			paste0("\"",paste(meteoLoc,"meteoinfo.bat",sep="/"),"\"")
 			,file,args)
@@ -57,6 +57,7 @@ runScript <- function(file,args=""){
 runScript("loadConfig.R")
 load(paste(realWd,"cfg.Rout",sep="/"))
 
+stop("Run stuff now")
 
 #####Crop#####################################
 #Crop data grab section
@@ -65,7 +66,7 @@ load(paste(realWd,"cfg.Rout",sep="/"))
 
 #Download the files directly from NASS cropscape
 runScript("NASS2TIFs.R")
-stop("good job")
+
 
 #convert the downloaded Tiff 30m blocks to 40 km blocks and get rid of projection
 runScript("rawCrop2nicenc.R")
@@ -82,7 +83,7 @@ runScript("ARL2GRD.py",paste(realWd,"cfg.txt",sep="/"))
 
 #Change the extent of the data
 
-runScript("rawCrop2nicenc.R")
+runScript("rawMet2nicenc.R")
 
 
 

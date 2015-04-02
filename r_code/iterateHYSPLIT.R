@@ -20,6 +20,10 @@ CornThres <- att.get.ncdf(nc,0,"CornThres")$value
 apr<-lapply(varNames, function(x) get.var.ncdf(nc,x))
 names(apr) <- varNames
 close.ncdf(nc)
+apr$CornGDD[is.na(apr$CornGDD)] <- 40000
+cat(which(is.na(apr$CornGDD)))
+cat(which(is.na(apr$Corn)|apr$Corn<0))
+
 xmapvec <- nc$dim$lon$vals
 ymapvec <- nc$dim$lat$vals
 

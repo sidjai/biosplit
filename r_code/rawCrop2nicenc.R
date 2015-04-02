@@ -55,7 +55,7 @@ zs <- as.vector(zs)
 translate <- rasterToPoints(cropGrid)
 
 extDif <- dim(translate)[1] - length(zs)
-if (extDif != 0){
+if (extDif < 0){
 	stop("Incomplete data download, Grid has more points than the aggregate result")
 }
 
@@ -73,3 +73,4 @@ dataType(ras) <- 'INT4S'
 sult <- try(writeRaster(ras,filename=gsub("dat","nc",outName),
 	format="CDF", overwrite=TRUE),silent=TRUE)
 toc <- round(as.double(Sys.time() - tic, units = "mins"),2)
+cat(toc,'\n')

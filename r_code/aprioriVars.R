@@ -83,7 +83,7 @@ plantCorn <- getTimingSplit(cfg$plantTimes,ys)
 #harvest in mid july in south texas to early october for the corn belt
 harvestCorn <- getTimingSplit(cfg$harvestTimes,ys)
 
-datC[is.na(datC)] <- 0
+datC[(is.na(datC)|datC<0)] <- 0
 # accumulating the growth degree days
 cornGDD <- array(0, dim=c(dim(datC),365))
 
