@@ -27,9 +27,9 @@ startExt <- 'http://nassgeodata.gmu.edu:8080/axis2/services/CDLService/ExtractCD
 
 ys <- seq(cfg$ymin,(cfg$ymax),by=cfg$spc)
 lasty <- length(ys)
-bots <- ys
+bots <- rev(rev(ys)[-1])
 
-tops <- ys + cfg$spc
+tops <- ys[-1]
 
 #(ymin+(3*spc)
 for (ind in seq(1,lasty)){

@@ -108,7 +108,7 @@ flightPropBeforeSilk = 0.1
 
 relAmtFL = 0.1
 OverwinterFL = -81, 26.9
-OverwinterFL = -80.5, 25.8
+OverwinterFL = -80.7, 26.5
 OverwinterTX = -98.2, 26.8
-OverwinterTX = -99, 26.9
+OverwinterTX = -98.7, 26.5
 OverwinterTX = -98.2, 26.2

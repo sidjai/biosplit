@@ -1,4 +1,4 @@
-#! C:/Program Files/R/R-3.1.1/bin/x64/Rscript.exe
+
 realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
 load(paste(realWd,"cfg.Rout",sep="/"))
 
@@ -55,7 +55,7 @@ for (ty in seq(1,length(metTree))){
 		return(isLonLat(sult))
 		},1)
 
-	if(!min(confirm)) stop("grd conversion failed: loadMetData.R line 64")
+	if(!min(confirm)) stop("grd conversion failed, one grid not latlon")
 
 	# combine the slices
 	type <- c("L","H")

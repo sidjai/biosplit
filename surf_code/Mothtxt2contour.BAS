@@ -10,6 +10,7 @@ Sub Main
 	Dim Origin(3) As String
 	Dim addMap(3) As Object
 	Dim popDes(3) As String
+	Dim logLevels(5) As Double
 
 
 
@@ -17,17 +18,10 @@ Sub Main
 	Set doc = Surf.Documents
 
 inp = CStr(Command$)
-Debug.Print (inp)
-'inp = "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table/2011/runLimFlight2"
-Debug.Print (inp)
-'yr=2011
-'runName = "runsecond"
-'runName = "runcornThres"
-'runName = "runIsobarQuickFix"
-'runName = "runIsobar3"
-'runName = "runLimFlight2"
 
-Dim logLevels(5) As Double
+Debug.Print (inp)
+
+
 numLevels = 5
 Origin (0) ="Wide Downward Diagonal" 'TX
 Origin (1)  = "Wide Upward Diagonal" 'FL
@@ -55,9 +49,8 @@ If (numLevels<0) Then
 					'Error Err
 				End If
 End If
- 'Resume Next
 
-'mainFol = direc & "\" &  Join(Array(yr)) & "\" & runName
+
 mainFol = inp
 outFinal = mainFol & "/"
 outFol =mainFol & "/jpeg/"
@@ -71,28 +64,6 @@ popDes(1) = "TXMoth"
 popDes(2) = "FLCohort"
 popDes(3) = "TXCohort"
 
-'Gather the file list
-
-'fileList = GetFileList(mainFol , "TXMoth",  leList,0)
-'Debug.Print(Len(fileList))
-'file = Dir((mainFol+ "TXMoth*"))
-'k=1
-'While Len(file)>0
-
-'	fileList(0,k) = (mainFol & file)
-'	k=k+1
-'	file = Dir
-'Wend
-'file = Dir(mainFol+ "FLMoth*")
-'k=1
-'While Len(file)>0
-	'fileList(1,k) = (mainFol + file)
-	'k=k+1
-	'file = Dir
-'Wend
-
-'fileList = GetFileList(mainFol , "TXCohort", fileList, 2)
-'fileList = GetFileList(mainFol , "FLCohort", fileList, 3)
 
 templateName ="C:\Users\Siddarta.Jairam\Documents\Documentation\tempOut.srf"
 'Open template
@@ -104,16 +75,17 @@ Set States = myPlot.Shapes.Item(frameIndex)
 beg=1
 
 
-legy =States.Top-.68*States.Height
-legx =States.Left+(32.9/45)*States.Width
-texy =States.Top-.85*States.Height
-texx =States.Left+(5/45)*States.Width
+legy = States.Top-.68*States.Height
+legx = States.Left+(32.9/45)*States.Width
+texy = States.Top-.85*States.Height
+texx = States.Left+(5/45)*States.Width
 
 logLevels(0) =500
 For i = 1 To numLevels
 	logLevels(i) = logLevels(i-1)*100
 Next
-	logLevels(numLevels)=1*10^15
+logLevels(numLevels) = 1*10^15
+
 CopyRight(myPlot.Shapes.Item(frameIndex), "Cohort")
 CopyRight(myPlot.Shapes.Item(frameIndex), "Moth")
 
@@ -128,9 +100,9 @@ For wk = 1 To GetLast(fileList)
 	FLlist = GetFileList(mainFol,popDes(popNum))
 	TXlist = GetFileList(mainFol,popDes(popNum+1))
 
-'Algorithm:=srfKriging, _	'KrigType:= srfKrigBlock, _
+	
 	For oInd = popNum To popNum+1
-		If oInd =popNum Then
+		If oInd = popNum Then
 			tfile = FLlist(wk)
 		Else
 			tfile = TXlist(wk)
@@ -148,8 +120,9 @@ For wk = 1 To GetLast(fileList)
 			'ExclusionFilter:=("_E=" & Join(Array(oInd))), _
 			'DupMethod:=srfDupSum, xDupTol:=0.1, yDupTol:=0.1, _
 			'Algorithm:=srfRadialBasis, _
-		'	RBBasisType:= srfMultiLog, _
+			'RBBasisType:= srfMultiLog, _
 			'ShowReport:=False)
+
 		'Processing
 		Surf.GridFilter(tfile,srfFilterGaussianLP,OutGrid:=(mainFol & des & ".grd"))
 		Set frame = myPlot.Shapes.AddContourMap((mainFol & des & ".grd"))
