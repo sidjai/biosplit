@@ -1,5 +1,5 @@
 ---
-title: "Multi Year comparision"
+title: "Multi Year comparison"
 author: "Siddarta Jairam"
 date: "Tuesday, April 9, 2015"
 output: 
@@ -10,9 +10,7 @@ output:
 ```{r setup, include=FALSE}
 library(knitr)
 library(jpeg)
-knitr::opts_chunk$set(fig.width=6.5, fig.height=3,fig.pos='center',echo=FALSE,comment='>')
-library(ggplot2)
-library(grid)
+knitr::opts_chunk$set(fig.width=6.5, fig.height=3,fig.pos='center',echo=FALSE,comment='>',dpi=800)
 realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
 load(paste(realWd,"cfg.Rout",sep="/"))
 figList <- list()
@@ -23,45 +21,46 @@ updateFigList <- function(lst,name){
 dispVar <- function(var){
 	cat(paste(deparse(substitute(var)),var,sep=' = '),'\n')
 }
-dispFig <- function(path){
-	ras <- readJPEG(path,native=TRUE)
-	grid.raster(ras)
+mosaicImage <- function(pathMat,
+												labelx=paste0('x',1:dim(pathMat)[2]),
+												labely=paste0('x',1:dim(pathMat)[2]),
+												offset=.1,marl=.1,marb=.1){
+	xlen <- dim(pathMat)[2]
+	ylen <- dim(pathMat)[1]
+	#Empty plot
+	par(mar=c(0,0,0,0))
+	plot(1,xlim=c(0,xlen+offset+marl),ylim=c(0,ylen+offset+marb),
+			type="n",bty="n",axes=FALSE)
+	
+	#Get bounding box for every grid cell
+	
+	xmins <- (1:xlen)-1+marl
+	xmaxs <- (1:xlen)+offset+marl
+	ymins <- (ylen-(1:ylen))+marb
+	ymaxs <- (ylen-(1:ylen))+1+marb+offset
+	
+	
+	for(yi in 1:ylen){
+		text(x=0,y=ylen-yi+.55,labels=labely[yi])
+		for(xi in 1:xlen){
+			path <- pathMat[yi,xi]
+			
+			if (length(path)>0 && file.exists(path)){
+				#on non windows need to resize
+				rasterImage(readJPEG(path,native=TRUE),
+					xleft=xmins[xi],ybottom=ymins[yi],
+					xright=xmaxs[xi],ytop=ymaxs[yi],
+					interpolate = FALSE)
+			}
+			
+			
+			if (yi==ylen){
+				text(x=xi-.35,y=0,labels=labelx[xi])
+			}
+		}
+		
+	}
 }
-```
-
-This report will compare these runs:
-
-```{r}
-SimDir <- 'C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table'
-runs <- c('runDataRedo','runHelloWorld','runInterYear','runFLwinter')
-years <- c('2011','2012','2013','2014')
-#runs <- c('runDataRedo','runHelloWorld')
-#years <- c('2011','2012')
-rwyear <- paste(years,runs,sep='/')
-fullDir <- paste(SimDir,rwyear,sep='/')
-numRuns <- length(rwyear)
-cat(paste(rwyear,colllapse='|'))
-```
-
-The conditions that the run was done in is as follows:
-
-```{r}
-condFiles <- vapply(fullDir,function(x){
-	readLines(paste(x,'Conditions.txt',sep='/'))
-	},rep('one',5))
-cat(condFiles[3:4,1])
-```
-
-The differences between the diffrent runs are as follows:
-```{r}
-figList <- updateFigList(figList,"bioDiff")
-figList <- updateFigList(figList,"simDiff")
-figList <- updateFigList(figList,"jpgTable")
-
-```
-
-
-```{r}
 findDiff <- function(vecvars){
 	cond <- strsplit(vecvars,';')
 	diff <- matrix('Same values', nrow = 1, ncol = numRuns)
@@ -97,61 +96,71 @@ findDiff <- function(vecvars){
 	}
 	return(diff)
 }
+```
 
+This report will compare these runs:
+
+```{r context}
+SimDir <- 'C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table'
+runs <- c('runDataRedo','runHelloWorld','runInterYear','runFLwinter')
+years <- c('2011','2012','2013','2014')
+#runs <- c('runDataRedo','runHelloWorld')
+#years <- c('2011','2012')
+rwyear <- paste(years,runs,sep='/')
+fullDir <- paste(SimDir,rwyear,sep='/')
+numRuns <- length(rwyear)
+cat(paste(rwyear,colllapse='|'))
+```
+
+The conditions that the run was done in is as follows:
+
+```{r conditions}
+condFiles <- vapply(fullDir,function(x){
+	readLines(paste(x,'Conditions.txt',sep='/'))
+	},rep('one',5))
+cat(condFiles[3:4,1])
+```
+
+The differences between the different runs are as follows:
+
+```{r}
 bioDiff <- findDiff(condFiles[3,])
 simDiff <- findDiff(condFiles[4,])
 
-
+figList <- updateFigList(figList,"bioDiff")
 ```
 
-####Table `r figList$bioDiff`. All the differences between the biological Assumptions in these model runs
+####Table `r figList$bioDiff`. All the differences between the biological Assumptions between the different runs
 ```{r,results = 'asis'}
 kable(as.data.frame(bioDiff),align='c')
+figList <- updateFigList(figList,"simDiff")
 ```
 
 ####Table `r figList$simDiff`. All the differences between the parameters for the HYSPLIT execution between the different runs
 ```{r,results = 'asis'}
 kable(as.data.frame(simDiff),align='c')
+figList <- updateFigList(figList,"jpgTable")
 ```
 
-Here is the ouput:
+Here is the output:
 
 ####Table `r figList$jpgTable`. Contour plots of instaneous snapshots of the Moth population in the different runs at specific times throughout the migration time for FAW throughout late spring to fall.
-```{r fig.height=5,fig.show='hold',dpi=800}
+```{r fig.height=5,fig.show='hold'}
 #define jpeg table
-contours <- list()
-#colnames(contours) <- rwyear
-times <- c('051','062','073','091')
-off <- .1
-marl <- .1
-marb <- .15
+times <- c('051','053','063','073','091')
 dates <- strftime(strptime(paste0(times,'0'),'%m%d'),'%b\n%d')
-par(mar=c(0,0,0,0))
-plot(1,xlim=c(0,4+marl),ylim=c(0,4+marb),type="n",bty="n",axes=FALSE)
+numTimes <- length(times)
+
 #fill the table with markdown paths to jpegs
 conPaths <- paste(fullDir,'jpeg','Contours',sep='/')
-for(idate in 1:4){
-	text(x=0,y=4-idate+.55,labels=dates[idate])
-	for(irun in seq(1,numRuns)){
-		
-		potJpegs <- list.files(conPaths[irun],
-			pattern=paste0('Moth_',times[idate]),
+contours <- vapply(conPaths,function(pth){
+	vapply(times,function(tim){
+		potJpegs <- list.files(pth,
+			pattern=paste0('Moth_',tim),
 			full.names = TRUE)
-		path <-	potJpegs[!grepl('gsr2',potJpegs)][1]
-		name <- strsplit(path,"Moth table")[[1]][2]
-		#contours[idate,irun] <- paste0('![](',path,')')
-		#contours[idate,irun] <- paste0('<img src=\"',path,'\"/>')
-		#contours[idate,irun] <- paste0('\`\`\`{r} dispFig(',path,')\`\`\`')
-		rasterImage(readJPEG(path,native=TRUE),
-			irun-1+marl,4-idate-off+marb,irun+off+marl,5-idate+marb,
-			interpolate = FALSE)
-		if (idate==4){
-			text(x=irun-.35,y=0,labels=rwyear[irun])
-		}
-	}
-	
-}
+		return(potJpegs[!grepl('gsr2',potJpegs)][1])
+		},'hi')
+	},rep('hi',numTimes))
 
-#kable(contours,align='c')
-
+mosaicImage(contours,labelx=rwyear,labely=dates)
 ```
