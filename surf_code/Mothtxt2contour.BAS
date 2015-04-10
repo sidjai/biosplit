@@ -10,15 +10,14 @@ Sub Main
 	Dim Origin(3) As String
 	Dim addMap(3) As Object
 	Dim popDes(3) As String
+	Dim logLevelsEarly(5) As Double
+	Dim logLevelsLate(5) As Double
 	Dim logLevels(5) As Double
-
-
 
 
 	Set doc = Surf.Documents
 
 inp = CStr(Command$)
-
 Debug.Print (inp)
 
 
@@ -80,12 +79,14 @@ legx = States.Left+(32.9/45)*States.Width
 texy = States.Top-.85*States.Height
 texx = States.Left+(5/45)*States.Width
 
-logLevels(0) =500
+logLevelsEarly(0) =500
+logLevelsLate(0) =500
 For i = 1 To numLevels
-	logLevels(i) = logLevels(i-1)*100
+	logLevelsEarly(i) = logLevelsEarly(i-1)*100
+	logLevelsLate(i) = logLevelsLate(i-1)*10000
 Next
-logLevels(numLevels) = 1*10^15
-
+logLevelsEarly(numLevels) = 1*10^15
+logLevelsLate(numLevels) = 1*10^15
 CopyRight(myPlot.Shapes.Item(frameIndex), "Cohort")
 CopyRight(myPlot.Shapes.Item(frameIndex), "Moth")
 
@@ -132,10 +133,18 @@ For wk = 1 To GetLast(fileList)
 		If (IsObject(frame)) Then
 			Set addMap(oInd) = OverlayStuff(frameIndex,frame)
 
+			jime = Split(des,"_")
+			numDate = CDbl(jime(1))
+
+
 			With addMap(oInd)
 
-				.Levels.Set(Levels:=logLevels)
 
+				If (numDate > 73000) Then
+					.Levels.Set(Levels:=logLevelsLate)
+				Else
+					.Levels.Set(Levels:=logLevelsEarly)
+				End If
 
 				.LabelFont.Size = 10
 				.LabelFont.Bold = True
@@ -155,7 +164,7 @@ For wk = 1 To GetLast(fileList)
 				.Opacity = 100
 				.FillBackgroundColorMap.Reverse()
 				'.FillForegroundColorMap.Reverse()
-				.FillForegroundColorMap.SetDataLimits(5,logLevels(numLevels))
+				.FillForegroundColorMap.SetDataLimits(5,1*10^15)
 				.SmoothContours = srfConSmoothLow
 				.ApplyFillToLevels(FirstIndex:=1, NumberToSet:=1, NumberToSkip:=0)
 
