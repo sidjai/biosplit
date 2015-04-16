@@ -95,7 +95,7 @@ for (xi in seq(1,dim(cornGDD)[1])){
 				#top <- datAir$H[xi,yi,di]
 				bot <- ifelse(datAir$L[xi,yi,di]<10,10,datAir$L[xi,yi,di])
 				
-				add <- 1.8*(sort(c(((top+bot)/2)-10,0))[2])
+				add <- 1.8*(sort(c(((top+bot)/2)-cfg$TGDDbaseCrop,0))[2])
 				cornGDD[xi,yi,di] <- cornGDD[xi,yi,di-1]+add
 			}
 		}
@@ -115,7 +115,7 @@ for (xi in seq(1,dim(TailWind)[1])){
 	for(yi in seq(1,dim(TailWind)[2])){
 		#do the vars that occur throughout the area
 		for(di in seq(1,dim(TailWind)[3])){
-			fawGrw[xi,yi,di] <- sort(c((datAir$H[xi,yi,di]+datAir$L[xi,yi,di])/2-13.8,0))[2]
+			fawGrw[xi,yi,di] <- sort(c((datAir$H[xi,yi,di]+datAir$L[xi,yi,di])/2-cfg$TGDDbaseFAW,0))[2]
 			TailWind[xi,yi,di] <- ifelse(datWind$H[xi,yi,di]>0,abs(datWind$H[xi,yi,di]),0)
 		}
 		
@@ -165,6 +165,8 @@ put.var.ncdf(anc,"TailWind",TailWind)
 att.put.ncdf(anc,0,"PlantingTimes",cfg$plantTimes)
 att.put.ncdf(anc,0,"HarvestTimes",cfg$harvestTimes)
 att.put.ncdf(anc,0,"CornThres",cfg$CornThres)
+att.put.ncdf(anc,0,"TGDDbaseCrop",cfg$TGDDbaseCrop)
+att.put.ncdf(anc,0,"TGDDbaseFAW",cfg$TGDDbaseFAW)
 
 #put.var.ncdf(anc,"Lows",datL)
 junk <- close.ncdf(anc)

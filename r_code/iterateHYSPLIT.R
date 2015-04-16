@@ -7,6 +7,7 @@ tic <- Sys.time()
 require(rgdal)
 require(raster)
 require(ncdf)
+require(readr)
 
 realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
 load(paste(realWd,"cfg.Rout",sep="/"))
@@ -264,7 +265,7 @@ changeInput <- function(dateChangeFlag, date,pop,PID=0){
 	#Control file
 
 	#test <- file(paste(direc,"CONTROL",sep="/"),"r+")
-	befCon <- readLines(paste(cfg$HyWorking,paste0("CONTROL.",toString(PID)),sep="/"))
+	befCon <- read_lines(paste(cfg$HyWorking,paste0("CONTROL.",toString(PID)),sep="/"))
 	indMon <- charmatch("C:/",befCon)+1
 	newCon <- befCon
 
@@ -379,7 +380,7 @@ runHysplit <- function(cutoff=.01, plotFlag=0, hold = TRUE, call=TRUE,PID=1){
 	}
 		
 
-	datum<-read.csv(paste(cfg$HyWorking,gsub("^\\s+|\\s+$", "", textFile[1]),sep="/"),header = FALSE)
+	datum<-read_csv(paste(cfg$HyWorking,gsub("^\\s+|\\s+$", "", textFile[1]),sep="/"),header = FALSE)
 	niceDatum <- as.matrix(datum)
 	#swap cols so it goes lat lon instead of lon lat
 	niceDatum <- niceDatum[,c(2,1,3),drop=FALSE]

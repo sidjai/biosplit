@@ -1,11 +1,9 @@
 .Rproj.user
 .Rhistory
 .RData
-R files.Rproj
 Rconsole
 .Rout
-.jpeg
-.jpg
-.doc
-.docx
-cfg.Rout
+docs/.jpeg
+docs/.jpg
+docs/.doc
+docs/.docx
