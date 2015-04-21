@@ -10,7 +10,7 @@ require(ncdf)
 require(readr)
 require(insol)
 
-realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
+realWd <- gsub("/r_code","",ifelse(!grepl("Moth",getwd()),dirname(sys.frame(1)$ofile),getwd()))
 load(paste(realWd,"cfg.Rout",sep="/"))
 nc <- open.ncdf(cfg$AprioriLoc)
 
@@ -53,6 +53,8 @@ Assump <- c(Assump,
 names(Assump) <- NULL
 Assump <-paste(Assump,collapse = '; ')
 
+simEmploy <- switch(cfg$simType,single=2,Fake=3,1)
+
 #get the simulation criteria as supplied in the setup.cfg file
 #Should have been changed before simulation,
 #Should be written if you want non-default conditions
@@ -60,22 +62,45 @@ Assump <-paste(Assump,collapse = '; ')
 simData <-readLines(paste(cfg$HyWorking,"setup.cfg",sep= "/"),warn=0)
 simData <- as.matrix(simData)
 
-# Get some data off the Control file too
-intCon <- readLines(paste(cfg$HyWorking,"CONTROL",sep="/"))
+# Set some data off the Control file
+changeControlInitial <-function(path){
+	newCon <- befCon <- readLines(path)
+	
+	indVert <- charmatch("C:/",befCon)-3
+	newCon[indVert] <- cfg$verticalMotionRoutine
+	
+	#top of the model in two places
+	endLevel <- charmatch("cdump",newCon)+2
+	newCon[indVert+1] <- cfg$topOfModel
+	newCon[endLevel] <- cfg$topOfModel
+	
+	#Done so write
+	writeLines(newCon,path)
+	depo <- newCon[endLevel+6:length(newCon)]
+	
+	return(paste(depo ,collapse = '|'))
+}
+
+if (simEmploy==1){
+	#Multi run so set for all three control files)
+	controlPaths <- paste(paste(cfg$HyWorking,"CONTROL",sep="/"),1:3,sep='.')
+} else if(simEmploy==2){
+	#Single run so just change the intial one
+	controlPaths <- paste(cfg$HyWorking,"CONTROL",sep="/")
+}	else controlPaths <- ''
+
+depos <- vapply(controlPaths,function(x)changeControlInitial(x),"hello")
 
 simData <- rbind(simData,"Control Variables")
-hourInd <- charmatch("12",intCon)
-depo <- seq(length(intCon)-3,length(intCon))
 
 simData <- rbind(simData,
-	paste0("Vertical Motion routine = ", intCon[hourInd+1],","),
-	paste0("Top of Model = ", intCon[hourInd+2],","))
-simData <- rbind(simData,"Deposition = |", paste(intCon[depo] ,collapse = '|'))
+	paste0("Vertical Motion routine = ", cfg$verticalMotionRoutine,","),
+	paste0("Top of Model = ", cfg$topOfModel,","))
+simData <- rbind(simData,"Deposition = ", depos[1])
 
 simData <-paste(simData,collapse = ' ')
 simData <- gsub(",",";",simData)
 
-simEmploy <- switch(cfg$simType,single=2,Fake=3,1)
 
 mMothOut <- CohortOut <- list(array(0, dim=c(dim(apr$Corn),52)),array(0, dim=c(dim(apr$Corn),52)))
 
@@ -238,7 +263,7 @@ getNightDur <- function(lat, lon, day){
 	names(sunLight) <- NULL
 	if(is.nan(sunLight[1])) stop(paste0("Astro calc messed up royally with NaNs used vals:",paste(avgLat,avgLon,di)))
 	if(sunLight[1]<0 || sunLight[1]>24) stop(paste0("Astro calc came up with weird response of:",sunLight))
-	return((24-round(sunLight,1))-1)
+	return(round((24-sunLight)-1),0)
 }
 changeInput <- function(dateChangeFlag, date,pop,PID=0){
 
@@ -305,14 +330,13 @@ changeInput <- function(dateChangeFlag, date,pop,PID=0){
 		avgLat <- mean(item[,2])
 		flightTime <- getNightDur(avgLat,avgLon,as.numeric(strftime(date,"%j")))
 		
-		hrFlight <- floor(flightTime)
-		minFlight <- floor((flightTime%%1)*60)
 		newCon[indMon-5] <- paste(flightTime)
 		
-		newCon[endTimeInd] <- strftime(date,paste("%y %m %d", hrFlight, minFlight))
-		newCon[endTimeInd+1] <- paste("01", hrFlight, minFlight)
+		newCon[endTimeInd] <- strftime(date,paste("%y %m %d", flightTime, "00"))
+		newCon[endTimeInd+1] <- paste("01", flightTime, "00")
 																	 
 	} else {
+		newCon[indMon-5] <- "12"
 		newCon[endTimeInd] <- strftime(date,"%y %m %d 12 00")
 		newCon[endTimeInd+1] <- "01 12 00"
 	}
@@ -1216,7 +1240,7 @@ for(di in seq(startDay,cfg$endDay)){
 		Eggs <- combineEggs(Eggs)
 
 		youngMig <- list()
-		if (di < 110){
+		if (di < 130){
 			fldie <- c("TX")
 			fldie <- c(fldie,vapply(Cohort,function(x)x$origin,""))
 			fldie <- c(fldie,vapply(Moth,function(x)x$origin,""))
