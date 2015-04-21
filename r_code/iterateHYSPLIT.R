@@ -8,6 +8,7 @@ require(rgdal)
 require(raster)
 require(ncdf)
 require(readr)
+require(insol)
 
 realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
 load(paste(realWd,"cfg.Rout",sep="/"))
@@ -31,12 +32,13 @@ ymapvec <- nc$dim$lat$vals
 bndx <- c(min(xmapvec),max(xmapvec))
 bndy <- c(min(ymapvec),max(ymapvec))
 
-vars <- c('simType','stAmount','mothThres','cohortThres',
+vars <- c('simType','stAmount','TGDDbaseCrop','TGDDbaseFAW',
+					'mothThres','cohortThres',
 					'cohortGDDThres','windThres',
 					'infestThres','infestLmt','lifeSpan','oviDay',
 					'capEggs','eggsPerInfest','endDay',
 					'metDataType','succFlightLim',
-					'flightPropAfterSilk','flightPropBeforeSilk','skip')
+					'flightPropAfterSilk','flightPropBeforeSilk','skip','delNightDurFlag')
 Assump <- vapply(vars,function(x) paste0(x, " = ",toString(cfg[[match(x,names(cfg))]])),"")
 Assump <- c(Assump,paste0("CornThres = ",CornThres),"Starting locations")
 
@@ -73,7 +75,7 @@ simData <- rbind(simData,"Deposition = |", paste(intCon[depo] ,collapse = '|'))
 simData <-paste(simData,collapse = ' ')
 simData <- gsub(",",";",simData)
 
-simEmploy <- switch(cfg$simType,HYSPLIT=2,Fake=3,1)
+simEmploy <- switch(cfg$simType,single=2,Fake=3,1)
 
 mMothOut <- CohortOut <- list(array(0, dim=c(dim(apr$Corn),52)),array(0, dim=c(dim(apr$Corn),52)))
 
@@ -97,7 +99,7 @@ makeLife <- function(flagMoth,loc,GDD,origin){
 	if (flagMoth) {
 		life$daysOld <- GDD
 		life$numEggs <- cfg$capEggs
-		life$succFlight <- 0
+		life$flights <- 0
 		
 	} else life$GDD <- GDD
 	
@@ -161,25 +163,26 @@ map2block <-function(vin,coor, direction){
 
 }
 
-testEnv <- function(lpop,w=-9999){
+testEnv <- function(lpop,w=-9999,jd=di){
 	
 	#profName <- 
 	#Rprof("C:/Users/Siddarta.Jairam/Documents/iterateProf3.out",memory.profiling = TRUE)
 	#Rprof("")
 	#summaryRprof("C:/Users/Siddarta.Jairam/Documents/iterateProf3.out")
-	popType <- switch(names(lpop[[1]])[3],daysOld=1,GDD=0)
+	
 	if (w <0){
 		lpop <- deconst(lpop)
 	} else {
 		lpop <- list(lpop[[w]])
 	}
+	popType <- switch(names(lpop[[1]])[3],daysOld=1,GDD=0)
 	tab <- makePopTable(lpop,verboseNames=1)
 	
-	xbs <- vapply(as.numeric(tab[,1]),function(x) map2block(x,1,1),1)
-	ybs <- vapply(as.numeric(tab[,2]),function(x) map2block(x,2,1),1)
+	xbs <- map2block(as.numeric(tab[,1]),1,1)
+	ybs <- map2block(as.numeric(tab[,2]),2,1)
 	ind  <- cbind(xbs,ybs)
 	cAmt <- apr$Corn[ind]
-	cGDD <- round(apr$CornGDD[cbind(ind,di)]/10,2)
+	cGDD <- round(apr$CornGDD[cbind(ind,jd)]/10,2)
 	Livability <- howLivable(cGDD)
 	#Livability <- vapply(cGDD,function(x) howLivable(x),1)
 	if(popType){
@@ -230,7 +233,13 @@ genFlightProp <- function(cGrowth){
 	return(val)
 	
 }
-
+getNightDur <- function(lat, lon, day){
+	sunLight <- daylength(lat,lon,day,1)[,3]
+	names(sunLight) <- NULL
+	if(is.nan(sunLight[1])) stop(paste0("Astro calc messed up royally with NaNs used vals:",paste(avgLat,avgLon,di)))
+	if(sunLight[1]<0 || sunLight[1]>24) stop(paste0("Astro calc came up with weird response of:",sunLight))
+	return((24-round(sunLight,1))-1)
+}
 changeInput <- function(dateChangeFlag, date,pop,PID=0){
 
 	#get the place and amount of the population
@@ -260,11 +269,9 @@ changeInput <- function(dateChangeFlag, date,pop,PID=0){
 	#done with emit file
 	writeLines(newEmit,
 		paste(cfg$HyWorking,paste0("EMITIMES",toString(PID)) ,sep="/"))
-	#writeLines(newEmit,paste(direc,"archiveEmit",paste(cfg$HyBase,xmap[[1]],ymap[[1]],sep=""),sep="/"))
-
+	
 	#Control file
 
-	#test <- file(paste(direc,"CONTROL",sep="/"),"r+")
 	befCon <- read_lines(paste(cfg$HyWorking,paste0("CONTROL.",toString(PID)),sep="/"))
 	indMon <- charmatch("C:/",befCon)+1
 	newCon <- befCon
@@ -274,9 +281,8 @@ changeInput <- function(dateChangeFlag, date,pop,PID=0){
 		#change date at top
 		newCon[1]<-strftime(date,"%y %m %d 00")
 
-		#change the end date at the bottom
-		#print(toString(charmatch("01 12 00",newCon)-1))
-		newCon[charmatch("01 12 00",newCon)-1] <- strftime(date,"%y %m %d 12 00")
+		
+		
 		
 		#change month if it needs it
 		newMon<- tolower(strftime(date,"%b"))
@@ -286,14 +292,35 @@ changeInput <- function(dateChangeFlag, date,pop,PID=0){
 		}
 
 		#Change the year every time the date changes because it is easier to code
-		#newCon[indMon-1] <- gsub("20[0-9][0-9]",strftime(date,"%Y"),newCon[indMon-1])
 		newCon[indMon-1] <- paste0(cfg$MetARLFold,"/")
 	}
 
 	#change the vales that are always gonna be different
-	newCon[2]<-newSrc
-	befSrc <-as.numeric(befCon[2])
-	diff <-befSrc-newSrc
+	#time of flight
+	
+	endTimeInd <- charmatch("cdump",newCon)+4
+	
+	if(cfg$delNightDurFlag){
+		avgLon <- mean(item[,1])
+		avgLat <- mean(item[,2])
+		flightTime <- getNightDur(avgLat,avgLon,as.numeric(strftime(date,"%j")))
+		
+		hrFlight <- floor(flightTime)
+		minFlight <- floor((flightTime%%1)*60)
+		newCon[indMon-5] <- paste(flightTime)
+		
+		newCon[endTimeInd] <- strftime(date,paste("%y %m %d", hrFlight, minFlight))
+		newCon[endTimeInd+1] <- paste("01", hrFlight, minFlight)
+																	 
+	} else {
+		newCon[endTimeInd] <- strftime(date,"%y %m %d 12 00")
+		newCon[endTimeInd+1] <- "01 12 00"
+	}
+	
+	#number of locations
+	newCon[2] <- newSrc
+	befSrc <- as.numeric(befCon[2])
+	diff <- befSrc-newSrc
 	if (diff<0){
 		#insert new places
 		for (er in seq(1,-diff)){
@@ -309,7 +336,7 @@ changeInput <- function(dateChangeFlag, date,pop,PID=0){
 	
 	#now that the places are right, just assign the sources
 	for (sr in seq(1,newSrc)){
-		newCon[2+sr]=paste(ymap[[sr]],xmap[[sr]],"500.0")
+		newCon[2+sr] <- paste(ymap[[sr]],xmap[[sr]],"500.0")
 	}
 
 
@@ -318,12 +345,6 @@ changeInput <- function(dateChangeFlag, date,pop,PID=0){
 
 	#finished changing things
 	writeLines(newCon,paste(cfg$HyWorking,paste0("CONTROL.",toString(PID)),sep="/")) 
-
-		#/Starting time at top
-		#/end time at the grid def to make output small
-		#/starting locations
-		#/met file if its crosses over a month
-		#/EMITIMES start time and indv
 }
 
 callHysplit <- function(hold,PID){
@@ -380,7 +401,7 @@ runHysplit <- function(cutoff=.01, plotFlag=0, hold = TRUE, call=TRUE,PID=1){
 	}
 		
 
-	datum<-read_csv(paste(cfg$HyWorking,gsub("^\\s+|\\s+$", "", textFile[1]),sep="/"),header = FALSE)
+	datum <- read.csv(paste(cfg$HyWorking,gsub("^\\s+|\\s+$", "", textFile[1]),sep="/"),header = FALSE)
 	niceDatum <- as.matrix(datum)
 	#swap cols so it goes lat lon instead of lon lat
 	niceDatum <- niceDatum[,c(2,1,3),drop=FALSE]
@@ -473,9 +494,15 @@ multiHysplit <- function(pop,dateChange,date,shPlotFlag){
 
 testFakeHysplit <- function(tgrd){
 	ogrd <- tgrd
+	avgLon <- mean(tgrd[,1])
+	avgLat <- mean(tgrd[,2])
+	sunLight <- daylength(avgLat,avgLon,di,1)[3]
+	if(is.nan(sunLight)) stop(paste0("Astro calc messed up royally with NaNs used vals:",paste(avgLat,avgLon,di)))
+	if(sunLight<0 || sunLight>24) stop(paste0("Astro calc came up with weird response of:",sunLight))
+	mag <- ((24-round(sunLight,1))-1)*(5/12)
 	for (gj in seq(1,dim(tgrd)[1])){
-		xrandOffset <- runif(1,-5,5)
-		yrandOffset <- runif(1,0,5.0)
+		xrandOffset <- runif(1,-mag,mag)
+		yrandOffset <- runif(1,0,mag)
 		xrandOffset <- round2number(xrandOffset,.455)
 		yrandOffset <- round2number(yrandOffset,.357)
 		xfake <- tgrd[[gj,1]] + xrandOffset
@@ -560,29 +587,6 @@ willFly <- function(pop, day, genFlag){
 	stayFaw$grid[,3] <- stayFaw$grid[,3] - numFly
 	mFaw$grid[,3] <- numFly
 	
-# 	for (g in seq(1,dim(pop$grid)[1])){
-# 		ind <- cbind(xs[g],ys[g],day)
-# 		if (!is.na(apr$TailWind[ind])){
-# 			cGDD <- apr$CornGDD[ind]
-# 			#can fly
-# 			if (genFlag) expVal <- pop$grid[g,3]*genFlightProp(cGDD)
-# 			else expVal <-pop$grid[g,3]*(1-howLivable(cGDD))
-# 			expVal <- ifelse(is.na(expVal) || expVal<0,0,expVal)
-# 
-# 			#rpois can't get over the maximum of the integer or it has NAs
-# 			numFly <- ifelse(expVal<10^6.5,
-# 					rpois(1, expVal),
-# 					rnorm(1,mean=expVal,sd=sqrt(expVal)))
-# 
-# 			numFly <- sort(c(numFly,pop$grid[g,3]))[1]
-# 			if (numFly <1) numFly <- 0
-# 
-# 			stayFaw$grid[g,3] <- (stayFaw$grid[g,3]-numFly)
-# 			#print(c(numFly,stayFaw$grid[g,3]))
-# 			mFaw$grid[g,3] <- numFly
-# 		
-# 		}
-# 	}
 	stayFaw <- cleanGrid(stayFaw)
 	mFaw <- cleanGrid(mFaw)
 	
@@ -633,7 +637,9 @@ growMoths <- function(pop,day){
 	} else {
 		deathTest <- (is.na(xs) | is.na(ys))
 	}
-	
+	if(max(deathTest)){
+		numFlights <<- c(numFlights,pop$flights)
+	}
 	pop$grid[deathTest,3] <- (-9999)
 	
 	
@@ -839,7 +845,7 @@ combinelPop <- function(lpop){
   mat <- t(vapply(lpop, function(x){
   	cbind(x[[3]],
 			switch(x$origin,TX=0,FL=1),
-  		x$succFlight)
+  		x$flights)
   	},c(1,1,1),USE.NAMES=FALSE))
   
   allDups <- duplicated(mat)
@@ -1025,6 +1031,9 @@ Cohort <- list()
 winterPop <- list()
 mig <- 1
 wk <- 1
+numFlights <- c()
+
+
 
 #Get the input cohort areas
 
@@ -1032,6 +1041,15 @@ for (ig in seq(1,dim(intGrids)[1])){
 	tag<-ifelse(ig<=cfg$Flnum,"FL","TX")
 	winterPop[[ig]] <- makeLife(0,intGrids[ig,],0,tag)
 }
+
+#check if all overwinter populations are over corn
+startCorn <- as.numeric(testEnv(winterPop,jd=45)[,"cAmt"])
+if(max(startCorn==0)){
+	stop(paste0(
+		"The overwintering locations are over places without corn with the amounts being:",
+		paste(startCorn,collapse="|")))
+}
+
 # get the start day from the overwinter populations
 startDay <- 45 #first guess
 repeat{
@@ -1132,10 +1150,10 @@ for(di in seq(startDay,cfg$endDay)){
 		   wi <- apr$TailWind[xi,yi,di-1]
 		   condW <- (is.na(wi) || wi<newWind)
 		   condSk <- (length(which(cfg$skip==di))!=0)
-		   condSucc <- mMoth[[mi]]$succFlight > cfg$succFlightLim
+		   condSucc <- (mMoth[[mi]]$flights %% cfg$succFlightLim)==0
 		   if (condW || condSk || condSucc){
 		   	mMoth[[mi]] <- tSplit[[2]]
-		   	mMoth[[mi]]$succFlight <- 0
+		   	mMoth[[mi]]$flights <- mMoth[[mi]]$flights+.1
 				mi <- mi+1
 		   } else{
 			#Got Moths that can fly
@@ -1147,7 +1165,7 @@ for(di in seq(startDay,cfg$endDay)){
 			#####################################################
 			#Migrate the species
 			#####################################################
-			shouldPlot <-ifelse((di >=cfg$invPlotFlag && mig%%10==0),1,0)
+			shouldPlot <-ifelse((di >=cfg$invPlotFlag && mig%%1==0),1,0)
 			if (simEmploy == 1){
 				mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
 			} else if (simEmploy == 2){
@@ -1165,7 +1183,7 @@ for(di in seq(startDay,cfg$endDay)){
 			mMoth[[mi]] <- migrateDeath(mMoth[[mi]],di)
 			if (dim(mMoth[[mi]]$grid)[1]==0)  mMoth <- mMoth[-mi,drop = FALSE]
 			else {
-				mMoth[[mi]]$succFlight <- mMoth[[mi]]$succFlight + 1
+				mMoth[[mi]]$flights <- round(mMoth[[mi]]$flights + 1,0)
 				mi<-mi+1
 			}
 		   }
@@ -1272,7 +1290,9 @@ if (cfg$makeReadmeFlag){
 	mat[ind] <- paste0(mat[ind],toc,' hrs')
 	jnk <- writeLines(mat,con=cfg$READMELoc)
 }
-
+jnk <- writeLines(
+	paste(numFlights,collapse='\n'),
+	con=paste(cfg$SimOutFold,"numFlights.txt",sep='/'))
 #org <-sapply(Moth,function(x)x$grid)
 #org <-t(org)
 #max(sapply(Cohort,function(x)x$grid[2]))

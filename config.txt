@@ -24,7 +24,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2014
-runName = runFLwinter
+runName = runTopModel
 
 #Cropscape m 
 xmin = -1005735
@@ -47,9 +47,12 @@ plotPop = FL
 #do you want to ouput textfiles of the Moth and Cohort pops?
 writeFlag = 1
 # make an automated readme file?
-makeReadmeFlag = 1 
+makeReadmeFlag = 1
 
-codeChanges = Same as 2012:runHelloWorld
+#altAnalysis
+delNightDurFlag = 0
+
+codeChanges = Added change in night length with latitude
 outEveryDayStart = 120
 outEveryDayEnd = 220
 
@@ -70,6 +73,9 @@ totFlag = 1
 CornThres = 75
 plantTimes = c(25, 39, 44, 136)
 harvestTimes = c(25, 39, 195, 300)
+#All in Celcius
+TGDDbaseCrop = 10
+TGDDbaseFAW = 13.8
 
 
 #iterateHYSPLIT.R
@@ -104,7 +110,7 @@ altCornDay  = 100
 succFlightLim = 3
 flightPropAfterSilk = 0.9
 flightPropBeforeSilk = 0.1
-
+topOfModel = 2000
 
 relAmtFL = 0.1
 OverwinterFL = -80.2, 26.9
