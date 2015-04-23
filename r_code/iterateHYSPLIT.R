@@ -76,7 +76,7 @@ changeControlInitial <-function(path){
 	
 	#Done so write
 	writeLines(newCon,path)
-	depo <- newCon[endLevel+6:length(newCon)]
+	depo <- newCon[endLevel+6:length(newCon)-1]
 	
 	return(paste(depo ,collapse = '|'))
 }
@@ -372,15 +372,25 @@ changeInput <- function(dateChangeFlag, date,pop,PID=0){
 }
 
 callHysplit <- function(hold,PID){
-	tryCatch(
-		junk <- shell(paste(paste("CD",cfg$HyWorking),paste(paste(cfg$HyBase,cfg$HyConc,sep="/"),toString(PID)),sep=" && "),
-			intern=hold,wait=hold),
-		warning = function()cat("too little computing space, supply more or limit model"),
+	
+	junk <- tryCatch({
+		 shell(paste(paste("CD",cfg$HyWorking),paste(paste(cfg$HyBase,cfg$HyConc,sep="/"),toString(PID)),sep=" && "),
+			intern=hold,wait=hold)
+		 },
 		error = function(cond){
 			Sys.sleep(3)
-			junk <- shell(paste(paste("CD",cfg$HyWorking),paste(paste(cfg$HyBase,cfg$HyConc,sep="/"),toString(PID)),sep=" && "),
-				intern=hold,wait=hold)
+			callHysplit(hold,PID)
+		},
+		warning = function(cond){
+			if (grepl("900",cond)){
+				
+				stop(paste("run",PID,"failed hard, look at message and config files\n Using pop",mi,'\n',cond))
+			} else {
+				Sys.sleep(3)
+				callHysplit(hold,PID)
+				#stop(paste("run",PID,"too little computing space, supply more or limit model\n Using pop",mi,'\n',cond)))
 			}
+		}
 	)
 	
 	
@@ -389,8 +399,8 @@ callHysplit <- function(hold,PID){
 runHysplit <- function(cutoff=.01, plotFlag=0, hold = TRUE, call=TRUE,PID=1){
 
 	#change directory, then call hysplit
-	if(call) callHysplit(hold,PID)
-	cdump <- paste0("cdump",toString(PID))
+	if(call) jk <- callHysplit(hold,PID)
+	cdump <- paste0("cdump",PID)
 	if (plotFlag==1){
 		#Convert to plot
 		sadg <- shell(paste(paste("CD",cfg$HyWorking),paste(cfg$HyBase,paste(cfg$HyPlt, cdump, "-k0"),sep="/"),sep=" && "),intern=TRUE)
@@ -411,7 +421,7 @@ runHysplit <- function(cutoff=.01, plotFlag=0, hold = TRUE, call=TRUE,PID=1){
 
 	#make into a ascii
 
-
+	numCalls <- 1
 	repeat{ 
 		textFile<-shell(paste(paste("CD",cfg$HyWorking),
 			paste(cfg$HyBase,
@@ -420,7 +430,12 @@ runHysplit <- function(cutoff=.01, plotFlag=0, hold = TRUE, call=TRUE,PID=1){
 			,sep=" && ")
 			,intern=TRUE)
 		if (length(textFile)<1){
-			callHysplit(hold=TRUE,PID)
+			if(numCalls>10) {
+				stop(paste("run", PID, "did not out into cdump properly (con2asc failed) check message and config"))
+			} else {
+				numCalls <- numCalls+1
+				callHysplit(hold=TRUE,PID)
+			}
 		} else break
 	}
 		
@@ -1189,7 +1204,7 @@ for(di in seq(startDay,cfg$endDay)){
 			#####################################################
 			#Migrate the species
 			#####################################################
-			shouldPlot <-ifelse((di >=cfg$invPlotFlag && mig%%1==0),1,0)
+			shouldPlot <-ifelse((di >=cfg$invPlotFlag && mig%%10==0),1,0)
 			if (simEmploy == 1){
 				mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
 			} else if (simEmploy == 2){

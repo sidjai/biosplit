@@ -1,12 +1,7 @@
 
-realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
-
-
-
-
+realWd <- gsub("/r_code","",ifelse(!grepl("Moth",getwd()),dirname(sys.frame(1)$ofile),getwd()))
 
 source(paste(realWd,"r_code","DataRoadmap.R",sep='/'))
-
 
 changeConfig <- function(varName,newVal){
 	path <- paste(realWd,"config",sep='/')

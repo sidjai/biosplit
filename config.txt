@@ -122,5 +122,5 @@ OverwinterTX = -98.2, 26.2
 #Simulation parameters
 ############################
 
-topOfModel = 2000
+topOfModel = 2500
 verticalMotionRoutine = 1

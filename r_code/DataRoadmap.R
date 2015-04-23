@@ -49,7 +49,7 @@ runScript <- function(file,args=""){
 	
 	cat("\n","#######", paste("calling", file),"\n")
 	cat(input)
-	shell(input,mustWork=TRUE)
+	jk <- shell(input,mustWork=TRUE)
 }
 
 #Load configuration for this set
