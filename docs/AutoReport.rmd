@@ -102,10 +102,10 @@ This report will compare these runs:
 
 ```{r context}
 SimDir <- 'C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table'
-runs <- c('runDataRedo','runHelloWorld','runInterYear','runFLwinter')
-years <- c('2011','2012','2013','2014')
-#runs <- c('runDataRedo','runHelloWorld')
-#years <- c('2011','2012')
+#runs <- c('runDataRedo','runHelloWorld','runInterYear','runFLwinter')
+#years <- c('2011','2012','2013','2014')
+runs <- c('runInterYear','runTopModel')
+years <- c('2013','2013')
 rwyear <- paste(years,runs,sep='/')
 fullDir <- paste(SimDir,rwyear,sep='/')
 numRuns <- length(rwyear)
@@ -145,7 +145,7 @@ figList <- updateFigList(figList,"jpgTable")
 Here is the output:
 
 ####Table `r figList$jpgTable`. Contour plots of instaneous snapshots of the Moth population in the different runs at specific times throughout the migration time for FAW throughout late spring to fall.
-```{r fig.height=5,fig.show='hold'}
+```{r fig.height=(20/length(rwyear)),fig.show='hold'}
 #define jpeg table
 times <- c('051','053','063','073','091')
 dates <- strftime(strptime(paste0(times,'0'),'%m%d'),'%b\n%d')

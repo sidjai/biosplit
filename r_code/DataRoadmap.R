@@ -3,7 +3,7 @@ rm(list=ls(all=TRUE))
 #meteoLoc <- "C:/Program Files (x86)/MeteoInfo"
 meteoLoc <- "C:/Users/Siddarta.Jairam/Desktop/sid/MeteoInfo1.2"
 goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
-RLoc <- "C:/Program Files/R/R-3.1.1"
+RLoc <- "C:/Users/Siddarta.Jairam/Documents/R/R-3.2.0"
 
 #realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
 realWd <- "C:/Users/Siddarta.Jairam/Documents/MothMigrationModel"
@@ -57,7 +57,7 @@ runScript <- function(file,args=""){
 runScript("loadConfig.R")
 load(paste(realWd,"cfg.Rout",sep="/"))
 
-stop("Run stuff now")
+#stop("Run stuff now")
 
 #####Crop#####################################
 #Crop data grab section
@@ -65,11 +65,11 @@ stop("Run stuff now")
 
 
 #Download the files directly from NASS cropscape
-runScript("NASS2TIFs.R")
+#runScript("NASS2TIFs.R")
 
 
 #convert the downloaded Tiff 30m blocks to 40 km blocks and get rid of projection
-runScript("rawCrop2nicenc.R")
+#runScript("rawCrop2nicenc.R")
 
 
 ######ARL####################################
@@ -79,11 +79,11 @@ runScript("rawCrop2nicenc.R")
 
 #Go through the ARL data 
 #Require MeteoInfo
-runScript("ARL2GRD.py",paste(realWd,"cfg.txt",sep="/"))
+#runScript("ARL2GRD.py",paste(realWd,"cfg.txt",sep="/"))
 
 #Change the extent of the data
 
-runScript("rawMet2nicenc.R")
+#runScript("rawMet2nicenc.R")
 
 
 
@@ -93,7 +93,7 @@ runScript("rawMet2nicenc.R")
 ####
 
 #Transform this raw data into the derived variables used by the program
-runScript("aprioriVars.R")
+#runScript("aprioriVars.R")
 
 ####Run####################################
 # Run the model and iterate upon HYSPLIT
@@ -101,7 +101,7 @@ runScript("aprioriVars.R")
 
 
 #Call the model
-runScript("iterateHysplit.R")
+#runScript("iterateHysplit.R")
 
 #runScript("loadConfig.R")
 #load(paste(realWd,"cfg.Rout",sep="/"))
@@ -110,14 +110,14 @@ runScript("iterateHysplit.R")
 ####
 
 #Make the tables
-runScript("ncdf2trapdata.R")
+#runScript("ncdf2trapdata.R")
 
 
 #Make the maps
 #require scripter
-runScript("Mothtxt2ClassPost.BAS",cfg$SimOutFold)
+#runScript("Mothtxt2ClassPost.BAS",cfg$SimOutFold)
 
 #require scripter
-runScript("Mothtxt2contour.BAS",cfg$SimOutFold)
+#runScript("Mothtxt2contour.BAS",cfg$SimOutFold)
 
 

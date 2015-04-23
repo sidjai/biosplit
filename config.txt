@@ -24,7 +24,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2013
-runName = runTopModel
+runName = runActTopModel
 
 #Cropscape m 
 xmin = -1005735
@@ -122,5 +122,5 @@ OverwinterTX = -98.2, 26.2
 #Simulation parameters
 ############################
 
-topOfModel = 3000
+topOfModel = 2000
 verticalMotionRoutine = 1
