@@ -499,8 +499,8 @@ multiHysplit <- function(pop,dateChange,date,shPlotFlag){
 	}
 	out <- matrix(nrow=1,ncol=3)
 	for (gg in seq(1,length(inPop))){
-		changeInput(dateChange,date,inPop[[gg]],PID=gg)
-		callHysplit(hold=holdvec[gg],PID=gg)	
+		jk <- changeInput(dateChange,date,inPop[[gg]],PID=gg)
+		jk <- callHysplit(hold=holdvec[gg],PID=gg)	
 	}
 	prc <- shell("tasklist",intern=TRUE)
 	while(length(which(grepl("hycs",prc)))>0){
@@ -1173,59 +1173,73 @@ for(di in seq(startDay,cfg$endDay)){
 	mi<-1
 	while (mi <= length(mMoth)){
 
-		tSplit <-willFly(mMoth[[mi]],di,0)
-		sums <- lapply(tSplit,function(x)  colSums(x$grid)[3])
-		minmoth <- lapply(tSplit,function(x) cfg$mothThres*dim(x$grid)[1])
-
-		if (sums[[1]] > minmoth[[1]]) Moth<-lappend(Moth,tSplit[[1]])
-			
-		if (sums[[2]] < minmoth[[2]] || minmoth[[2]] == 0) mMoth <- mMoth[-mi,drop = FALSE]
+		tSplit <- willFly(mMoth[[mi]],di,0)
+		condLowAmt <- lapply(tSplit,function(x){
+			dim(x$grid)[1] == 0 ||
+				colSums(x$grid)[3] < cfg$mothThres*dim(x$grid)[1]
+		})
+		
+		condRetired <- (mMoth[[mi]]$flights >= cfg$migCareerLimit)
+		
+		#What to do with the Local population?
+		if (!condLowAmt$stay || condRetired){
+			Moth<-lappend(Moth,
+										if(condRetired){
+											mMoth[[mi]]
+											} else { 
+												tSplit[[1]]
+											})
+		}
+		
+		#What to do with the Migrants?
+		if (condLowAmt$migrant || condRetired) mMoth <- mMoth[-mi,drop = FALSE]
 		else{
-		   #Got Moths that want to fly
-		   xi <-map2block(tSplit[[2]]$grid[1,1],1,1)
-		   yi <-map2block(tSplit[[2]]$grid[1,2],2,1)
-		   #newWind <-ifelse((windThres<0 && mMoth[[mi]]$origin=="FL" && di<100),2.5,windThres)
-		   newWind <- cfg$windThres
-		   wi <- apr$TailWind[xi,yi,di-1]
-		   condW <- (is.na(wi) || wi<newWind)
-		   condSk <- (length(which(cfg$skip==di))!=0)
-		   condSucc <- (mMoth[[mi]]$flights %% cfg$succFlightLim)==0
-		   if (condW || condSk || condSucc){
-		   	mMoth[[mi]] <- tSplit[[2]]
-		   	mMoth[[mi]]$flights <- mMoth[[mi]]$flights+.1
+			#Got Moths that want to fly but are they able to fly?
+			xi <-map2block(tSplit[[2]]$grid[1,1],1,1)
+			yi <-map2block(tSplit[[2]]$grid[1,2],2,1)
+			#newWind <-ifelse((windThres<0 && mMoth[[mi]]$origin=="FL" && di<100),2.5,windThres)
+			newWind <- cfg$windThres
+			wi <- apr$TailWind[xi,yi,di-1]
+			condW <- (is.na(wi) || wi<newWind)
+			condSk <- (length(which(cfg$skip==di))!=0)
+			condTired <- (mMoth[[mi]]$flights %% cfg$succFlightLim)==0
+			if (condW || condSk || condTired){
+				mMoth[[mi]] <- tSplit[[2]]
+				mMoth[[mi]]$flights <- mMoth[[mi]]$flights+.1
 				mi <- mi+1
-		   } else{
-			#Got Moths that can fly
+			} else{
+				
+				#Got Moths that can fly
+				
+				#take the migratory FAW and change the CONTROL and EMITIMES files to beg a HYSPLIT run
+				#changeInput(ifelse(mi==1,1,0),tPos,tSplit[[2]])
 			
-			#take the migratory FAW and change the CONTROL and EMITIMES files to beg a HYSPLIT run
-			#changeInput(ifelse(mi==1,1,0),tPos,tSplit[[2]])
-		
-		
-			#####################################################
-			#Migrate the species
-			#####################################################
-			shouldPlot <-ifelse((di >=cfg$invPlotFlag && mig%%10==0),1,0)
-			if (simEmploy == 1){
-				mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
-			} else if (simEmploy == 2){
-				mMoth[[mi]]$grid <- runHysplit(.1,shouldPlot)
-			} else {
-				mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
-			}
-
-			mig <- mig+1
-
-			#distribute the GDDs
-			#mMoth[[mi]]$GDD <- rep(mMoth[[mi]]$GDD,dim(mMoth[[mi]]$grid)[1])
-
-			#get rid of the Moths that went out of bounds
-			mMoth[[mi]] <- migrateDeath(mMoth[[mi]],di)
-			if (dim(mMoth[[mi]]$grid)[1]==0)  mMoth <- mMoth[-mi,drop = FALSE]
-			else {
-				mMoth[[mi]]$flights <- round(mMoth[[mi]]$flights + 1,0)
-				mi<-mi+1
-			}
-		   }
+			
+				#####################################################
+				#Migrate the species
+				#####################################################
+				shouldPlot <-ifelse((di >=cfg$invPlotFlag && mig%%10==0),1,0)
+				if (simEmploy == 1){
+					mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
+				} else if (simEmploy == 2){
+					mMoth[[mi]]$grid <- runHysplit(.1,shouldPlot)
+				} else {
+					mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
+				}
+	
+				mig <- mig+1
+	
+				#distribute the GDDs
+				#mMoth[[mi]]$GDD <- rep(mMoth[[mi]]$GDD,dim(mMoth[[mi]]$grid)[1])
+	
+				#get rid of the Moths that went out of bounds
+				mMoth[[mi]] <- migrateDeath(mMoth[[mi]],di)
+				if (dim(mMoth[[mi]]$grid)[1]==0)  mMoth <- mMoth[-mi,drop = FALSE]
+				else {
+					mMoth[[mi]]$flights <- round(mMoth[[mi]]$flights + 1,0)
+					mi<-mi+1
+				}
+		  }
 		}
 		
 		

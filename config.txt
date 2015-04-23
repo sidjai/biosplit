@@ -108,6 +108,7 @@ skip = c(0)
 altCornDay  = 100
 #num of nights that a moth can fly in succession
 succFlightLim = 3
+migCareerLimit = 99
 flightPropAfterSilk = 0.9
 flightPropBeforeSilk = 0.1
 
