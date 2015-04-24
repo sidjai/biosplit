@@ -18,24 +18,26 @@ changeConfig <- function(...){
 	writeLines(befCon,path)
 }
 
-changeConfig("runName","runActTopModel",
-						 "topOfModel",2500,
-						 "delNightDurFlag",0)
+changeConfig("runName","runAbsFlightLimit",
+						 "migCareerLimit",3,
+						 "delNightDurFlag",0,
+						 "topOfModel",3000)
 
+runScript("loadConfig.R")
 runScript("iterateHYSPLIT.R")
 
 changeConfig("runName","runNightDurDel",
+						 "migCareerLimit",99,
 						 "topOfModel",3000,
 						 "delNightDurFlag",1)
 
 runScript("loadConfig.R")
 runScript("iterateHYSPLIT.R")
 
-changeConfig("runName","runAbsFlightLimit",
+changeConfig("runName","runFlightAndNight",
 						 "migCareerLimit",3,
-						 "delNightDurFlag",0)
+						 "topOfModel",3000,
+						 "delNightDurFlag",1)
 
 runScript("loadConfig.R")
 runScript("iterateHYSPLIT.R")
-
-

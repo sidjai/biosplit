@@ -31,33 +31,17 @@ ymapvec <- nc$dim$lat$vals
 
 bndx <- c(min(xmapvec),max(xmapvec))
 bndy <- c(min(ymapvec),max(ymapvec))
+stAss <- charmatch('totFlag',names(cfg))+1
+endAss <- charmatch('relAmtFL',names(cfg))
+Assump <- vapply(stAss:endAss,function(x) paste(names(cfg[x]),cfg[x],sep=' = '),"")
 
-vars <- c('simType','stAmount','TGDDbaseCrop','TGDDbaseFAW',
-					'mothThres','cohortThres',
-					'cohortGDDThres','windThres',
-					'infestThres','infestLmt','lifeSpan','oviDay',
-					'capEggs','eggsPerInfest','endDay',
-					'metDataType','succFlightLim',
-					'flightPropAfterSilk','flightPropBeforeSilk','skip','delNightDurFlag')
-Assump <- vapply(vars,function(x) paste0(x, " = ",toString(cfg[[match(x,names(cfg))]])),"")
-Assump <- c(Assump,paste0("CornThres = ",CornThres),"Starting locations")
-
-for (ff in seq(1,dim(intGrids)[1])){
-	Assump <- c(Assump,toString(intGrids[ff,]))
-}
-
-Assump <- c(Assump,
-	paste("Planting times", toString(Plant), sep= " = "),
-	paste("Harvest times", toString(Harvest), sep= " = "))
-
-names(Assump) <- NULL
 Assump <-paste(Assump,collapse = '; ')
 
 simEmploy <- switch(cfg$simType,single=2,Fake=3,1)
 
 #get the simulation criteria as supplied in the setup.cfg file
-#Should have been changed before simulation,
-#Should be written if you want non-default conditions
+#Should have been changed before simulation if you want non-default
+#The options secified in the config file under simulation assumptions will change but nothing else
 
 simData <-readLines(paste(cfg$HyWorking,"setup.cfg",sep= "/"),warn=0)
 simData <- as.matrix(simData)
@@ -76,7 +60,7 @@ changeControlInitial <-function(path){
 	
 	#Done so write
 	writeLines(newCon,path)
-	depo <- newCon[endLevel+6:length(newCon)-1]
+	depo <- newCon[(endLevel+5):length(newCon)]
 	
 	return(paste(depo ,collapse = '|'))
 }
@@ -100,9 +84,6 @@ simData <- rbind(simData,"Deposition = ", depos[1])
 
 simData <-paste(simData,collapse = ' ')
 simData <- gsub(",",";",simData)
-
-
-mMothOut <- CohortOut <- list(array(0, dim=c(dim(apr$Corn),52)),array(0, dim=c(dim(apr$Corn),52)))
 
 
 ############################################
@@ -263,7 +244,7 @@ getNightDur <- function(lat, lon, day){
 	names(sunLight) <- NULL
 	if(is.nan(sunLight[1])) stop(paste0("Astro calc messed up royally with NaNs used vals:",paste(avgLat,avgLon,di)))
 	if(sunLight[1]<0 || sunLight[1]>24) stop(paste0("Astro calc came up with weird response of:",sunLight))
-	return(round((24-sunLight)-1),0)
+	return(round((24-sunLight)-1,0))
 }
 changeInput <- function(dateChangeFlag, date,pop,PID=0){
 
@@ -384,7 +365,7 @@ callHysplit <- function(hold,PID){
 		warning = function(cond){
 			if (grepl("900",cond)){
 				
-				stop(paste("run",PID,"failed hard, look at message and config files\n Using pop",mi,'\n',cond))
+				stop(paste("run",PID,"ERR: starting location in interpolation area | trying to call an empty level\n Using pop",mi,'\n',cond))
 			} else {
 				Sys.sleep(3)
 				callHysplit(hold,PID)
@@ -498,15 +479,17 @@ multiHysplit <- function(pop,dateChange,date,shPlotFlag){
 		holdvec <- c(TRUE)
 	}
 	out <- matrix(nrow=1,ncol=3)
+	#suppress the multi hysplit output going to console when using Rgui
+	sink("NUL")
 	for (gg in seq(1,length(inPop))){
-		jk <- changeInput(dateChange,date,inPop[[gg]],PID=gg)
-		jk <- callHysplit(hold=holdvec[gg],PID=gg)	
+		changeInput(dateChange,date,inPop[[gg]],PID=gg)
+		callHysplit(hold=holdvec[gg],PID=gg)	
 	}
 	prc <- shell("tasklist",intern=TRUE)
 	while(length(which(grepl("hycs",prc)))>0){
 		prc <- shell("tasklist",intern=TRUE)
 	}
-	
+	sink()
 	for (gg in seq(1,length(inPop))){
 		out <- rbind(out,runHysplit(.1,shPlotFlag,hold=holdvec[gg],call=FALSE,PID=gg))
 	}
@@ -1072,7 +1055,7 @@ mig <- 1
 wk <- 1
 numFlights <- c()
 
-
+mMothOut <- CohortOut <- list(array(0, dim=c(dim(apr$Corn),52)),array(0, dim=c(dim(apr$Corn),52)))
 
 #Get the input cohort areas
 

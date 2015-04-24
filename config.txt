@@ -24,7 +24,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2013
-runName = runActTopModel
+runName = runAbsFlightLimit
 
 #Cropscape m 
 xmin = -1005735
@@ -108,7 +108,7 @@ skip = c(0)
 altCornDay  = 100
 #num of nights that a moth can fly in succession
 succFlightLim = 3
-migCareerLimit = 99
+migCareerLimit = 3
 flightPropAfterSilk = 0.9
 flightPropBeforeSilk = 0.1
 
@@ -123,5 +123,5 @@ OverwinterTX = -98.2, 26.2
 #Simulation parameters
 ############################
 
-topOfModel = 2500
+topOfModel = 3000
 verticalMotionRoutine = 1
