@@ -12,15 +12,10 @@ library(ggplot2)
 library(insol)
 realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
 load(paste(realWd,"cfg.Rout",sep="/"))
-theme_set(theme_bw(20,base_family = "serif"))
+
 figList <- list()
-updateFigList <- function(lst,name){
-	lst[[name]] <- length(lst)+1
-	return(lst)
-}
-dispVar <- function(var){
-	cat(paste(deparse(substitute(var)),var,sep=' = '),'\n')
-}
+source(paste(realWd,"docs/rmdFunctions.R",sep='/'))
+theme_set(getNiceTheme())
 ```
 
 ##Corn
@@ -31,11 +26,10 @@ The corn acreage was collected from CropScape and aggregated for the 40x40km gri
 ###Planting/Harvest
 
 Currently the planting and harvesting practices are assumed to be fully represented by date of action which is dependent only on latitude. With warmer climates in the south comes early dates for both planting and harvesting corn. In the corn belt above Oklahoma, the dates plateaus. A linear piecewise function is said to encapsulate these practices as shown below. 
-
 ```{r}
-apriori <- parse(paste(realWd,'r_code','aprioriVars.R',sep='/'))
-comd <- grep('^getTimingSplit',apriori,value=TRUE)
-eval(parse(text=comd))
+aprioriLoc <- paste(realWd,'r_code','aprioriVars.R',sep='/')
+getTimingSplit <- grabFunc(aprioriLoc,'getTimingSplit')
+
 ys <- seq(21.1969,51.1009,by=0.396)
 
 plant <- getTimingSplit(cfg$plantTimes,ys)
@@ -44,17 +38,17 @@ datP <- data.frame(Latitude = ys,Julian_Date = plant)
 datH <- data.frame(Latitude = ys,Julian_Date = harvest)
 dat <- rbind(datP, datH)
 dat$Type <- factor(c(rep("Planting_Dates", dim(datP)[1]), rep("Harvest_Dates", dim(datH)[1])))
-ggplot(dat, aes(x=Latitude, y=Julian_Date, linetype=Type)) + geom_line()
-figList <- updateFigList(figList,'cornDates')
+sdf <- ggplot(dat, aes(x=Latitude, y=Julian_Date, linetype=Type)) + geom_line()
+sdf + xlab(expression("Latitude (" *
+         degree * "N)"))+ ylab("Time of Action (Julian date)")
+figList <- updateCntList(figList,'cornDates')
 ```
 
 ####Figure `r figList$cornDates`. The julian day when farmers at a particular latitude will either plant or harvest their corn
 
 This fits well with reported numbers done by USDA Ag. Handbook 628 2010, though these numbers are hard to collect and have a large error bound. After the corn has been planted, the degree days are accumulated, GDD~corn~ , with minimum and maximum temperatures for that day as shown below.
-
 ```{r}
-comd <- grep('1.8 * ',apriori,value=TRUE)
-cat(gsub(', ifelse',', \n\t\t\t ifelse',comd))
+jk <- grabFunc(aprioriLoc,'1.8 * ',returnFun=0,shouldCat=1, atStart=0)
 ```
 
 This means that below the corn threshold, the GDD~corn~ is 0. The GDD~corn~ starts accumulating  on the planting date and stops at the harvest date where it goes back down to 0. The accumulation is bounded at 10&deg;C and 30&deg;C.
@@ -76,27 +70,25 @@ The units are in &deg;F, days old, or eggs/moth for capEggs. This capEggs comes 
 
 ###Egg Growth
 
-The eggs that are there are already assumed to be "survivors" so the only growth involved is with a degree day calculation as done by Hogg et al. 1982 using a threshold of 13.8&deg;C.
+The eggs that are there are already assumed to be "survivors" so the only growth involved is with a degree day calculation as done by Hogg et al. 1982 using a threshold of `r cfg$TGDDbaseFAW`&deg;C.
 
 ##Flight
 
 ###Generational flight
 
 When the moths first emerge, the moths have a choice of whether they want to fly to a new place or remain a local population. Once a moth decides to stay in the local population they remain there till they die. This is the same for the nightly migration, so the age of the migrant moths is heavily weighted for the young (1-7 days old) moths. The split between the generational local and migrant populations is based on whether or not the corn is in the silking stage. This is shown as a proportion of the moths in the migrant population as shown below:
-
 ```{r}
 dispVar(cfg$flightPropBeforeSilk)
 dispVar(cfg$flightPropAfterSilk)
-xs <- seq(0,3000,by=50)
-iterate <- parse(paste(realWd,'r_code','iterateHYSPLIT.R',sep='/'))
-comd <- grep('^genFlightProp',iterate,value=TRUE)
 
-cat(gsub(', ifelse',', \n\t\t\t ifelse',comd))
-eval(parse(text=comd))
-fp <- qplot(xs,genFlightProp(xs),ylim=c(0,1))
-fp + geom_line() + xlab(expression("GDD(" *
+cornGDD <- seq(0,3000,by=50)
+iterateLoc <- paste(realWd,'r_code','iterateHYSPLIT.R',sep='/')
+genFlightProp <- grabFunc(iterateLoc, 'genFlightProp',shouldCat=1)
+
+fp <- qplot(cornGDD,genFlightProp(cornGDD),ylim=c(0,1))
+fp + geom_line() + xlab(expression("GDD (" *
          degree * "F)"))+ ylab("Prop. of migrant moths")
-figList <- updateFigList(figList,'genFlight')
+figList <- updateCntList(figList,'genFlight')
 ```
 
 ####Figure `r figList$genFlight`. The split between the generational migrants and the local moths
@@ -104,17 +96,15 @@ figList <- updateFigList(figList,'genFlight')
 When the corn is outside the infest bounds, all the moths want to fly. This is only encountered for a generation when the moths lay eggs near the edge of the infest limit or when the corn is harvested before the moth is fully developed. The moths generation should be viable in this situation but there is not suitable area for a local population so they all want to leave for better areas.
 
 Of the moths that emerge as migrants, their date of first flight is spread over 7 days using an exponential decay function with a half-life of 2 days. The migrant moths with first flight days that are later in the week are kept separate from the local and migrant populations but grow just the same.  The function to calculate the amount of moths that fly each day is shown below:
-
 ```{r,echo=TRUE}
 s <- 1:6
 spread <- exp(-(s-1)/2)-exp(-(s)/2)
 spread <- c(spread,1-sum(spread))
 ```
-
 ```{r}
 fm <- qplot(1:7,spread,ylim=c(0,1), geom="bar", stat="identity")
 fm + xlab("Days")+ ylab("Prop. of Moths that fly")
-figList <- updateFigList(figList,'spread')
+figList <- updateCntList(figList,'spread')
 ```
 
 ####Figure `r figList$spread`. The proportion of the moth population that leave on any given day in the week after emergence
@@ -124,13 +114,9 @@ figList <- updateFigList(figList,'spread')
 Each subdivided population of migrant moths that can and wants to fly is sent into a seperate run into HYSPLIT. The only thing that HYSPLIT sees is indiscriminate particles at the specified locations launched up to 500m at dusk over the course of an hour. Hpwever, there are some location specific parameters that are reset every flight. One of these is the area of emmision being the amount of corn in the take-off grid cell. The idea is that the abundance of corn would lead to more local movement throughout the day simulated by a growing circle centered on the center of the grid cell. In this way, areas with little corn are basically point sources which can be easily manipulated by a stray gust of wind, where a large corn producing area can be more resilient.
 
 Another parameter that changed is the duration of the flight. The flight duration is defined as the time between dusk and dawn minus one hour. Over the course of the year and along the journey northward, this difference changes. This is shown below.
-
 ```{r}
+getNightDur <- grabFunc(iterateLoc,'getNightDur')
 
-getNightDur <- function(lat, lon, day){
-	sunLight <- daylength(lat,lon,day,1)[,3]
-	return((24-round(sunLight,1))-1)
-}
 jds <- 1:300
 dat <- list()
 gridLen <- length(ys)
@@ -145,28 +131,25 @@ dat <- rbind(dat1, dat2,dat3)
 pDur <- ggplot(dat, aes(x=xindp, y=ydep, linetype=Lat))
 pDur + geom_line() + xlab("Julian Day")+ ylab("Flight Duration (hrs)")
 
-figList <- updateFigList(figList,'flightDur')
+figList <- updateCntList(figList,'flightDur')
 ```
 
 ####Figure `r figList$flightDur`. The distribution of the length of flight with respect to the latitudes and the day of the year.
 
-After HYSPLIT runs, the check for whether the migrant population wants to settle down in a location is a variable called livability. The qualitative definition is the suitability of the area for a population of FAW. In the future this can include factors like pesticide use, predators, disease, number of days in flight, etc. Right now it is a piecewise function just on GDD~corn~. The functions is as follows:
+The reason the time is limited to hour length is due HYSPLIT stipulating that minutes cannot be specified when the time is above 1 hour. If this were not the case, the familiar curves would be shown with the higher latitudes having a higher amplitude. 
 
+After HYSPLIT runs, the check for whether the migrant population wants to settle down in a location is a variable called livability. The qualitative definition is the suitability of the area for a population of FAW. In the future this can include factors like pesticide use, predators, disease, number of days in flight, etc. Right now it is a piecewise function just on GDD~corn~. The functions is as follows:
 ```{r}
 dispVar(cfg$infestThres)
-comd <- grep('^howLivable',iterate,value=TRUE)
-cat(gsub(', ifelse',', \n\t\t\t ifelse',comd))
-eval(parse(text=comd))
+howLivable <- grabFunc(iterateLoc, 'howLivable',shouldCat=1)
 ```
 
 Here 'cGrowth' is the GDD~corn~ in &deg;F. 1000&deg;F refers to a fully emerged plant. 1400&deg;F is the silking stage. 2400&deg;F refers to a developed plant.  The function looks like this:
-
 ```{r}
-
-p <- qplot(xs,howLivable(xs),ylim=c(0,1))
+p <- qplot(cornGDD,howLivable(cornGDD),ylim=c(0,1))
 p + geom_line() + xlab(expression("GDD(" *
          degree * "F)"))+ ylab("Livability")
-figList <- updateFigList(figList,'howLivable')
+figList <- updateCntList(figList,'howLivable')
 ```
 
 ####Figure `r figList$howLivable`. A metric, livability, of how suitable a grid cell is for sustaining a local population of moths

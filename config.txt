@@ -24,7 +24,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2013
-runName = runAbsFlightLimit
+runName = runFlightAndNight
 
 #Cropscape m 
 xmin = -1005735
@@ -50,7 +50,7 @@ writeFlag = 1
 makeReadmeFlag = 1
 
 #altAnalysis
-delNightDurFlag = 0
+delNightDurFlag = 1
 
 codeChanges = Added ability to set Top of the model and Vertical Motion from the config file
 outEveryDayStart = 120

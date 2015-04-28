@@ -1,7 +1,7 @@
 ---
-title: "Multi Year comparison"
+title: "Model Improvement, v0.1.0-v0.1.2"
 author: "Siddarta Jairam"
-date: "Tuesday, April 9, 2015"
+date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
 output: 
   word_document:
     reference_docx: AutoReporttemp.docx
@@ -14,69 +14,30 @@ knitr::opts_chunk$set(fig.width=6.5, fig.height=3,fig.pos='center',echo=FALSE,co
 realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
 load(paste(realWd,"cfg.Rout",sep="/"))
 figList <- list()
-updateFigList <- function(lst,name){
-	lst[[name]] <- length(lst)+1
-	return(lst)
-}
-dispVar <- function(var){
-	cat(paste(deparse(substitute(var)),var,sep=' = '),'\n')
-}
-mosaicImage <- function(pathMat,
-												labelx=paste0('x',1:dim(pathMat)[2]),
-												labely=paste0('x',1:dim(pathMat)[2]),
-												offset=.1,marl=.1,marb=.1){
-	xlen <- dim(pathMat)[2]
-	ylen <- dim(pathMat)[1]
-	#Empty plot
-	par(mar=c(0,0,0,0))
-	plot(1,xlim=c(0,xlen+offset+marl),ylim=c(0,ylen+offset+marb),
-			type="n",bty="n",axes=FALSE)
-	
-	#Get bounding box for every grid cell
-	
-	xmins <- (1:xlen)-1+marl
-	xmaxs <- (1:xlen)+offset+marl
-	ymins <- (ylen-(1:ylen))+marb
-	ymaxs <- (ylen-(1:ylen))+1+marb+offset
-	
-	
-	for(yi in 1:ylen){
-		text(x=0,y=ylen-yi+.55,labels=labely[yi])
-		for(xi in 1:xlen){
-			path <- pathMat[yi,xi]
-			
-			if (length(path)>0 && file.exists(path)){
-				#on non windows need to resize
-				rasterImage(readJPEG(path,native=TRUE),
-					xleft=xmins[xi],ybottom=ymins[yi],
-					xright=xmaxs[xi],ytop=ymaxs[yi],
-					interpolate = FALSE)
-			}
-			
-			
-			if (yi==ylen){
-				text(x=xi-.35,y=0,labels=labelx[xi])
-			}
-		}
-		
-	}
-}
-findDiff <- function(vecvars){
+source(paste(realWd,"docs/rmdFunctions.R",sep='/'))
+findDiff <- function(vecvars,compareInd=1:length(vecvars)){
+	first <- compareInd[1]
 	cond <- strsplit(vecvars,';')
-	diff <- matrix('Same values', nrow = 1, ncol = numRuns)
+	diff <- matrix('Same values', nrow = 1, ncol = length(vecvars))
 	colnames(diff) <- rwyear
 	locCnt <- 1 
 	for (var in seq(1,length(cond[[1]]))){
-		allCond <- vapply(1:numRuns,function(x)cond[[x]][var],'one')
-		test <- allCond %in% cond[[1]][var]
+		allCond <- vapply(1:length(vecvars),function(x){
+			if(is.element(x,compareInd)){
+				cond[[x]][var]
+			} else "blank"},'one')
+		test <- allCond[compareInd] %in% cond[[first]][var]
 		
 			
 		if(!min(test)){
 			#There is a difference between the runs so output it
-			if(grepl("=",allCond[1])){
+			if(grepl("=",allCond[[first]])){
 				parse <- strsplit(allCond,' = ')
-				diff <- rbind(diff,vapply(1:numRuns,function(x)parse[[x]][2],'one'))
-				nrname <-  parse[1][1]
+				diff <- rbind(diff,vapply(1:length(vecvars),function(x){
+					if(is.element(x,compareInd)){
+						parse[[x]][2]
+					} else "blank"},'one'))
+				nrname <- parse[[first]][1]
 			} else {
 				diff <- rbind(diff,allCond)
 				nrname <- paste0("Starting Location",locCnt)
@@ -84,15 +45,15 @@ findDiff <- function(vecvars){
 			}
 			
 			#add the rowname from the thing that is different
-			exnames <- rownames(diff)
-			exnames[length(exnames)] <- nrname
-			rownames(diff) <- exnames
+			
+			rownames(diff)[dim(diff)[1]] <- nrname
 			
 			#diff <- paste0(diff,paste(allCond,collapse=' != '),'\n')
 		}
 	}
+	
 	if (dim(diff)[1]>1){ 
-		diff <- diff[-1,]
+		diff <- diff[-1,,drop=FALSE]
 	}
 	return(diff)
 }
@@ -104,11 +65,12 @@ This report will compare these runs:
 SimDir <- 'C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table'
 #runs <- c('runDataRedo','runHelloWorld','runInterYear','runFLwinter')
 #years <- c('2011','2012','2013','2014')
-runs <- c('runInterYear','runTopModel')
-years <- c('2013','2013')
+runs <- c('runInterYear','runAbsFlightLimit','runNightDurDel','runFlightAndNight')
+years <- c('2013','2013','2013','2013')
 rwyear <- paste(years,runs,sep='/')
 fullDir <- paste(SimDir,rwyear,sep='/')
 numRuns <- length(rwyear)
+compareRuns <- 2:4
 cat(paste(rwyear,colllapse='|'))
 ```
 
@@ -118,28 +80,28 @@ The conditions that the run was done in is as follows:
 condFiles <- vapply(fullDir,function(x){
 	readLines(paste(x,'Conditions.txt',sep='/'))
 	},rep('one',5))
-cat(condFiles[3:4,1])
+cat(condFiles[3:4,2])
 ```
 
 The differences between the different runs are as follows:
 
 ```{r}
-bioDiff <- findDiff(condFiles[3,])
-simDiff <- findDiff(condFiles[4,])
+bioDiff <- findDiff(condFiles[3,],compareRuns)
+simDiff <- findDiff(condFiles[4,],compareRuns)
 
-figList <- updateFigList(figList,"bioDiff")
+figList <- updateCntList(figList,"bioDiff")
 ```
 
 ####Table `r figList$bioDiff`. All the differences between the biological Assumptions between the different runs
 ```{r,results = 'asis'}
 kable(as.data.frame(bioDiff),align='c')
-figList <- updateFigList(figList,"simDiff")
+figList <- updateCntList(figList,"simDiff")
 ```
 
 ####Table `r figList$simDiff`. All the differences between the parameters for the HYSPLIT execution between the different runs
 ```{r,results = 'asis'}
 kable(as.data.frame(simDiff),align='c')
-figList <- updateFigList(figList,"jpgTable")
+figList <- updateCntList(figList,"jpgTable")
 ```
 
 Here is the output:
