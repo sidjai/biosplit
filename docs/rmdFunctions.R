@@ -7,21 +7,23 @@ dispVar <- function(var){
 }
 mosaicImage <- function(pathMat,
 												labelx=paste0('x',1:dim(pathMat)[2]),
-												labely=paste0('x',1:dim(pathMat)[2]),
-												offset=.1,marl=.1,marb=.1){
+												labely=paste0('y',1:dim(pathMat)[1]),
+												offsetx=.1,offsety=.1,marl=.1,marb=.1){
+	labelx <- gsub("/", "\n",labelx)
+	
 	xlen <- dim(pathMat)[2]
 	ylen <- dim(pathMat)[1]
 	#Empty plot
 	par(mar=c(0,0,0,0))
-	plot(1,xlim=c(0,xlen+offset+marl),ylim=c(0,ylen+offset+marb),
+	plot(1,xlim=c(0,xlen+offsetx+marl),ylim=c(0,ylen+offsety+marb),
 			 type="n",bty="n",axes=FALSE)
 	
 	#Get bounding box for every grid cell
 	
 	xmins <- (1:xlen)-1+marl
-	xmaxs <- (1:xlen)+offset+marl
+	xmaxs <- (1:xlen)+offsetx+marl
 	ymins <- (ylen-(1:ylen))+marb
-	ymaxs <- (ylen-(1:ylen))+1+marb+offset
+	ymaxs <- (ylen-(1:ylen))+1+marb+offsety
 	
 	
 	for(yi in 1:ylen){
@@ -39,7 +41,7 @@ mosaicImage <- function(pathMat,
 			
 			
 			if (yi==ylen){
-				text(x=xi-.35,y=0,labels=labelx[xi])
+				text(x=xi-.35,y=0.01,labels=labelx[xi])
 			}
 		}
 		

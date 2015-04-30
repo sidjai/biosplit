@@ -16,7 +16,7 @@ runScript <- function(file,args=""){
 		
 	if (langFlag==1){
 		#Rscripts
-		scrDir <- paste(realWd,"r_code",sep="/")
+		scrDir <- paste(realWd,"R",sep="/")
 		command <- paste("CD",scrDir)
 		command[2] <- paste(
 			paste0("\"",paste(RLoc,"bin","Rscript.exe",sep="/"),"\"")
