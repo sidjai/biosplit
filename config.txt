@@ -24,7 +24,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2013
-runName = runFlightAndNight
+runName = runLatThresWinter
 
 #Cropscape m 
 xmin = -1005735
@@ -49,12 +49,9 @@ writeFlag = 1
 # make an automated readme file?
 makeReadmeFlag = 1
 
-#altAnalysis
-delNightDurFlag = 1
-
 codeChanges = Added ability to set Top of the model and Vertical Motion from the config file
-outEveryDayStart = 120
-outEveryDayEnd = 220
+outEveryDayStart = 140
+outEveryDayEnd = 300
 
 #ncdf2trapdata.R
 
@@ -99,7 +96,7 @@ capEggs = 125
 # number of eggs laid at the same time
 eggsPerInfest = 17
 #startDay = 40
-endDay = 300
+endDay = 360
 metDataType = edas
 #skip because the ARL data is missing (2011)
 #skip = c(241,242) 
@@ -108,10 +105,14 @@ skip = c(0)
 altCornDay  = 100
 #num of nights that a moth can fly in succession
 succFlightLim = 3
-migCareerLimit = 3
+migCareerLimit = 99
+#altAnalysis
+delNightDurFlag = 0
 flightPropAfterSilk = 0.9
 flightPropBeforeSilk = 0.1
 
+FLwinterCutoff = 27
+TXwinterCutoff = 27
 relAmtFL = 0.1
 OverwinterFL = -81, 26.9
 OverwinterFL = -80.7, 26.5

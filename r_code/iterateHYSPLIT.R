@@ -1021,20 +1021,28 @@ cleangrowMoths <- function(lpop,lEggs,di){
 
 }
 
-overWinter <- function(InputMoth,day){
-	test <- vapply(1:length(InputMoth),function(x) 0,0)
-	
-	for (i in seq(1, length(InputMoth))){
-		xi <-map2block(InputMoth[[i]]$grid[1],1,1)
-		yi <-map2block(InputMoth[[i]]$grid[2],2,1)
+overWinter <- function(region,origin){
+	if (is.double(region)){
+		#latitude thres
+		possYs <- which(ymapvec < region)
+		possXs <- switch(origin,
+										 TX=which(xmapvec < (-90)),
+										 FL=which(xmapvec > (-90)))
+		locInd <- which(apr$Corn[possXs,possYs] > 1,arr.ind=TRUE)
+		yi <- possYs[locInd[,2]]
+		xi <- possXs[locInd[,1]]
+		xs <- map2block(xi,1,2)
+		ys <- map2block(yi,2,2)
+		locNum <- dim(locInd)[1]
+		numPerLoc <- round((cfg$stAmount * switch(origin,
+												TX=(1-cfg$relAmtFL),
+												FL=cfg$relAmtFL))/locNum,1)
 		
-		if (apr$CornGDD[[xi,yi,day]]/10 >= cfg$infestThres){
-			test[i] <- 1
-			
-		}
+		lpop <- lapply(1:locNum,function(ind){
+				makeLife(0,cbind(xs[ind],ys[ind],numPerLoc),0,origin)
+		})
 	}
-	return(test)
-	
+	return(lpop)
 }
 
 ###############################################################################
@@ -1059,10 +1067,8 @@ mMothOut <- CohortOut <- list(array(0, dim=c(dim(apr$Corn),52)),array(0, dim=c(d
 
 #Get the input cohort areas
 
-for (ig in seq(1,dim(intGrids)[1])){
-	tag<-ifelse(ig<=cfg$Flnum,"FL","TX")
-	winterPop[[ig]] <- makeLife(0,intGrids[ig,],0,tag)
-}
+winterPop <- overWinter(cfg$FLwinterCutoff,"FL")
+winterPop <- lappend(winterPop,overWinter(cfg$TXwinterCutoff,"TX"))
 
 #check if all overwinter populations are over corn
 startCorn <- as.numeric(testEnv(winterPop,jd=45)[,"cAmt"])
@@ -1072,19 +1078,19 @@ if(max(startCorn==0)){
 		paste(startCorn,collapse="|")))
 }
 
-# get the start day from the overwinter populations
-startDay <- 45 #first guess
-repeat{
-	Bvec <- overWinter(winterPop,startDay)
-	if (length(which(Bvec==1)>0)){
-		Cohort <- lappend(Cohort,winterPop)
-		winterPop <- list()
-		break
-	}
-	startDay <- startDay+1
+#Check if the overwinter population sum to the start amount
+checkAmt <- sum(makePopTable(winterPop)[,3])
+if(abs(checkAmt-cfg$stAmount) > 10){
+	stop(paste0("The overwinter population calculation did not go right, calc Pop:",checkAmt, " specified amount:", cfg$stAmount))
 }
 
-#startDay <-di+1
+# get the start day from the overwinter populations
+xi <- map2block(winterPop[[1]]$grid[1],1,1)
+yi <- map2block(winterPop[[1]]$grid[2],2,1)
+startDay <- which(apr$CornGDD[xi,yi,] >cfg$infestThres)[1]
+Cohort <- winterPop
+winterPop <- NULL
+
 for(di in seq(startDay,cfg$endDay)){
 	
 	#Add input Cohorts when the infestation is possible
@@ -1284,13 +1290,15 @@ for(di in seq(startDay,cfg$endDay)){
 		Eggs <- list()
 		youngAdults <- list()
 		
-		#Clean cohort
-		tCoh <- growCohort(Cohort,di)
+		if (length(Eggs)>0){
+			#Clean cohort
+			tCoh <- growCohort(Cohort,di)
 
-		#Clean cohort
-		Cohort <- cleanAll(tCoh[[1]],cfg$cohortThres)
+			#Clean cohort
+			Cohort <- cleanAll(tCoh[[1]],cfg$cohortThres)
 		
-		youngAdults <- tCoh[[2]]	
+			youngAdults <- tCoh[[2]]
+		}
 					
 	}
 	
