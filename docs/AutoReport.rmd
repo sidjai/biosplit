@@ -124,5 +124,5 @@ contours <- vapply(conPaths,function(pth){
 		},'hi')
 	},rep('hi',numTimes))
 
-mosaicImage(contours,labelx=rwyear,labely=dates)
+mosaicImage(contours,labelx=rwyear,labely=dates,offsetx=.08,marb=.2,marl=.11)
 ```
