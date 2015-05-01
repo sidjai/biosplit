@@ -1,0 +1,96 @@
+---
+title: "workflow"
+author: "Siddarta Jairam"
+date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
+output: 
+  word_document:
+    reference_docx: AutoReporttemp.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=6.5, fig.height=3.5,fig.pos='center',echo=TRUE,comment='>',dpi=800)
+library(ggplot2)
+realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
+load(paste(realWd,"cfg.Rout",sep="/"))
+
+figList <- list()
+source(paste(realWd,"docs/rmdFunctions.R",sep='/'))
+theme_set(getNiceTheme())
+```
+
+#Setup
+
+When the package is installed there is a blank "config.txt" file created in the package directory. This holds all the information about the run and the file folders. Ultimately, most of the file folders are optional but the parameters are vital to how the biological side of the program runs. One file folder that is neccesary is the location of the HYSPLIT working directory and the installed "execs" file. *This program assumes that the HYSPLIT is installed.*
+
+```{r}
+
+cfg <- loadConfig()
+head(names(cfg))
+tail(names(cfg))
+```
+
+#Data Collection
+
+##Crop
+
+Download the files directly from NASS cropscape
+
+```{r}
+NASS2TIFs(stuff)
+
+```
+
+#convert the downloaded Tiff 30m blocks to 40 km blocks and get rid of projection
+```{r}
+rawCrop2nicenc\(stuff\)
+```
+
+
+##Meterological
+
+Go through the ARL data 
+Require MeteoInfo
+
+```{r}
+runScript("ARL2GRD.py",paste(realWd,"cfg.txt",sep="/"))
+```
+
+Change the extent of the data
+
+```{r}
+rawMet2nicenc(stuff)
+```
+
+
+#Running the program
+
+Transform this raw data into the derived variables used by the program
+```{r}
+aprioriVars(stuff)
+```
+
+Call the model
+```{r}
+iterateHysplit(stuff)
+```
+
+#Post-processing
+
+Make the tables
+```{r}
+ncdf2trapdata(stuff)
+```
+
+
+Make the maps
+require scripter
+```{r}
+runScript("Mothtxt2ClassPost.BAS",cfg$SimOutFold)
+```
+
+require scripter
+```{r}
+runScript("Mothtxt2contour.BAS",cfg$SimOutFold)
+```
+
+
