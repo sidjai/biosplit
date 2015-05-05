@@ -4,14 +4,14 @@
 \alias{NASS2TIFs}
 \title{Download the Cropscape files}
 \usage{
-NASS2TIFs(outPath, year, cropExtent, cropType = "Corn")
+NASS2TIFs(dirOut, year, cropGrid, cropType = "Corn")
 }
 \arguments{
-\item{outPath}{The path where the .tifs are saved}
+\item{dirOut}{The directory where the .tifs are saved}
 
-\item{year}{The year to grab}
+\item{year}{The year to grab from CropScape}
 
-\item{cropExtent}{An extent of the downloaded area}
+\item{cropGrid}{An grid of the downloaded area, need extent and spacing}
 
 \item{cropType}{The crop type you want to export}
 }

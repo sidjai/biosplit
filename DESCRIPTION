@@ -2,7 +2,13 @@ Package: biosplit
 Title: BioSplit model for Moth Migration
 Version: 0.1.3.9000
 Authors@R: person('Siddarta', 'Jairam', , 'sidjsb@gmail.com', role = c("aut","cre"))
-Description: A biological model of insect growth and death across generations connected to a physical model of migration patterns as a meterological dispersion of passive particles in the HySplit (NOAA) model.
+Description: A biological model of insect growth and death across generations 	connected to a physical model of migration patterns as a meterological dispersion of passive particles in the HySplit (NOAA) model.
 Depends: R (>= 3.1.1)
+Imports:
+	httr,
+	insol,
+	ncdf,
+	raster,
+	rgdal
 License: GPL 2.0
 LazyData: true

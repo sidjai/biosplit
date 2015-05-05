@@ -8,7 +8,7 @@
 #'
 #'@export
 loadConfig <- function(path="config.txt"){
-	if(!file.exist(path)){
+	if(!file.exists(path)){
 		stop(paste("file:", path, "does not exist or can't be assessed."))
 	}
 	
@@ -79,7 +79,11 @@ loadConfig <- function(path="config.txt"){
 	cfg$AprioriLoc <- paste(cfg$AirTempDir,cfg$year,"aprioriVars.nc",sep="/")
 	cfg$TrapLoc <- paste(cfg$docuDir,cfg$trapName,sep="/")
 	
-	
+	# make rasters
+	cropProj <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+	boBox <- raster::extent(cfg$xmin, cfg$xmax, cfg$ymin, cfg$ymax)
+	cfg$cropGrid <- raster::raster(boBox,
+		crs = cropProj,resolution = cfg$spc)
 	
 	# make folders
 	foldSet <- grep("Fold",names(cfg))
@@ -113,6 +117,7 @@ loadConfig <- function(path="config.txt"){
 #'cfg <- loadConfig()
 #'changeConfig(,'year',2014)
 #'changeConfig(,'year',cfg$year,'runName',cfg$runName)
+#'
 #'\dontrun{
 #'changeConfig(,'asdjkf',5)
 #'#Error asdjkf are not valid variables in Config

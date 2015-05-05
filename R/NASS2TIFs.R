@@ -2,39 +2,42 @@
 #' 
 #' Uses the Cropscape api to get download the crop .tiffs of the selected crop type
 #' 
-#' @param year The year to grab
-#' @param cropExtent An extent of the downloaded area
-#' @param outPath The path where the .tifs are saved
+#' @param dirOut The directory where the .tifs are saved
+#' @param year The year to grab from CropScape
+#' @param cropGrid An grid of the downloaded area, need extent and spacing 
 #' @param cropType The crop type you want to export
 #' 
 #' 
 #' @return Horizontal slices of the area of interest in the path you specify. In R, nothing.
 #' @export
-NASS2TIFs <- function(outPath, year, cropExtent, cropType="Corn"){
+NASS2TIFs <- function(dirOut, year, cropGrid, cropType="Corn"){
+	ext <- raster::extent(cropGrid)
 	cropProj <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-	if (match(cropExtent@projection, cropProj)!=1){
+	if (match(as.character(cropGrid@crs), cropProj)!=1){
 		#project points into cropscape projection
 	}
 	
 	cropNum <- switch(cropType,Corn=1)
 	
 	startCDL <- 'http://nassgeodata.gmu.edu:8080/axis2/services/CDLService/GetCDLFile?year='
-	startCDL <- paste0(startCDL, year, '&bbox=', cropExtent@xmin)
+	startCDL <- paste0(startCDL, year, '&bbox=', ext@xmin)
 	
 	startExt <- 'http://nassgeodata.gmu.edu:8080/axis2/services/CDLService/ExtractCDLByValues?file='
 	
-	ys <- seq(cropExtent@ymin,(cropExtent@ymax), by=cropExtent@spc)
-	lasty <- length(ys)
+	ys <- seq(ext@ymin, (ext@ymax), by = raster::xres(cropGrid))
+
 	bots <- rev(rev(ys)[-1])
 	
 	tops <- ys[-1]
+	lasty <- length(tops)
 	
+	prog <- txtProgressBar(style = 3)
 	#(ymin+(3*spc)
-	for (ind in seq(1,lasty)){
-		cat(ind/lasty,"\n")
-		outName <- paste0(cfg$CropFold[1], "/", year, '_', cropType, '_', zstr(ind), '.tif')
+	for (ind in seq(1, lasty)){
+		setTxtProgressBar(prog, ind/lasty)
+		outName <- paste0(dirOut, "/", year, '_', cropType, '_', zstr(ind), '.tif')
 		if (!file.exists(outName)){
-			textCDL <- paste(startCDL, bots[ind], cropExtent@xmax, tops[ind], sep=",")
+			textCDL <- paste(startCDL, bots[ind], ext@xmax, tops[ind], sep=",")
 			cdlURL <- parseURL(httr::GET(textCDL))
 			
 			textExt <- paste0(startExt, cdlURL, '&values=', cropNum)

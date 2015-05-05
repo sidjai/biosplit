@@ -10,6 +10,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width=6.5, fig.height=3.5,fig.pos='center',echo=TRUE,comment='>',dpi=800)
 library(ggplot2)
+library(biosplit)
 realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
 load(paste(realWd,"cfg.Rout",sep="/"))
 
@@ -23,7 +24,6 @@ theme_set(getNiceTheme())
 When the package is installed there is a blank "config.txt" file created in the package directory. This holds all the information about the run and the file folders. Ultimately, most of the file folders are optional but the parameters are vital to how the biological side of the program runs. One file folder that is neccesary is the location of the HYSPLIT working directory and the installed "execs" file. *This program assumes that the HYSPLIT is installed.*
 
 ```{r}
-
 cfg <- loadConfig()
 head(names(cfg))
 tail(names(cfg))
@@ -36,13 +36,13 @@ tail(names(cfg))
 Download the files directly from NASS cropscape
 
 ```{r}
-NASS2TIFs(stuff)
-
+NASS2TIFs(cfg$CropFold[1], cfg$year, cfg$cropGrid)
 ```
 
 #convert the downloaded Tiff 30m blocks to 40 km blocks and get rid of projection
 ```{r}
-rawCrop2nicenc\(stuff\)
+outName <- paste(cfg$CropFold[2],paste0("aggCrop_", cfg$year, "test.dat"),sep="/")
+rawCrop2nicenc(cfg$CropFold[1],outName,cfg$cropGrid)
 ```
 
 

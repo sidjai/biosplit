@@ -22,6 +22,7 @@ those values then rewrites the entire file.
 cfg <- loadConfig()
 changeConfig(,'year',2014)
 changeConfig(,'year',cfg$year,'runName',cfg$runName)
+
 \dontrun{
 changeConfig(,'asdjkf',5)
 #Error asdjkf are not valid variables in Config
