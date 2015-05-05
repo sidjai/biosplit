@@ -12,5 +12,6 @@ loadConfig(path = "config.txt")
 \description{
 Parses the config file and returns the cfg with all the parameters
 as an object, a .RData file and compiled text documents
+Also creates all the directories as specified in the config files
 }
 

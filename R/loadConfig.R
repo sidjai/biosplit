@@ -2,11 +2,16 @@
 #'
 #'Parses the config file and returns the cfg with all the parameters
 #'as an object, a .RData file and compiled text documents
+#'Also creates all the directories as specified in the config files
 #'
 #'@param path The path to the config file if different than the package directory
 #'
 #'@export
 loadConfig <- function(path="config.txt"){
+	if(!file.exist(path)){
+		stop(paste("file:", path, "does not exist or can't be assessed."))
+	}
+	
 	outTok <- gsub("\\w*.txt","",path)
 	
 	raw <- readLines(path)
@@ -93,3 +98,42 @@ loadConfig <- function(path="config.txt"){
 	
 	return(cfg)
 }
+
+#'Change the configuration file
+#'
+#'After the configuration path, there should be pairs of configuration 
+#'elements that should be changed. The function loads up the file as lines and changes
+#'those values then rewrites the entire file.
+#'
+#'@param path The path to the config file if different than the package directory
+#'@param ... odd parameters are the config element name as a string e.g. "runName", "year".
+#'@param ... even parameters are the value specified. e.g. "runWorld", "2012".
+#'
+#'@examples
+#'cfg <- loadConfig()
+#'changeConfig(,'year',2014)
+#'changeConfig(,'year',cfg$year,'runName',cfg$runName)
+#'\dontrun{
+#'changeConfig(,'asdjkf',5)
+#'#Error asdjkf are not valid variables in Config
+#'}
+#'@export
+changeConfig <- function(path="config.txt",...){
+	if(!file.exists(path)){
+		stop(paste("file:", path, "does not exist or can't be assessed."))
+	}
+	
+	args <- list(...)
+	varNames <- c(args[seq(1,length(args),2)],recursive=TRUE)
+	newVals <- args[seq(2,length(args),2)]
+	
+	befCon <- readLines(path)
+	inds <- charmatch(varNames,befCon)
+	invalidNames <- varNames[is.na(inds),drop=FALSE]
+	if (length(invalidNames)>0){
+		stop(paste(paste(invalidNames,collapse=','), "are not valid variables in Config"))
+	}
+	befCon[inds] <- paste(varNames,newVals,sep=' = ')
+	writeLines(befCon,path)
+}
+
