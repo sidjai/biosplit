@@ -54,11 +54,3 @@ parseURL <- function(x){
 	return(text)
 }
 
-zstr <- function(num,dig=2){
-	str <- toString(num)
-	while (nchar(str) < dig){
-		str <- paste("0", str, sep="")
-	}
-	return(str)
-}
-

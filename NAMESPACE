@@ -3,3 +3,6 @@
 export(NASS2TIFs)
 export(changeConfig)
 export(loadConfig)
+export(rawCrop2nicenc)
+import(ncdf)
+import(raster)

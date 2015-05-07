@@ -25,9 +25,18 @@ When the package is installed there is a blank "config.txt" file created in the 
 
 ```{r}
 cfg <- loadConfig()
-head(names(cfg))
 tail(names(cfg))
 ```
+
+Make the grids of the different manipulation steps:
+
+```{r}
+boBox <- raster::extent(cfg$xmin, cfg$xmax, cfg$ymin, cfg$ymax)
+cropGrid <- raster::raster(boBox,
+	crs = cfg$cropProj,resolution = cfg$spc)
+niceGrid <- raster::projectExtent(cropGrid,cfg$niceProj)
+```
+
 
 #Data Collection
 
@@ -36,13 +45,13 @@ tail(names(cfg))
 Download the files directly from NASS cropscape
 
 ```{r}
-NASS2TIFs(cfg$CropFold[1], cfg$year, cfg$cropGrid)
+NASS2TIFs(cfg$CropFold[1], cfg$year, cropGrid)
 ```
 
-#convert the downloaded Tiff 30m blocks to 40 km blocks and get rid of projection
+convert the downloaded Tiff 30m blocks to 40 km blocks and get rid of projection
 ```{r}
 outName <- paste(cfg$CropFold[2],paste0("aggCrop_", cfg$year, "test.dat"),sep="/")
-rawCrop2nicenc(cfg$CropFold[1],outName,cfg$cropGrid)
+rawCrop2nicenc(cfg$CropFold[1],outName,cropGrid)
 ```
 
 
@@ -58,7 +67,11 @@ runScript("ARL2GRD.py",paste(realWd,"cfg.txt",sep="/"))
 Change the extent of the data
 
 ```{r}
-rawMet2nicenc(stuff)
+rawMet2nicenc(dirTreeIn = cfg$AirTempFold,
+							projKey = cfg$metMapLoc,
+							niceGrid = niceGrid)
+							
+												
 ```
 
 
