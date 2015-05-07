@@ -13,8 +13,6 @@
 #'@import ncdf
 #'@import raster
 #'@export
-library(ncdf)
-library(raster)
 rawCrop2nicenc <- function(dirIn,pathOut,cropGrid,niceGrid=""){
 	if(!dir.exists(dirIn)){
 		stop(paste("Directory:", dirIn, "does not exist or can't be assessed."))
@@ -41,14 +39,6 @@ rawCrop2nicenc <- function(dirIn,pathOut,cropGrid,niceGrid=""){
 		stop(paste("Definition expects", nrow(cropGrid),
 							 "while the tifs in", dirIn, "has", numSlicesIn))
 	}
-	
-# 	testRas <- as.logical(raster(rgdal::readGDAL(tifFiles[1], silent = TRUE)))
-# 	if(projection(testRas) != projection(cropGrid)){
-# 		stop(paste("Projections of cropGrid and tif file is different\n",
-# 							 "tif file:", projection(testRas),"\n",
-# 							 "cropGrid:", projection(cropGrid)))
-# 	}
-# 	rm(testRas)
 	
 	prog <- txtProgressBar(style = 3)
 	zs <- vapply(tifFiles,function(x){
@@ -78,14 +68,17 @@ rawCrop2nicenc <- function(dirIn,pathOut,cropGrid,niceGrid=""){
 
 
 processCrop <- function(gdalSlice,defxs){
-	ras <- raster(rgdal::readGDAL(gdalSlice,silent = TRUE))
+	ras <- raster(rgdal::readGDAL(gdalSlice, silent = TRUE))
 	top <- ras@extent@ymax #get the top of the slice
 	bot <- ras@extent@ymin #get the bottom of the slice
 	
-	zvals <- vapply(1:length(defxs$left),function(xi){
+	#Go through each block and sum them up individually to aggregate
+	#raster::aggregate can't do uneven spaces 30 -> 40000
+	#0.09 is the conversion from pixel to hectares
+	zvals <- vapply(1:length(defxs$left), function(xi){
 		ext <- extent(defxs$left[xi], defxs$right[xi], bot, top)
 		
-		return(sum(as.logical(extract(ras, ext)),na.rm=TRUE))
+		return(0.09*sum(as.logical(extract(ras, ext)),na.rm=TRUE))
 	},1)
 	ras <- 999
 	return(zvals)
