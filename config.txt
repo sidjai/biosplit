@@ -11,6 +11,8 @@ SoilTempDir = C:/Users/Siddarta.Jairam/Documents/Hysplit soilT data
 WindDir = C:/Users/Siddarta.Jairam/Documents/Hysplit wind data
 docuDir = C:/Users/Siddarta.Jairam/Documents/Documentation
 
+MetMappingLoc = edasGrid2.txt
+
 #hysplit locations
 HyBase = C:/hysplit4/exec
 HyConc = hycs_std.exe

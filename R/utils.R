@@ -3,7 +3,7 @@ parseFiles <- function(dirIn, exten = "", shReverse = FALSE){
 		stop(paste("Directory:", dirIn, "does not exist or can't be assessed."))
 	}
 	
-	rawFiles <- list.files(dirIn,pattern = paste0(ext, '$') ,full.names = TRUE)
+	rawFiles <- list.files(dirIn,pattern = paste0(exten, '$') ,full.names = TRUE)
 	
 	if(length(rawFiles) < 1){
 		stop(paste("Directory:", dirIn, "does not have any files with extension:", exten))

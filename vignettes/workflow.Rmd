@@ -68,7 +68,7 @@ Change the extent of the data
 
 ```{r}
 rawMet2nicenc(dirTreeIn = cfg$AirTempFold,
-							projKey = cfg$metMapLoc,
+							projKey = cfg$MetMappingLoc,
 							niceGrid = niceGrid)
 							
 												

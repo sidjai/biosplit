@@ -1,5 +1,8 @@
 #'Process the daily grid files into a nice netCDF file
 #'
+#'Goes through the twice daily grid files for one variable and projects, crops and combines them
+#'	into two managable nc files for the highs and the lows.
+#'	The grids are produced by ARL2GRD.py and the result is used by aprioriVars.R.
 #'@param dirTreeIn A character array of the three directories to use
 #'	1) where the input files are located
 #'	2) where the projected .nc slices are going to be outputted
@@ -9,9 +12,12 @@
 #'	a file location of a mapping table or proj4string for the input grids
 #'
 #'@param niceGrid A grid of the final extent and projection that is needed
-#'@param unit A string designating the unit of the variable...use deg for degre
+#'@param unit A string designating the unit of the variable...use deg for degree
 #'@param transCol A vector with column numbers for the mapping table, (lat,long),
 #'	Only used if projKey is a mapping table file location
+#'@return Saves the projected and cropped slices in the second entry in DirTreeIn,
+#'	and two nc files with the stacked nc files for the Highs and the lows for the whole year
+#'	
 #'@import ncdf
 #'@export
 rawMet2nicenc <- function(dirTreeIn,
@@ -30,13 +36,13 @@ rawMet2nicenc <- function(dirTreeIn,
 		#its a table with lat lon mapping in the first 2 columns
 		projDict <- as.matrix(read.table(projKey))[,transCol]
 	} else {
-		projDict <- c(projKey,niceProj)
+		projDict <- c(projKey,raster::projection(niceGrid))
 	}
 	
 	prog <- txtProgressBar(style = 3)
 	confirm <- vapply(1:length(metFiles), function(x){
 		setTxtProgressBar(prog,x/length(metFiles))
-		ras <- processMet(metFiles[x], projDict, convertKtoC = KtoC)
+		ras <- processMet(metFiles[x], projDict, niceGrid, convertKtoC = KtoC)
 		sult <- try(raster::writeRaster(ras,
 														filename = slicencFiles[x],
 														format = "CDF", overwrite=TRUE),
@@ -54,7 +60,7 @@ rawMet2nicenc <- function(dirTreeIn,
 	
 	type <- c("L", "H")
 	for (time in 1:2){
-		inFiles <- slicencFiles[seq(pe,length(slicencFiles),2)]
+		inFiles <- slicencFiles[seq(time,length(slicencFiles),2)]
 		spliceStack <- raster::stack(inFiles,quick=TRUE)
 		pathOut <- paste(dirTreeIn[3], paste0("combined", type[[time]], ".nc"),sep="/")
 		
@@ -64,7 +70,7 @@ rawMet2nicenc <- function(dirTreeIn,
 	}
 }
 
-processMet <- function(pathMet, transDict, convertKtoC = FALSE,niceGrid){
+processMet <- function(pathMet, transDict, niceGrid, convertKtoC = FALSE){
 	ras <- raster(pathMet)
 	
 	if(convertKtoC){
@@ -73,12 +79,14 @@ processMet <- function(pathMet, transDict, convertKtoC = FALSE,niceGrid){
 	
 	xyz <- projMet(ras,transDict)
 	
-	#manually extract 
-	inboBox <- ((xyz[,1] > finExt@xmin & xyz[,1]< finExt@xmax) &
-								(xyz[,2] > finExt@ymin & xyz[,2]< finExt@ymax))
-	xyzwExt <- xyz[inboBox,]
+	cut <- niceGrid@extent
 	
-	ras <- raster::rasterize(xyzwExt[,c(1,2)], finGrid, field = xyzwExt[,3], fun = mean)
+	#manually extract 
+	inboBox <- ((xyz[,1] > cut@xmin & xyz[,1]< cut@xmax) &
+								(xyz[,2] > cut@ymin & xyz[,2]< cut@ymax))
+	xyzwCrop <- xyz[inboBox,]
+	
+	ras <- raster::rasterize(xyzwCrop[,c(1,2)], niceGrid, field = xyzwCrop[,3], fun = mean)
 	return(ras)
 }
 
@@ -90,10 +98,9 @@ projMet <- function(rs, dict){
 		datum <- raster::rasterToPoints(rs)
 	} else {
 		points <- raster::rasterToPoints(rs)
-		datum <- cbind(key, points[,3])
+		datum <- cbind(dict, points[,3])
 	}
 	
 	return(datum)
-}
 }
 

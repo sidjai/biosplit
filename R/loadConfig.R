@@ -69,17 +69,17 @@ loadConfig <- function(path="config.txt"){
 	baseLeft <- gsub("Dir","Fold",firstHalf[dirSet])
 	
 	#simulation out
-	cfg$SimOutFold <- paste(cfg$SimOutDir,cfg$year,cfg$runName,sep="/")
-	cfg$READMELoc <- paste(cfg$SimOutDir,cfg$year,"README.txt",sep="/")
-	cfg$CropFold[1] <- paste(cfg$CropDir,cfg$year,"RawNASS",sep="/")
-	cfg$CropFold[2] <- paste(cfg$CropDir,cfg$year,"Projected",sep="/")
-	cfg$MetARLFold <- paste(cfg$MetARLDir,cfg$year,cfg$metDataType,sep="/")
-	cfg$ncSliceFold <- paste(cfg$SimOutFold,"ncs",sep="/")
-	cfg$rawHyPlotFold <- paste(cfg$SimOutFold,"HysplitPlots/", sep="/")
-	cfg$AprioriLoc <- paste(cfg$AirTempDir,cfg$year,"aprioriVars.nc",sep="/")
-	cfg$TrapLoc <- paste(cfg$docuDir,cfg$trapName,sep="/")
+	cfg$SimOutFold <- paste(cfg$SimOutDir, cfg$year, cfg$runName, sep="/")
+	cfg$READMELoc <- paste(cfg$SimOutDir, cfg$year, "README.txt", sep="/")
+	cfg$CropFold[1] <- paste(cfg$CropDir, cfg$year, "RawNASS", sep="/")
+	cfg$CropFold[2] <- paste(cfg$CropDir, cfg$year, "Projected", sep="/")
+	cfg$MetARLFold <- paste(cfg$MetARLDir, cfg$year,cfg$metDataType, sep="/")
+	cfg$ncSliceFold <- paste(cfg$SimOutFold, "ncs", sep="/")
+	cfg$rawHyPlotFold <- paste(cfg$SimOutFold, "HysplitPlots/", sep="/")
+	cfg$AprioriLoc <- paste(cfg$AirTempDir, cfg$year, "aprioriVars.nc",sep="/")
+	cfg$TrapLoc <- paste(cfg$docuDir, cfg$trapName, sep="/")
 	
-	
+	cfg$MetMappingLoc <- paste(cfg$MetARLDir, cfg$MetMappingLoc, sep="/")
 	
 	# make folders
 	foldSet <- grep("Fold",names(cfg))
