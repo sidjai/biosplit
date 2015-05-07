@@ -5,14 +5,3 @@ surf_code/
 docs/
 Python_code/
 R/DataRoadmap.R
-
-R/XYZ402Map.R
-R/adjustGridDef.R
-R/aprioriVars.R
-R/batchRun.R
-R/iterateHYSPLIT.R
-R/loadConfig.R
-R/makeDataDiagram.R
-R/ncdf2trapdata.R
-R/rawCrop2nicenc.R
-R/rawMet2nicenc.R
