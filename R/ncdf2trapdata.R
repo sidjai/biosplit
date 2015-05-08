@@ -11,7 +11,7 @@
 #'@param shWrite Should the function wrtie the horizontal and 
 #'	vertical csv files or just return the horizontal matrix
 #'
-#'@return shWrite = 1: only writes the csv file\n
+#'@return shWrite = 1: only writes the csv file
 #'	 shWrite = 0: A matrix of the horizontal time series 
 #'	 with the identifying information in front
 #'@export
@@ -48,10 +48,11 @@ ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
 	#intiatialize the out table
 	inSize <- dim(traps)
 	tab <- matrix(nrow = 2*inSize[1], ncol = inSize[2]+1)
-	tSer <- matrix(nrow = 2*inSize[1], ncol=52)
+	tSer <- matrix(nrow = 2*inSize[1], ncol = 52)
 	
 	fi <- 1
 	nnSet <- ""
+	idenInd <- vapply(c("ounty","tate"),function(x) grep(x, names(traps)), 1 , USE.NAMES = FALSE)
 	
 	for (el in seq(1, inSize[1])){
 		for(co in seq(1, inSize[2])){
@@ -71,9 +72,10 @@ ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
 		#Reasons: Beach area, near national park, dead spot in corn
 		totMoth <- sum(tSer[fi,],tSer[fi+1,])
 		if (totMoth == 0){
+			identifier <- paste(tab[fi , idenInd[1]], tab[fi , idenInd[2]], sep = ', ')
 			nnind <- matrix(data = 0, nrow = 1, ncol = 2)
 			#load up inds
-			dist <- ifelse(grepl("Miami", tab[fi,2]), 3, 1)
+			dist <- ifelse(grepl("Miami", identifier), 3, 1)
 			for(xp in seq(xb[el] - dist, xb[el] + dist)){
 				for(yp in seq(yb[el] - dist, yb[el] + dist)){
 					nnind <- rbind(nnind, cbind(xp, yp))
@@ -91,7 +93,7 @@ ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
 			if (nnk <= dim(nnind)[1]){
 				tSer[fi, ] <- nns[1, ]
 				tSer[fi+1, ] <- nns[2, ]
-				nnSet <- c(nnSet, tab[fi, 2])
+				nnSet <- c(nnSet, identifier)
 			}
 		}
 		
@@ -177,7 +179,7 @@ addAppendix <- function(res,assump, simData, nearestSet){
 	res <- rbind(res, fillWid(paste("# Trap file:",cfg$trapName),width))
 	res <- rbind(res, fillWid("",width))
 	res <- rbind(res, fillWid(paste("# Used Nearest neighbor:",
-		paste(nearestSet, collapse = ", ")), width))
+		paste(nearestSet, collapse = " | ")), width))
 	
 	return(res)
 }

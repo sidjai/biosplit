@@ -19,7 +19,7 @@ or the nc slices in the nc folder}
     vertical csv files or just return the horizontal matrix}
 }
 \value{
-shWrite = 1: only writes the csv file\n
+shWrite = 1: only writes the csv file
 	 shWrite = 0: A matrix of the horizontal time series
 	 with the identifying information in front
 }
