@@ -91,7 +91,7 @@ iterateHysplit(stuff)
 
 Make the tables
 ```{r}
-ncdf2trapdata(stuff)
+ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc)
 ```
 
 

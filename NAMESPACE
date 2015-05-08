@@ -3,6 +3,7 @@
 export(NASS2TIFs)
 export(changeConfig)
 export(loadConfig)
+export(ncdf2trapdata)
 export(rawCrop2nicenc)
 export(rawMet2nicenc)
 import(ncdf)
