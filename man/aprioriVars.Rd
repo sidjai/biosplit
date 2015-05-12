@@ -45,7 +45,7 @@ final ncdf file. This file is loaded at the begining of iterateHYSPLIT
 }
 \details{
 The units for the ouput values are set up to reduce the size of the
-	data. The degree day values are done in 10*C or 10*F so they can be stored
-	as integers.
+	data. The degree day values are done in 0.1*C*day or 0.1*F*day so
+ they can be stored as integers.
 }
 

@@ -51,8 +51,9 @@ collectAprioriVars <- function(config){
 #'  calculations of insect growth in units of celcius.
 #' @return Works as a byproduct of the saving of the ncdf file.
 #' @details The units for the ouput values are set up to reduce the size of the 
-#' 	data. The degree day values are done in 10*C or 10*F so they can be stored 
-#' 	as integers.
+#' 	data. The degree day values are done in 0.1*C*day or 0.1*F*day so
+#'  they can be stored as integers.
+#' @import ncdf
 #' @export
 aprioriVars <- function(dirTrees, 
 												pathOut,
@@ -66,15 +67,15 @@ aprioriVars <- function(dirTrees,
 		cornFlag <- grepl("Crop", tree[1])
 		nc <- getNcFiles(tree, cornFlag)
 		if(cornFlag){
-			return(ncdf::get.var.ncdf(nc))
+			return(get.var.ncdf(nc))
 		} else {
 			return(getVar(nc))
 		}
-		ncdf::close.ncdf(nc)
+		close.ncdf(nc)
 	})
 												
 	cornNc <- getNcFiles(dirTrees$C,1)
-	ncdf::close.ncdf(cornNc)
+	close.ncdf(cornNc)
 	
 	xs <- cornNc$dim$lon$vals 
 	ys <- cornNc$dim$lat$vals
@@ -152,7 +153,7 @@ aprioriVars <- function(dirTrees,
 							 var.def.ncdf('Corn', 'Hectares', list(cornNc$dim$lon, cornNc$dim$lat), 999, prec="integer"),
 							 var.def.ncdf('TailWind', 'm/s (north)', dims,999))
 	
-	anc <-create.ncdf(cfg$AprioriLoc,fVars)
+	anc <- create.ncdf(pathOut,fVars)
 	
 	put.var.ncdf(anc, "CornGDD", cornGDD*10)
 	put.var.ncdf(anc, "FawGDD", fawGrw*10)
@@ -168,19 +169,19 @@ aprioriVars <- function(dirTrees,
 	
 }
 
-#'@importFrom ncdf open.ncdf
+
 getNcFiles <- function(tree, cropFlag){
 	direc <- rev(tree)[1]
 	if (cropFlag){
 		ncFile <- list.files(direc, '.nc', full.names = TRUE)
-		ncObs <- open.ncdf(ncFile, write=TRUE)
+		ncObs <- ncdf::open.ncdf(ncFile, write=TRUE)
 		
 	} else {
 		temp <- paste(direc, "Combined", sep="/")
 		ncNames <- c(paste(temp, "H.nc", sep=""), paste(temp, "L.nc", sep=""))
 		ncObs <- list()
-		tph <- open.ncdf(ncNames[1], write=TRUE)
-		tpl <- open.ncdf(ncNames[2], write=TRUE)
+		tph <- ncdf::open.ncdf(ncNames[1], write=TRUE)
+		tpl <- ncdf::open.ncdf(ncNames[2], write=TRUE)
 		ncObs <- list("H" = tph, "L" = tpl)
 	}
 	
@@ -212,8 +213,8 @@ calcDegDay <- function(highs,
 }
 
 getVar <- function(objs){
-	vh <- get.var.ncdf(objs[[1]])
-	vl <- get.var.ncdf(objs[[2]])
+	vh <- ncdf::get.var.ncdf(objs[[1]])
+	vl <- ncdf::get.var.ncdf(objs[[2]])
 	return(list("H" = vh, "L" = vl))
 }
 
