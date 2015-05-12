@@ -210,18 +210,9 @@ findOnMap <- function(map,xl,xt,yl,yt,num=0){
 	slice[,2]<-map2block(slice[,2]+ybt,2,2)
 	return(slice)
 }
+
 getxy <- function(bx,by,dir=2){
-
 	return(c(map2block(bx,1,dir),map2block(by,2,dir)))
-
-}
-
-zstr<- function(num,dig=2){
-	str <-toString(num)
-	while (nchar(str)<dig){
-		str <-paste("0",str,sep="")
-	}
-	return(str)
 }
 
 howLivable <- function(cGrowth){
@@ -237,8 +228,8 @@ genFlightProp <- function(cGrowth){
 		ifelse(cGrowth < 1400,cfg$flightPropBeforeSilk,
 		ifelse(cGrowth < cfg$infestLmt,cfg$flightPropAfterSilk,1)))
 	return(val)
-	
 }
+
 getNightDur <- function(lat, lon, day){
 	sunLight <- daylength(lat,lon,day,1)[,3]
 	names(sunLight) <- NULL
@@ -246,6 +237,7 @@ getNightDur <- function(lat, lon, day){
 	if(sunLight[1]<0 || sunLight[1]>24) stop(paste0("Astro calc came up with weird response of:",sunLight))
 	return(round((24-sunLight)-1,0))
 }
+
 changeInput <- function(dateChangeFlag, date,pop,PID=0){
 
 	#get the place and amount of the population
@@ -546,20 +538,6 @@ cleanGrid <-function(pop,thres=1){
 	pop$grid[gmax,3] <- pop$grid[gmax,3] + sum(pop$grid[softSet,3])
 	goodSet <- allSet[!is.element(allSet,union(testDieHard,testDieSoft))]
 	pop$grid <- pop$grid[goodSet,,drop = FALSE]
-	
-# 	while(gg>0){
-# 		amt <- pop$grid[gg,3]
-# 		
-# 		if ((is.na(amt) || amt<0)){
-# 			pop$grid <- pop$grid[-gg,,drop = FALSE]
-# 		} else if (amt<thres){
-# 		  	pop$grid[gmax,3] <- pop$grid[gmax,3]+pop$grid[gg,3]
-# 				pop$grid <- pop$grid[-gg,,drop = FALSE]			
-# 		} else {
-# 			pop$grid[gg,3] <- round(pop$grid[gg,3],1)
-# 			gg <- gg-1
-# 		}
-# 	}
 
 	return(pop)
 
@@ -630,15 +608,6 @@ willFly <- function(pop, day, genFlag){
 	
 	return(val)
 
-}
-
-lappend <- function(lst, obj) {
-	num<-length(obj)
-	if (num>0){
-		if (length(names(obj))!=0) obj <- list(obj)
-		lst <- c(lst,obj)
-	}
-	return(lst)
 }
 
 growMoths <- function(pop,day){
@@ -987,11 +956,6 @@ makeOutput <- function(lpop,out, lpop2=0, txtonlyFlag =0){
 	}
 	
 	return(out)
-}
-
-getDate<- function(month, day,yr){
-	tPos<-strptime(paste(month,day,toString(yr)),"%b %d %y")
-	return( strftime(tPos,"%j"))
 }
 
 cleangrowMoths <- function(lpop,lEggs,di){

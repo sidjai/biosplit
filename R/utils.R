@@ -13,10 +13,24 @@ parseFiles <- function(dirIn, exten = "", shReverse = FALSE){
 	return(rawFiles)
 }
 
-zstr <- function(num,dig=2){
+lappend <- function(lst, obj) {
+	num<-length(obj)
+	if (num>0){
+		if (length(names(obj))!=0) obj <- list(obj)
+		lst <- c(lst,obj)
+	}
+	return(lst)
+}
+
+getDate<- function(month, day, yr){
+	tPos <- strptime(paste(month, day, yr),"%b %d %y")
+	return(strftime(tPos, "%j"))
+}
+
+zstr <- function(num, dig=2){
 	str <- toString(num)
 	while (nchar(str) < dig){
-		str <- paste("0", str, sep="")
+		str <- paste0("0", str)
 	}
 	return(str)
 }
