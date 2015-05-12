@@ -62,7 +62,7 @@ rawMet2nicenc <- function(dirTreeIn,
 	for (time in 1:2){
 		inFiles <- slicencFiles[seq(time,length(slicencFiles),2)]
 		spliceStack <- raster::stack(inFiles,quick=TRUE)
-		pathOut <- paste(dirTreeIn[3], paste0("combined", type[[time]], ".nc"),sep="/")
+		pathOut <- paste(dirTreeIn[3], paste0("Combined", type[[time]], ".nc"),sep="/")
 		
 		junk <- try(raster::writeRaster(spliceStack, filename = pathOut,
 														format="CDF", varname = type[[time]], varunit = unit, overwrite=TRUE)

@@ -79,7 +79,7 @@ rawMet2nicenc(dirTreeIn = cfg$AirTempFold,
 
 Transform this raw data into the derived variables used by the program
 ```{r}
-aprioriVars(stuff)
+collectAprioriVars(cfg)
 ```
 
 Call the model
@@ -92,6 +92,21 @@ iterateHysplit(stuff)
 Make the tables
 ```{r}
 ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc)
+
+runs <- c("runInterYear","runAbsFlightLimit","runFlightAndNight","runNightDurDel")
+pushLoc <- paste('X:/2 WESTBROOK/Sid/Hysplit Out Moth table',cfg$year, sep='/')
+vapply(runs, function(x){
+	direc <- gsub(cfg$runName, x, cfg$SimOutFold)
+	direc[2] <- paste(pushLoc, x, sep='/')
+	ncdf2trapdata(direc[1], cfg$TrapLoc)
+	pathCSV <- paste0(direc, "/TrapFinal")
+	vapply(c('h.csv','v.csv'), function(x){
+		
+		file.copy(paste0(pathCSV[1],x), paste0(pathCSV[2],x), overwrite = TRUE)
+	},TRUE)
+		
+},rep(TRUE,2))
+
 ```
 
 
