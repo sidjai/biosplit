@@ -4,13 +4,16 @@
 #'as an object, a .RData file and compiled text documents
 #'Also creates all the directories as specified in the config files
 #'
-#'@param path The path to the config file if different than the package directory
+#'@param path The path to the config file if different than the package
+#'	directory
+#'@return a list of all the elements in the configuration file with their values
+#'	Also sets up the directory trees for the data
+#'	Saves the R object as a RData file and a second text file "cfg.txt" 
+#'	for other languages
 #'
 #'@export
-loadConfig <- function(path="config.txt"){
-	if(!file.exists(path)){
-		stop(paste("file:", path, "does not exist or can't be assessed."))
-	}
+loadConfig <- function(path=""){
+	path <- checkCfgPath(path)
 	
 	outTok <- gsub("\\w*.txt","",path)
 	
@@ -106,8 +109,8 @@ loadConfig <- function(path="config.txt"){
 #'those values then rewrites the entire file.
 #'
 #'@param path The path to the config file if different than the package directory
-#'@param ... odd parameters are the config element name as a string e.g. "runName", "year".
-#'@param ... even parameters are the value specified. e.g. "runWorld", "2012".
+#'@param ...odd config element name as a string e.g. "runName", "year".
+#'@param ...even the value specified. e.g. "runWorld", "2012".
 #'
 #'@examples
 #'cfg <- loadConfig()
@@ -119,10 +122,8 @@ loadConfig <- function(path="config.txt"){
 #'#Error asdjkf are not valid variables in Config
 #'}
 #'@export
-changeConfig <- function(path="config.txt",...){
-	if(!file.exists(path)){
-		stop(paste("file:", path, "does not exist or can't be assessed."))
-	}
+changeConfig <- function(path="",...){
+	path <- checkCfgPath(path)
 	
 	args <- list(...)
 	varNames <- c(args[seq(1,length(args),2)],recursive=TRUE)
@@ -138,3 +139,24 @@ changeConfig <- function(path="config.txt",...){
 	writeLines(befCon,path)
 }
 
+#sees if the path exists and can be assessed
+#looks at the package directory if no path is specified
+checkCfgPath <- function(pth){
+	if(!nzchar(pth)){
+		pth <- paste(system.file(package="biosplit"), "config.txt", sep = '/')
+	}
+	testName <- c('does not exist',
+								'cannot be written',
+								'cannot be read')
+	test <- (0 == vapply(c(0,2,4), function(x){
+		file.access(pth, x)
+	},0))
+	if(!all(test)){
+		stop(paste("file:", pth,'\n',
+							 paste(testName[which(!test)], collapse = ' and \n')))
+	} else {
+		return(pth)
+	}
+}
+
+	

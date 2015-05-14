@@ -8,3 +8,4 @@ Rconsole
 *.jpg
 *.doc
 *.docx
+.Rproj.user

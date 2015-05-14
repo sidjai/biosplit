@@ -4,14 +4,14 @@
 \alias{changeConfig}
 \title{Change the configuration file}
 \usage{
-changeConfig(path = "config.txt", ...)
+changeConfig(path = "", ...)
 }
 \arguments{
 \item{path}{The path to the config file if different than the package directory}
 
-\item{...}{odd parameters are the config element name as a string e.g. "runName", "year".}
+\item{...odd}{config element name as a string e.g. "runName", "year".}
 
-\item{...}{even parameters are the value specified. e.g. "runWorld", "2012".}
+\item{...even}{the value specified. e.g. "runWorld", "2012".}
 }
 \description{
 After the configuration path, there should be pairs of configuration

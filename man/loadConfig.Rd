@@ -4,10 +4,17 @@
 \alias{loadConfig}
 \title{Load configuration parameters for the run, biological and simulation needs}
 \usage{
-loadConfig(path = "config.txt")
+loadConfig(path = "")
 }
 \arguments{
-\item{path}{The path to the config file if different than the package directory}
+\item{path}{The path to the config file if different than the package
+directory}
+}
+\value{
+a list of all the elements in the configuration file with their values
+	Also sets up the directory trees for the data
+	Saves the R object as a RData file and a second text file "cfg.txt"
+	for other languages
 }
 \description{
 Parses the config file and returns the cfg with all the parameters
