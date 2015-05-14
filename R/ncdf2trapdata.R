@@ -111,7 +111,7 @@ ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
 	outh <- addAppendix(outh, Assump, simData, nnSet)
 	
 	#Now do the vertical output
-	outv <- matrix(nrow = 1, ncol = inSize[2]+5)
+	outv <- matrix(nrow = 1, ncol = inSize[2]+6)
 	vertNeed <- seq(1, dim(tab)[2]-1)
 	r <- 1
 	blank <- vapply(1:(inSize[2]+1),function(x) "","")
@@ -120,7 +120,9 @@ ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
 		outv <- rbind(outv, 
 									c(tab[r,vertNeed],
 										colnames(tSer)[1], 
-										days[1], tSer[r,1], 
+										days[1],
+										1,
+										tSer[r,1], 
 										tSer[r+1,1], 
 										"New station"))
 		
@@ -130,6 +132,7 @@ ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
 										c(tab[r,vertNeed],
 											colnames(tSer)[ti],
 											days[ti],
+											ti,
 											tSer[r,ti],
 											tSer[r+1,ti],
 											""))
@@ -140,7 +143,8 @@ ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
 	outv <- outv[2:dim(outv)[1], ]
 	colnames(outv) <- c(colnames(tab)[vertNeed],
 											"Date", 
-											"Day", 
+											"Day",
+											"Week",
 											"FL Moths", 
 											"TX Moths", 
 											"New")

@@ -60,7 +60,7 @@ outEveryDayEnd = 300
 
 #ncdf2trapdata.R
 
-trapName = FAW Trap Locations (Counties) 2013.csv
+trapName = FAW2013 SumCatch GE 10 FAW3_3.csv
 #Use the single nc file (1) or the slice nc files (per day) (0)
 totFlag = 1
 
