@@ -7,18 +7,28 @@
 #'@param pathTrap The path to the trap location csv file with the 
 #'	lat/lon of all trap locations
 #'@param useCombined Should the program use the combined Final.nc file 
-#'	or the nc slices in the nc folder
-#'@param shWrite Should the function wrtie the horizontal and 
+#'	or the nc slices in the nc folder to use do the snap shot calculation
+#'@param shWrite Should the function write the horizontal and 
 #'	vertical csv files or just return the horizontal matrix
-#'
+#'@param shDoSum Go through the individual slices and sum up for the week 
+#'	instead of using the combined file
 #'@return shWrite = 1: only writes the csv file
-#'	 shWrite = 0: A matrix of the horizontal time series 
-#'	 with the identifying information in front
+#'	      shWrite = 0: A matrix of the horizontal time series 
+#'	 				with the identifying information in front
+#'@details For the summation analysis type, sometimes there may be less than 7
+#' 	files in the ncs folder due to model conditions (cfg$outEveryDayStart) so 
+#'	output whether the week has all the files as a logical 52 week vector along 
+#'	with a combined nc file which is used like the regular ncfile throughout.
+#'	outputs the summation of less than 7 files anyway.
 #'@export
-ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
+ncdf2trapdata <- function(dirSim, 
+													pathTrap,
+													useCombined = TRUE,
+													shDoSum = FALSE,
+													shWrite = TRUE){
 	
 	pathNc <- paste(dirSim, "Final.nc", sep="/")
-	pathOut <- paste(dirSim, "TrapFinal", sep="/")
+	pathOut <- paste(dirSim, "Trap", sep="/")
 	
 	year <- as.numeric(regmatches(dirSim,regexpr("\\d{4}", dirSim)))
 	
@@ -33,7 +43,12 @@ ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
 	
 	ncdf::close.ncdf(nc)
 	
-	if (!useCombined) mod <- rebuildNc(dim(mod$TXMoth))
+	if (!useCombined) mod <- rebuildNc(dirSim, dim(mod$TXMoth), year)
+	
+	if(shDoSum){
+		mod <- rebuildNc(dirSim, dim(mod$TXMoth), year, TRUE)
+		names(mod)[3] <- 'fullWeek'
+	}
 	
 	#parse the trap input for the x,y grid points
 	traps <- read.csv(pathTrap, stringsAsFactors=FALSE)
@@ -105,10 +120,15 @@ ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
 	colnames(tab) <- c(names(traps), "Origin")
 	#write the dates as the column name
 	days <- seq(8,365,7)
-	colnames(tSer) <- getTimeStamps(year)
+	colnames(tSer) <- getDayStamp(days,year)
+	notFullweekSet <- if(shDoSum){
+		getDayStamp(days[!mod$fullWeek],year)
+	} else {
+		FALSE
+	}
 	
 	outh <- cbind(tab, tSer)
-	outh <- addAppendix(outh, Assump, simData, nnSet)
+	outh <- addAppendix(outh, Assump, simData, nnSet, notFullweekSet)
 	
 	#Now do the vertical output
 	outv <- matrix(nrow = 1, ncol = inSize[2]+6)
@@ -149,11 +169,12 @@ ncdf2trapdata <- function(dirSim, pathTrap, useCombined = TRUE, shWrite = TRUE){
 											"TX Moths", 
 											"New")
 	
-	outv <- addAppendix(outv, Assump, simData, nnSet)
+	outv <- addAppendix(outv, Assump, simData, nnSet, notFullweekSet)
 	
 	if(shWrite){
-		write.csv(outh, paste0(pathOut, "h.csv"), row.names=FALSE)
-		write.csv(outv, paste0(pathOut, "v.csv"), row.names=FALSE)
+		prepend <- ifelse(shDoSum,'Sum','Snap')
+		write.csv(outh, paste0(pathOut, prepend, "h.csv"), row.names=FALSE)
+		write.csv(outv, paste0(pathOut, prepend, "v.csv"), row.names=FALSE)
 	} else {
 		return(outh)
 	}
@@ -167,23 +188,42 @@ trap2block <- function(vin, mapvec){
 	return(which.min(diff))
 }
 
-getTimeStamps <- function(yr,outPat = ' %m/%d/%y'){
-	days <- seq(8,365,7)
-	return(vapply(days, function(x)
-		strftime(
-			strptime(paste(x,yr), "%j %Y")
-			," %m/%d/%y"),""))
+getDayStamp <- function(jd, yr, outPat = ' %m/%d/%y'){
+	strftime(
+		strptime(paste(jd, yr), "%j %Y"), 
+		outPat)
 }
 
-addAppendix <- function(res,assump, simData, nearestSet){
+
+addAppendix <- function(res,
+												assump,
+												simData,
+												nearestSet,
+												lessThanWeekSet = FALSE){
+	flagSum <- length(lessThanWeekSet) > 1
+	
 	width <- dim(res)[2]
-	res <- rbind(res, fillWid("",width))
-	res <- rbind(res, fillWid(paste("#",assump),width))
-	res <- rbind(res, fillWid(paste("#",simData),width))
-	res <- rbind(res, fillWid(paste("# Trap file:",cfg$trapName),width))
-	res <- rbind(res, fillWid("",width))
-	res <- rbind(res, fillWid(paste("# Used Nearest neighbor:",
-		paste(nearestSet, collapse = " | ")), width))
+	
+	apen <- ""
+	apen[2] <- paste("#",assump)
+	apen[3] <- paste("#",simData)
+	apen[4] <- paste("# Trap file:",cfg$trapName)
+	apen[5] <- ""
+	apen[6] <- paste("# Used Nearest neighbor:",
+									 paste(nearestSet, collapse = " | "))
+	apen[7] <- ""
+	
+	if(flagSum){
+		apen[8] <- "# Analysis type: Sum"
+		apen[9] <- paste("# weeks with less than 7 observations:",
+										 paste(lessThanWeekSet,collapse = "|"))
+	} else {
+		apen[8] <- "# Analysis type: Snapshot"
+	}
+	
+	for(ele in seq(1,length(apen))){
+		res <- rbind(res, fillWid(apen[ele], width))
+	}
 	
 	return(res)
 }
@@ -192,25 +232,56 @@ fillWid <- function(str,wid){
 	val <- c(str,vapply(1:(wid-1),function(x) "",""))
 }
 
-rebuildNc <- function(outDim){
+quickOpenNCDF <- function(p, var = "Count"){
+	nc <- ncdf::open.ncdf(p)
+	out <- ncdf::get.var.ncdf(nc, var)
+	ncdf::close.ncdf(nc)
 	
-	dates <- getTimeStamps(year,'Moth_%m%d%y.nc')
-	Txfiles <- vapply(dates, function(x)paste0(sliceFiles, "/TX" ,x),"")
-	Flfiles <- vapply(dates, function(x)paste0(sliceFiles, "/FL" ,x),"")
-	slfiles <- list(Txfiles, Flfiles)
-	out <- list(array(0, dim = outDim), array(0, dim = outDim))
+	return(out)
+}
+
+rebuildNc <- function(dirSim, outDim, yr, flagSum = FALSE){
+	days <- seq(8,365,7)
+	dates <- getDayStamp(days, yr, '_%m%d%y.nc')
 	
+	out <- list(array(0, dim = outDim),
+							array(0, dim = outDim),
+							array(FALSE, dim = c(length(days))))
+	
+	bakersgrid <- array(NaN, dim = outDim[c(1,2)])
+	
+	popName <- c("TXMoth", "FLMoth", 'fullWeek')
 	for (type in 1:2){
+		slFiles <- paste0(dirSim, '/', popName[type], dates)
 		for (k in seq(1,length(dates))){
-			if(file.exists(slfiles[[type]][[k]])){
-				sl <- ncdf::open.ncdf(slfiles[[type]][[k]])
-				out[[type]][,,k] <- ncdf::get.var.ncdf(sl, "Count")
-				ncdf::close.ncdf(sl)
+			if(flagSum){
+				#Get the summation of all the captures in that week 
+				#gets whether it used the full week and puts it in $fullWeek
+				prevWeek <- getDayStamp((days[k]-6):(days[k]), yr,'_%m%d%y.nc')
+				
+				trapCap <- vapply(paste0(dirSim, '/ncs/', popName[type], prevWeek), function(f){
+					if(file.exists(f)){
+						return(quickOpenNCDF(f))
+					} else {
+						return(bakersgrid)
+					}
+				},bakersgrid)
+				out[[type]][ , , k] <- rowSums(trapCap, na.rm = TRUE, dims = 2)
+				out[[3]][k] <- (7 == length(which(vapply(1:7, function(x){
+					!all(is.na(trapCap[, , x]))
+				},TRUE))))
+				
+			} else {
+				#just get the end of the week as a snapshot
+				
+				if(file.exists(slFiles[k])){
+					out[[type]][, ,k] <- quickOpenNCDF(slFiles[k])
+				}
 			}
 			
 		}
 	}
-	names(out) <- c("TXMoth", "FLMoth")
+	names(out) <- popName
 	return(out)
 }
 

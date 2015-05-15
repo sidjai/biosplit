@@ -91,7 +91,7 @@ iterateHysplit(stuff)
 
 Make the tables
 ```{r}
-ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc)
+ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc, shDoSum = TRUE)
 
 runs <- c("runInterYear","runAbsFlightLimit","runFlightAndNight","runNightDurDel")
 pushLoc <- paste('X:/2 WESTBROOK/Sid/Hysplit Out Moth table',cfg$year, sep='/')

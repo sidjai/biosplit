@@ -26,7 +26,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2013
-runName = runLatThresWinter
+runName = runInterYear
 
 #Cropscape m 
 xmin = -1005735
