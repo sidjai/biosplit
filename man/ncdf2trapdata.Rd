@@ -16,18 +16,26 @@ lat/lon of all trap locations}
 \item{useCombined}{Should the program use the combined Final.nc file
 or the nc slices in the nc folder to use do the snap shot calculation}
 
-\item{shDoSum}{Go through the individual slices and sum up for the week instead of using}
+\item{shDoSum}{Go through the individual slices and sum up for the week
+instead of using the combined file}
 
 \item{shWrite}{Should the function write the horizontal and
 vertical csv files or just return the horizontal matrix}
 }
 \value{
 shWrite = 1: only writes the csv file
-	 shWrite = 0: A matrix of the horizontal time series
-	 with the identifying information in front
+	      shWrite = 0: A matrix of the horizontal time series
+	 				with the identifying information in front
 }
 \description{
 Extracts the model output by location and outputs the
 	time series for the entire year for that location
+}
+\details{
+For the summation analysis type, sometimes there may be less than 7
+	files in the ncs folder due to model conditions (cfg$outEveryDayStart) so
+	output whether the week has all the files as a logical 52 week vector along
+	with a combined nc file which is used like the regular ncfile throughout.
+	outputs the summation of less than 7 files anyway.
 }
 

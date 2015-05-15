@@ -173,8 +173,8 @@ ncdf2trapdata <- function(dirSim,
 	
 	if(shWrite){
 		prepend <- ifelse(shDoSum,'Sum','Snap')
-		write.csv(outh, paste0(pathOut, prepend, "h.csv"), row.names=FALSE)
-		write.csv(outv, paste0(pathOut, prepend, "v.csv"), row.names=FALSE)
+		write.csv(outh, paste0(pathOut, prepend, "H.csv"), row.names=FALSE)
+		write.csv(outv, paste0(pathOut, prepend, "V.csv"), row.names=FALSE)
 	} else {
 		return(outh)
 	}

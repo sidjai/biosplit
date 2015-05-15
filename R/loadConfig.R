@@ -50,13 +50,18 @@ loadConfig <- function(path=""){
 		},"e")
 	
 	#turn the strings into literal strings
-	vecSet <- grepl("c\\(",secondHalf)
-	digSet <- grepl("\\d",secondHalf)
-	alpSet <- grepl("[:alpha:]",secondHalf)
+	vecSet <- grepl("c\\(", secondHalf)
+	digSet <- grepl("\\d", secondHalf)
+	alpSet <- grepl("[:alpha:]", secondHalf)
+	comdSet <- grepl("list\\(\\)", secondHalf)
 	
-	numSet <- (digSet & !alpSet) | vecSet
+	digAssSet <- grepl("\\d", firstHalf) & grepl("$", firstHalf)
+
+	numSet <- (digSet & !alpSet) | vecSet | comdSet
 	secondHalf[!numSet] <- paste0("\"",secondHalf[!numSet],"\"")
-	
+# 	firstHalf[nameListSet <- firstHalf[grep("\\d", listAssSet)]]
+# 	regexpr('\\d+',test)[1]
+						
 	commands <- paste0("cfg$",firstHalf," <- ",secondHalf)
 	commands <- c(commands,addComm)
 	cfg <- list()
@@ -81,6 +86,7 @@ loadConfig <- function(path=""){
 	cfg$rawHyPlotFold <- paste(cfg$SimOutFold, "HysplitPlots/", sep="/")
 	cfg$AprioriLoc <- paste(cfg$AirTempDir, cfg$year, "aprioriVars.nc",sep="/")
 	cfg$TrapLoc <- paste(cfg$docuDir, cfg$trapName, sep="/")
+	names(cfg$TrapLoc) <- names(cfg$trapName)
 	
 	cfg$MetMappingLoc <- paste(cfg$MetARLDir, cfg$MetMappingLoc, sep="/")
 	

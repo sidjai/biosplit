@@ -60,7 +60,12 @@ outEveryDayEnd = 300
 
 #ncdf2trapdata.R
 
-trapName = FAW2013 SumCatch GE 10 FAW3_3.csv
+trapName = list()
+trapName$`2014` = FAW2013 SumCatch GE 10 FAW3_3.csv
+trapName$`2013` = FAW2013 SumCatch GE 10 FAW3_3.csv
+trapName$`2012` = FAW Trap Locations (Counties) for 2011, 2012, and 2013.csv
+trapName$`2011` = FAW Trap Locations (Counties) for 2011, 2012, and 2013.csv
+
 #Use the single nc file (1) or the slice nc files (per day) (0)
 totFlag = 1
 
