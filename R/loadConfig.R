@@ -28,7 +28,6 @@ loadConfig <- function(path=""){
 	secondHalf <- vapply(both,function(x) x[2],"e")
 	
 	#Initial overwinter populations
-	
 	winterSet <- grepl("Overwinter",firstHalf)
 	FLset <- grepl("FL",firstHalf[winterSet])
 	xygrid <- t(vapply(which(winterSet),function(x) as.numeric(strsplit(secondHalf[[x]],",")[[1]]),rep(1,2)))
@@ -36,18 +35,6 @@ loadConfig <- function(path=""){
 	firstHalf <- firstHalf[!winterSet]
 	secondHalf <- secondHalf[!winterSet]
 	
-	#ARL indv changes
-	dirNum <- grep("Air|Soil|Wind",firstHalf)
-	yearStr <- secondHalf[grep("year",firstHalf)]
-	addFold <- c("Parsed","ParseAndExtract","Projected")
-	addRight  <- vapply(dirNum,function(g){
-		vapply(addFold,function(x) paste(secondHalf[g],yearStr,x,sep="/")
-					 ,"e")
-		},addFold,USE.NAMES=FALSE)
-	addLeft <- gsub("Dir","Fold",firstHalf[dirNum])
-	addComm <- vapply(1:length(addLeft),function(x){
-		paste0("cfg$",addLeft[x]," <- ", "addRight[,",x,"]")
-		},"e")
 	
 	#turn the strings into literal strings
 	vecSet <- grepl("c\\(", secondHalf)
@@ -63,19 +50,25 @@ loadConfig <- function(path=""){
 # 	regexpr('\\d+',test)[1]
 						
 	commands <- paste0("cfg$",firstHalf," <- ",secondHalf)
-	commands <- c(commands,addComm)
 	cfg <- list()
 	eval(parse(text=commands))
 	
 	
 	#Additional manipulations
-	
-	dirSet <- grepl("Dir",firstHalf) & !grepl("Direc|docu",firstHalf)
-	
-	baseFiles <- paste(secondHalf[dirSet],secondHalf[grep("year",firstHalf)],sep="/")
-	
-	baseLeft <- gsub("Dir","Fold",firstHalf[dirSet])
-	
+	#Data trees
+
+	addFold <- c("Parsed","ParseAndExtract","Projected")
+	moreComds <- vapply(cfg$wantedMetVars, function(v){
+		 sprintf('cfg[[\"%s\"]] <- c(\"%s\")',
+		 				paste0(v, 'Fold'),
+		 				paste(cfg$proARLDir,
+		 							cfg$year,
+		 							v,
+		 							addFold,
+		 							sep='/', collapse ='\", \"'))
+	},'tree', USE.NAMES = FALSE)
+	eval(parse(text=moreComds))
+
 	#simulation out
 	cfg$SimOutFold <- paste(cfg$SimOutDir, cfg$year, cfg$runName, sep="/")
 	cfg$READMELoc <- paste(cfg$SimOutDir, cfg$year, "README.txt", sep="/")
@@ -84,7 +77,7 @@ loadConfig <- function(path=""){
 	cfg$MetARLFold <- paste(cfg$MetARLDir, cfg$year,cfg$metDataType, sep="/")
 	cfg$ncSliceFold <- paste(cfg$SimOutFold, "ncs", sep="/")
 	cfg$rawHyPlotFold <- paste(cfg$SimOutFold, "HysplitPlots/", sep="/")
-	cfg$AprioriLoc <- paste(cfg$AirTempDir, cfg$year, "aprioriVars.nc",sep="/")
+	cfg$AprioriLoc <- paste(cfg$proARLDir, cfg$year, "aprioriVars.nc",sep="/")
 	cfg$TrapLoc <- paste(cfg$docuDir, cfg$trapName, sep="/")
 	names(cfg$TrapLoc) <- names(cfg$trapName)
 	
