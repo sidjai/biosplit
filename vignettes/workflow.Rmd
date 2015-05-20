@@ -17,6 +17,10 @@ load(paste(realWd,"cfg.Rout",sep="/"))
 figList <- list()
 source(paste(realWd,"docs/rmdFunctions.R",sep='/'))
 theme_set(getNiceTheme())
+
+meteoLoc <- "C:/Users/Siddarta.Jairam/Desktop/sid/MeteoInfo1.2"
+goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
+RLoc <- "C:/Users/Siddarta.Jairam/Documents/R/R-3.2.0"
 ```
 
 #Setup
@@ -61,7 +65,9 @@ Go through the ARL data
 Require MeteoInfo
 
 ```{r}
-runScript("ARL2GRD.py",paste(realWd,"cfg.txt",sep="/"))
+runMeteo <- makeRunFun(meteoLoc,"py")
+runMeteo("ARL2GRD.py",
+				 c(cfg$MetARLFold, cfg$proARLDir, cfg$wantedMetVars, recursive = TRUE), TRUE)
 ```
 
 Change the extent of the data
@@ -113,7 +119,9 @@ vapply(runs, function(x){
 Make the maps
 require scripter
 ```{r}
-runScript("Mothtxt2ClassPost.BAS",cfg$SimOutFold)
+
+runScripter <- 
+runScripter("Mothtxt2ClassPost.BAS",cfg$SimOutFold)
 ```
 
 require scripter
