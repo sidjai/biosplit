@@ -73,9 +73,13 @@ runMeteo("ARL2GRD.py",
 Change the extent of the data
 
 ```{r}
-rawMet2nicenc(dirTreeIn = cfg$AirTempFold,
-							projKey = cfg$MetMappingLoc,
-							niceGrid = niceGrid)
+vapply(paste0(cfg$wantedMetVars, "Fold"), function(var){
+	
+	rawMet2nicenc(dirTreeIn = cfg[[var]],
+								projKey = cfg$MetMappingLoc,
+								niceGrid = niceGrid)
+	TRUE},TRUE)
+							
 							
 												
 ```

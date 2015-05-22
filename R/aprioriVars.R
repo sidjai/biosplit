@@ -11,11 +11,11 @@ collectAprioriVars <- function(config){
 	# The data folders inserted as a list. 
 	# The names are the names used in apriori using the form dat$<name>$<H,L>[xi,yi,ti]
 	dirTrees <- list(C = config$CropFold,
-									 Air = config$AirTempFold, 
-									 Soil = config$SoilTempFold, 
-									 Wind = config$WindFold)
+									 Air = config$T02MFold, 
+									 Wind = config$V10MFold, 
+									 Prec = config$TPP3Fold)
 	aprioriVars(dirTrees,
-							config$aprioriLoc,
+							config$AprioriLoc,
 							config$plantTimes,
 							config$harvestTimes, 
 							config$CornThres,
