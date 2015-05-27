@@ -14,7 +14,7 @@ dirIn = sys.argv[1]
 dirOut = sys.argv[2]
 wantVars = sys.argv[3:]
 
-takeOffDict = {'TPP3': 4, 'V10M': 4, 'T02M': 2}
+takeOffDict = {'TPP3': 5, 'V10M': 5, 'T02M': 4}
 
 Met = MeteoDataInfo()
 
@@ -35,7 +35,7 @@ def zstr(num):
 	return val
 
 # iterate through the days and get the days, hours and the time index
-def getTimes(indStart,numDays):
+def getTimes(firstIndChange, numDays):
 	k = 1
 	inds=[None]*250
 	hs=[None]*250
@@ -43,22 +43,22 @@ def getTimes(indStart,numDays):
 	
 	for di in range(1,numDays):
 		#conversion between UTC and CDT (during summer which is target time): -5
-		#index 1 is at midnight UTC so the difference in time is one index less
-		#From this iterate in steps of 9hrs and 15 hrs or 3 and 5 indices to get
-		# the right sep for the flight and the difference in times of high and lows
+		#index 1 is at midnight UTC so starting indice for 4AM CDT (9 UTC) is 4
+		#The steps are defined by the different variables (temp is 3 and 5 indices)
 		
-		hs[k]=-5 + (indStart-1) * 3
-		ds[k]=di
-		if k!=1:
-			inds[k] = inds[k-1]+3
+		hs[k] = 4
+		ds[k] = di
+		if k != 1:
+			inds[k] = inds[k-1] + (8-firstIndChange)
 		else:
-			inds[k] = indStart
+			inds[k] = 4
 			
 		k+=1
-		hs[k] = hs[k-1] + 15
+		hs[k] = hs[k-1] + (3 * firstIndChange)
 		ds[k] = di
-		inds[k] = inds[k-1]+5
+		inds[k] = inds[k-1] + firstIndChange
 		k+=1
+	
 	return hs[1:(k-1)], ds[1:(k-1)], inds[1:(k-1)]
 
 # Go through the months
@@ -68,7 +68,7 @@ for mInd in [d+1 for d in range(months)]:
 		(month_abbr[mInd]).lower() + shYear)
 		
 	
-	print(inFile)
+	print month_abbr[mInd]
 	
 	if os.path.isfile(inFile):
 		#Load the file
