@@ -1,19 +1,25 @@
+library(biosplit)
 
-realWd <- gsub("/r_code","",ifelse(!grepl("Moth",getwd()),dirname(sys.frame(1)$ofile),getwd()))
+meteoLoc <- "C:/Users/Siddarta.Jairam/Desktop/sid/MeteoInfo1.2"
+goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
+RLoc <- "C:/Users/Siddarta.Jairam/Documents/R/R-3.2.0"
 
-source(paste(realWd,"r_code","DataRoadmap.R",sep='/'))
+runScipter <- makeRunFun(goldLoc,'BAS')
 
-
-
-doRun <- function(){
-	runScript("loadConfig.R")
+doRun <- function(push = ""){
+	loadConfig()
 	runScript("iterateHYSPLIT.R")
-	runScript("ncdf2trapdata.R")
-	runScript("Mothtxt2contour.BAS",cfg$SimOutFold)
-	runScript("Mothtxt2ClassPost.BAS",cfg$SimOutFold)	
+	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc, shDoSum = TRUE)
+	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc, shDoSum = FALSE)
+	runScripter("Mothtxt2contour.BAS",cfg$SimOutFold)
+	runScripter("Mothtxt2ClassPost.BAS",cfg$SimOutFold)	
+	if(nchar(push)>0){
+		endTag <-  paste(cfg$year, cfg$runName, sep= '/')
+		file.copy(cfg$SimOutFold, paste(push, endTag, sep='/'), overwrite = TRUE)
+	}
 }
 
-changeConfig("runName","runAbsFlightLimit",
+changeConfig("runName","runLimFlightLow",
 						 "migCareerLimit",3,
 						 "delNightDurFlag",0,
 						 "topOfModel",3000)

@@ -34,3 +34,15 @@ zstr <- function(num, dig=2){
 	}
 	return(str)
 }
+
+boundNumLine <- function(data, boundLow, boundHigh, inclusive = FALSE){
+	if(inclusive){
+		data[data >= boundHigh] <- boundHigh
+		data[data <= boundLow] <- boundLow
+	} else {
+		data[data > boundHigh] <- boundHigh
+		data[data < boundLow] <- boundLow
+	}
+	
+	return(data)
+}

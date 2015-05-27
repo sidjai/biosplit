@@ -20,7 +20,10 @@ collectAprioriVars <- function(config){
 							config$harvestTimes, 
 							config$CornThres,
 							config$TGDDbaseCrop,
-							config$TGDDbaseFAW)
+							config$TGDDbaseFAW,
+							config$windTOThres,
+							config$tempTOThres,
+							config$precTOThres)
 }
 
 #' Turn the data into abstracted variables for the model.
@@ -61,8 +64,11 @@ aprioriVars <- function(dirTrees,
 												harvestTimes, 
 												CornThres,
 												TGDDbaseCrop,
-												TGDDbaseFAW){
-	
+												TGDDbaseFAW,
+												windTOThres,
+												tempTOThres,
+												precTOThres){
+	bio <- as.list(match.call())
 	dat <- lapply(dirTrees, function(tree){
 		cornFlag <- grepl("Crop", tree[1])
 		nc <- getNcFiles(tree, cornFlag)
@@ -136,12 +142,13 @@ aprioriVars <- function(dirTrees,
 																					 dat$Air$L[xi, yi, dis], 
 																					 base = TGDDbaseFAW,
 																					 shGrow = FALSE)
-			windVec <- dat$Wind$H[xi, yi, dis]
-			windVec[windVec < 0 ] <- 0
-			TailWind[xi, yi, dis] <- windVec 
 			
 		}
 	}
+	
+	windStopTO <- (dat$Wind$H > windTOThres)
+	tempStopTO <- (dat$Air$H < tempTOThres)
+	precStopTO <- (dat$Prec > precTOThres)
 	cornGDD[is.na(cornGDD)] <- 0
 	
 	dims <-list(cornNc$dim$lon,
@@ -151,7 +158,10 @@ aprioriVars <- function(dirTrees,
 	fVars<- list(var.def.ncdf('CornGDD', '0.1*F*days', dims, 999, prec="integer"),
 							 var.def.ncdf('FawGDD', '0.1*C*days', dims, 999, prec="integer"),
 							 var.def.ncdf('Corn', 'Hectares', list(cornNc$dim$lon, cornNc$dim$lat), 999, prec="integer"),
-							 var.def.ncdf('TailWind', 'm/s (north)', dims,999))
+							 var.def.ncdf('windStopTO', 'Boolean', dims,999, prec="short"),
+							 var.def.ncdf('tempStopTO', 'Boolean', dims,999, prec="short"),
+							 var.def.ncdf('precStopTO', 'Boolean', dims,999, prec="short"),
+							 )
 	
 	anc <- create.ncdf(pathOut,fVars)
 	
@@ -164,6 +174,10 @@ aprioriVars <- function(dirTrees,
 	att.put.ncdf(anc, 0 , "CornThres", CornThres)
 	att.put.ncdf(anc, 0 , "TGDDbaseCrop", TGDDbaseCrop)
 	att.put.ncdf(anc, 0 , "TGDDbaseFAW", TGDDbaseFAW)
+	att.put.ncdf(anc, 0 , "windTOThres", windTOThres)
+	att.put.ncdf(anc, 0 , "precTOThres", precTOThres)
+	att.put.ncdf(anc, 0 , "tempTOThres", tempTOThres)
+	
 	
 	junk <- close.ncdf(anc)
 	

@@ -83,7 +83,9 @@ harvestTimes = c(25, 39, 195, 300)
 #All in Celcius
 TGDDbaseCrop = 10
 TGDDbaseFAW = 13.8
-
+tempTOThres = 9999
+precTOThres = (-9999)
+windTOThres = (-9999)
 
 #iterateHYSPLIT.R
 
@@ -93,7 +95,6 @@ mothThres = 2
 cohortThres = 1
 cohortGDDThres = 346.2
 #cohortGDDLmt = 2400
-windThres = (-9999)
 #Corn GDD check for laying eggs
 infestThres = 100 
 infestLmt = 2000
