@@ -34,15 +34,20 @@ def zstr(num):
 		val = str(num)
 	return val
 
+# iterate through the days and get the days, hours and the time index
 def getTimes(indStart,numDays):
 	k = 1
 	inds=[None]*250
 	hs=[None]*250
 	ds=[None]*250
-	# iterate through the days and get the days, hours and the time index
-	# Grabs the index for midnight and 3PM as the min and max temps for the day
-	for di in range(1,numDays+1):
-		hs[k]=-8 + indStart * 3
+	
+	for di in range(1,numDays):
+		#conversion between UTC and CDT (during summer which is target time): -5
+		#index 1 is at midnight UTC so the difference in time is one index less
+		#From this iterate in steps of 9hrs and 15 hrs or 3 and 5 indices to get
+		# the right sep for the flight and the difference in times of high and lows
+		
+		hs[k]=-5 + (indStart-1) * 3
 		ds[k]=di
 		if k!=1:
 			inds[k] = inds[k-1]+3
@@ -54,7 +59,8 @@ def getTimes(indStart,numDays):
 		ds[k] = di
 		inds[k] = inds[k-1]+5
 		k+=1
-	return hs, ds, inds
+	return hs[1:(k-1)], ds[1:(k-1)], inds[1:(k-1)]
+
 # Go through the months
 for mInd in [d+1 for d in range(months)]:
 	
@@ -70,8 +76,9 @@ for mInd in [d+1 for d in range(months)]:
       
 		#Go through all the collected time indices and save the data in Parsed as a grid file.
 		for var in wantVars:
-			hs, ds, inds = getTimes(takeOffDict[var], monthrange(int(yearstr),mInd)[1])
-			for tInd in range(1,len(inds)):
+			hs, ds, inds = getTimes(takeOffDict[var], monthrange(int(yearstr),mInd)[1] + 1)
+			
+			for tInd in range(len(inds)):
 				Met.setTimeIndex(inds[tInd])
 				pathOut = (dirOut + var + "/Parsed/" + metType + "_" + var +"_" +
 					zstr(mInd)+ "_" + zstr(ds[tInd]) + "_" + shYear

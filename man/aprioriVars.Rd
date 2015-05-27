@@ -5,7 +5,7 @@
 \title{Turn the data into abstracted variables for the model.}
 \usage{
 aprioriVars(dirTrees, pathOut, plantTimes, harvestTimes, CornThres,
-  TGDDbaseCrop, TGDDbaseFAW)
+  TGDDbaseCrop, TGDDbaseFAW, windTOThres, tempTOThres, precTOThres)
 }
 \arguments{
 \item{dirTrees}{a list of all the character vectors of where the data lives}
