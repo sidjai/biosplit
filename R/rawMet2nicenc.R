@@ -23,14 +23,23 @@
 rawMet2nicenc <- function(dirTreeIn,
 													projKey,
 													niceGrid,
-													unit = 'degC',
+													unit = 'unitless',
 													transCol = c(1,2)){
 	
 	#if dirTreeIn is a list of 3 out the second and final in last folder
 	metFiles <- parseFiles(dirTreeIn[1], 'grd')
+	reqAmt <- 2 * (365 + (file2year(metFiles[1]) %% 4 == 0))
+	#check for the number of files
+	if(length(metFiles) != reqAmt){
+		stop(sprintf("Folder: %s only has %d grid files in it, needs %d",
+								 dirTreeIn[1], length(metFiles),  reqAmt))
+	}
+	
 	slicencFiles <- gsub('grd', 'nc', gsub(dirTreeIn[1], dirTreeIn[2], metFiles))
 	
-	KtoC <- grepl("deg",unit)
+	
+	KtoC <- grepl("K",unit)
+	unit <- gsub("K", "degC", unit)
 	
 	if (file.exists(projKey)){
 		#its a table with lat lon mapping in the first 2 columns

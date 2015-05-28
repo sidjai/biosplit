@@ -26,7 +26,9 @@ getDate<- function(month, day, yr){
 	tPos <- strptime(paste(month, day, yr),"%b %d %y")
 	return(strftime(tPos, "%j"))
 }
-
+file2year <- function(path){
+	as.numeric(regmatches(path,regexpr("\\d{4}", path)))
+}
 zstr <- function(num, dig=2){
 	str <- toString(num)
 	while (nchar(str) < dig){

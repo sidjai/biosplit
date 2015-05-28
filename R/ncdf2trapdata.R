@@ -30,7 +30,7 @@ ncdf2trapdata <- function(dirSim,
 	pathNc <- paste(dirSim, "Final.nc", sep="/")
 	pathOut <- paste(dirSim, "Trap", sep="/")
 	
-	year <- as.numeric(regmatches(dirSim,regexpr("\\d{4}", dirSim)))
+	year <- file2year(dirSim)
 	
 	nc <- ncdf::open.ncdf(pathNc)
 	

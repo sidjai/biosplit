@@ -4,8 +4,8 @@
 \alias{rawMet2nicenc}
 \title{Process the daily grid files into a nice netCDF file}
 \usage{
-rawMet2nicenc(dirTreeIn, projKey, niceGrid, unit = "degC", transCol = c(1,
-  2))
+rawMet2nicenc(dirTreeIn, projKey, niceGrid, unit = "unitless",
+  transCol = c(1, 2))
 }
 \arguments{
 \item{dirTreeIn}{A character array of the three directories to use

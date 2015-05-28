@@ -73,10 +73,14 @@ runMeteo("ARL2GRD.py",
 Change the extent of the data
 
 ```{r}
-vapply(paste0(cfg$wantedMetVars, "Fold"), function(var){
-	
-	rawMet2nicenc(dirTreeIn = cfg[[var]],
+
+#get the units for the variables (comes from readme of the met data used
+unitsDict <- list( T02M = 'K', V10M = 'm/s North', TPP3 = 'm', SOLT = 'K')
+vapply(cfg$wantedMetVars, function(var){
+	namu <- paste0(var, "Fold")
+	rawMet2nicenc(dirTreeIn = cfg[[namu]],
 								projKey = cfg$MetMappingLoc,
+								unit = unitsDict[[var]],
 								niceGrid = niceGrid)
 	TRUE},TRUE)
 							
