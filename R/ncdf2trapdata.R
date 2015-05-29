@@ -12,6 +12,8 @@
 #'	vertical csv files or just return the horizontal matrix
 #'@param shDoSum Go through the individual slices and sum up for the week 
 #'	instead of using the combined file
+#'@param notes A vector or string of any notes that should be included in the
+#'	appendix
 #'@return shWrite = 1: only writes the csv file
 #'	      shWrite = 0: A matrix of the horizontal time series 
 #'	 				with the identifying information in front
@@ -25,23 +27,16 @@ ncdf2trapdata <- function(dirSim,
 													pathTrap,
 													useCombined = TRUE,
 													shDoSum = FALSE,
-													shWrite = TRUE){
+													shWrite = TRUE,
+													notes = ""){
 	
 	pathNc <- paste(dirSim, "Final.nc", sep="/")
 	pathOut <- paste(dirSim, "Trap", sep="/")
 	
 	year <- file2year(dirSim)
+	dat <- openSimNC(dirSim)
+	mod <- dat$sim
 	
-	nc <- ncdf::open.ncdf(pathNc)
-	
-	Assump <- ncdf::att.get.ncdf(nc,0,"Assumptions")$value
-	simData <- ncdf::att.get.ncdf(nc,0,"simData")$value
-	
-	varNames <- names(nc$var)
-	mod <- lapply(varNames, function(x) ncdf::get.var.ncdf(nc,x))
-	names(mod) <- varNames
-	
-	ncdf::close.ncdf(nc)
 	
 	if (!useCombined) mod <- rebuildNc(dirSim, dim(mod$TXMoth), year)
 	
@@ -55,9 +50,9 @@ ncdf2trapdata <- function(dirSim,
 	lonInd <- grep("on", colnames(traps))
 	lons <- traps[, lonInd]
 	lons[which(lons>0)] <- (-lons[which(lons>0)])
-	xb <- vapply(lons, function(x) trap2block(x,nc$dim$lon$vals),1)
+	xb <- vapply(lons, function(x) trap2block(x,dat$lon),1)
 	yb <- vapply(traps[, grep("ati", colnames(traps))],
-							 function(y) trap2block(y,nc$dim$lat$vals),1)
+							 function(y) trap2block(y,dat$lat),1)
 	
 	
 	#intiatialize the out table
@@ -128,7 +123,7 @@ ncdf2trapdata <- function(dirSim,
 	}
 	
 	outh <- cbind(tab, tSer)
-	outh <- addAppendix(outh, Assump, simData, nnSet, notFullweekSet)
+	outh <- addAppendix(outh, dat$assump, dat$simData, nnSet, pathTrap, notFullweekSet, notes)
 	
 	#Now do the vertical output
 	outv <- matrix(nrow = 1, ncol = inSize[2]+6)
@@ -169,7 +164,7 @@ ncdf2trapdata <- function(dirSim,
 											"TX Moths", 
 											"New")
 	
-	outv <- addAppendix(outv, Assump, simData, nnSet, notFullweekSet)
+	outv <- addAppendix(outv, dat$assump, dat$simData, nnSet, pathTrap, notFullweekSet, notes)
 	
 	if(shWrite){
 		prepend <- ifelse(shDoSum,'Sum','Snap')
@@ -179,8 +174,73 @@ ncdf2trapdata <- function(dirSim,
 		return(outh)
 	}
 }
-	
 
+#'Post-processing: Compare the output with the gridded trap data
+#'
+#'Compares the grided first occurance of the traps with the output first occurance
+#'
+#'@param dirSim The simulation output folder 
+#'@param pathTrapGrid The path to the trap grd location
+#'@param pathOut The path where the nc file should be saved
+#'@param goodRas A raster with the target grid, projection and extent
+#'@return Works as a byproduct by writing a grd of the difference and the xydiff
+#'@export
+ncdf2trapgrid <- function(dirSim, 
+													pathTrapGrid,
+													pathOut, goodRas){
+	
+	trapRas <- raster::raster(pathTrapGrid)
+	trapMat <- as.matrix(trapRas)
+	
+	dat <- openSimNC(dirSim)
+	extDim <- dim(dat$sim$TXMoth)
+	predMat <- vapply(1:extDim[1], function(xi){
+		vapply(1:extDim[2], function(yi){
+			firstObv <- min(which(dat$sim$TXMoth[xi,yi,] > 0)[1],
+											which(dat$sim$FLMoth[xi,yi,] > 0)[1],
+											na.rm = TRUE)
+			return(ifelse(is.infinite(firstObv),NA,firstObv))
+		},1)
+	},rep(1,extDim[2]))
+	
+	resMat <- predMat - trapMat
+	resRas <- raster::raster(resMat,template = goodRas)
+	
+	raster::writeRaster(resRas,
+											filename = pathOut,
+											format="CDF",
+											varname = "Pred-obv",
+											varunit = "wk",
+											overwrite=TRUE)
+}
+
+openSimNC <- function(dirSim){
+	pathNc <- paste(dirSim, "Final.nc", sep="/")
+	if(!file.exists(pathNc)){
+		stop(sprintf("File: %s does not exist, Simulation did not completly finish",
+								 pathNc))
+	}
+		
+	nc <- ncdf::open.ncdf(pathNc)
+	
+	varNames <- names(nc$var)
+	sim <- lapply(varNames, function(x) ncdf::get.var.ncdf(nc,x))
+	names(sim) <- varNames
+	
+	
+	out <- list(sim = sim,
+							assump = ncdf::att.get.ncdf(nc,0,"Assumptions")$value,
+							simData = ncdf::att.get.ncdf(nc,0,"simData")$value,
+							lat = nc$dim$lat$vals,
+							lon = nc$dim$lon$vals
+	)
+	
+	
+	ncdf::close.ncdf(nc)
+	
+	return(out)
+	
+}
 
 trap2block <- function(vin, mapvec){
 	
@@ -199,7 +259,10 @@ addAppendix <- function(res,
 												assump,
 												simData,
 												nearestSet,
-												lessThanWeekSet = FALSE){
+												pathTrap,
+												lessThanWeekSet = FALSE,
+												notes = ""){
+	
 	flagSum <- length(lessThanWeekSet) > 1
 	
 	width <- dim(res)[2]
@@ -213,12 +276,14 @@ addAppendix <- function(res,
 									 paste(nearestSet, collapse = " | "))
 	apen[7] <- ""
 	
+	apen[8] <- paste("# Notes:",
+									 paste(notes, collapse = " | "))
 	if(flagSum){
-		apen[8] <- "# Analysis type: Sum"
-		apen[9] <- paste("# weeks with less than 7 observations:",
+		apen[9] <- "# Analysis type: Sum"
+		apen[10] <- paste("# weeks with less than 7 observations:",
 										 paste(lessThanWeekSet,collapse = "|"))
 	} else {
-		apen[8] <- "# Analysis type: Snapshot"
+		apen[9] <- "# Analysis type: Snapshot"
 	}
 	
 	for(ele in seq(1,length(apen))){

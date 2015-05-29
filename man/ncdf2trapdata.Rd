@@ -5,7 +5,7 @@
 \title{Post-processing: Extract model output at trap locations for comparison}
 \usage{
 ncdf2trapdata(dirSim, pathTrap, useCombined = TRUE, shDoSum = FALSE,
-  shWrite = TRUE)
+  shWrite = TRUE, notes = "")
 }
 \arguments{
 \item{dirSim}{The simulation output folder}
@@ -21,6 +21,9 @@ instead of using the combined file}
 
 \item{shWrite}{Should the function write the horizontal and
 vertical csv files or just return the horizontal matrix}
+
+\item{notes}{A vector or string of any notes that should be included in the
+appendix}
 }
 \value{
 shWrite = 1: only writes the csv file

@@ -10,8 +10,16 @@ runRscript <- makeRunFun(RLoc,"R")
 doRun <- function(push = ""){
 	cfg <- loadConfig()
 	runRscript("iterateHYSPLIT.R")
-	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = TRUE)
-	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = FALSE)
+	predObv <- ncdf2trapgrid(cfg$SimOutFold,
+													 "C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/firstOccTrap.grd",
+													 paste(cfg$SimOutFold, "Sim-TrapFirstOcc.nc",sep='/'),
+													 niceGrid
+	)
+	#The spatial average distance between the weeks
+	notes <- sprintf("The spatial average of the simulated distance away from the trap values is %.2f wks",
+								 	mean(abs(predObv[,,]),na.rm=TRUE))
+	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = TRUE, notes = notes)
+	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = FALSE, notes = notes)
 	runScripter("Mothtxt2contour.BAS",cfg$SimOutFold)
 	runScripter("Mothtxt2ClassPost.BAS",cfg$SimOutFold)	
 	if(nchar(push)>0){
@@ -24,12 +32,14 @@ doRun <- function(push = ""){
 
 pushLoc <- 'X:/2 WESTBROOK/Sid/Hysplit Out Moth table'
 
+changeConfig("runName","runBaseNightandFlight",
+						 "migCareerLimit",3)
 doRun(pushLoc)
 
 
 changeConfig("runName","runTOcueTemp",
-						 "migCareerLimit",99,
 						 "tempTOThres", 10)
+
 cfg <- loadConfig()
 collectAprioriVars(cfg)
 doRun(pushLoc)

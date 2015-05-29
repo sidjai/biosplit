@@ -4,7 +4,7 @@
 \alias{changeConfig}
 \title{Change the configuration file}
 \usage{
-changeConfig(path = "", ...)
+changeConfig(..., path = "")
 }
 \arguments{
 \item{path}{The path to the config file if different than the package directory}

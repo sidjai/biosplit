@@ -107,9 +107,10 @@ loadConfig <- function(path=""){
 #'elements that should be changed. The function loads up the file as lines and changes
 #'those values then rewrites the entire file.
 #'
-#'@param path The path to the config file if different than the package directory
+#'
 #'@param ...odd config element name as a string e.g. "runName", "year".
 #'@param ...even the value specified. e.g. "runWorld", "2012".
+#'@param path The path to the config file if different than the package directory
 #'
 #'@examples
 #'cfg <- loadConfig()
@@ -121,7 +122,7 @@ loadConfig <- function(path=""){
 #'#Error asdjkf are not valid variables in Config
 #'}
 #'@export
-changeConfig <- function(path="",...){
+changeConfig <- function(... , path=""){
 	path <- checkCfgPath(path)
 	
 	args <- list(...)

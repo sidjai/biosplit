@@ -124,6 +124,20 @@ vapply(runs, function(x){
 
 ```
 
+Compare the rasters
+
+```{r}
+
+predObv <- ncdf2trapgrid(cfg$SimOutFold,
+												"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/firstOccTrap.grd",
+												paste(cfg$SimOutFold, "Sim-TrapFirstOcc.nc",sep='/'),
+												niceGrid
+												)
+#The spatial average distance between the weeks
+mean(abs(predObv[,,]),na.rm=TRUE)
+
+```
+
 
 Make the maps
 require scripter
