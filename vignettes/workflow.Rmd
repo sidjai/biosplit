@@ -98,7 +98,8 @@ collectAprioriVars(cfg)
 
 Call the model
 ```{r}
-iterateHysplit(stuff)
+runRscript <- makeRunFun(RLoc,"R")
+runRscript("iterateHysplit.R")
 ```
 
 #Post-processing

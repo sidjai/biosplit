@@ -4,38 +4,40 @@ meteoLoc <- "C:/Users/Siddarta.Jairam/Desktop/sid/MeteoInfo1.2"
 goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
 RLoc <- "C:/Users/Siddarta.Jairam/Documents/R/R-3.2.0"
 
-runScipter <- makeRunFun(goldLoc,'BAS')
+runScripter <- makeRunFun(goldLoc,'BAS')
+runRscript <- makeRunFun(RLoc,"R")
 
 doRun <- function(push = ""){
-	loadConfig()
-	runScript("iterateHYSPLIT.R")
-	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc, shDoSum = TRUE)
-	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc, shDoSum = FALSE)
+	cfg <- loadConfig()
+	runRscript("iterateHYSPLIT.R")
+	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = TRUE)
+	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = FALSE)
 	runScripter("Mothtxt2contour.BAS",cfg$SimOutFold)
 	runScripter("Mothtxt2ClassPost.BAS",cfg$SimOutFold)	
 	if(nchar(push)>0){
-		endTag <-  paste(cfg$year, cfg$runName, sep= '/')
-		file.copy(cfg$SimOutFold, paste(push, endTag, sep='/'), overwrite = TRUE)
+		file.copy(cfg$SimOutFold, 
+							paste(push, cfg$year, sep='/'),
+							overwrite = TRUE,
+							recursive = TRUE)
 	}
 }
 
-changeConfig("runName","runLimFlightLow",
-						 "migCareerLimit",3,
-						 "delNightDurFlag",0,
-						 "topOfModel",3000)
+pushLoc <- 'X:/2 WESTBROOK/Sid/Hysplit Out Moth table'
 
-doRun()
+doRun(pushLoc)
 
 
-changeConfig("runName","runNightDurDel",
+changeConfig("runName","runTOcueTemp",
 						 "migCareerLimit",99,
-						 "topOfModel",3000,
-						 "delNightDurFlag",1)
-doRun()
+						 "tempTOThres", 10)
+cfg <- loadConfig()
+collectAprioriVars(cfg)
+doRun(pushLoc)
 
 
-changeConfig("runName","runFlightAndNight",
-						 "migCareerLimit",3,
-						 "topOfModel",3000,
-						 "delNightDurFlag",1)
-doRun()
+changeConfig("runName","runTOcuePrec",
+						 "tempTOThres",-9999,
+						 "precTOThres",0.01)
+
+collectAprioriVars(cfg)
+doRun(pushLoc)

@@ -148,7 +148,7 @@ aprioriVars <- function(dirTrees,
 	
 	windStopTO <- (dat$Wind$H > windTOThres)
 	tempStopTO <- (dat$Air$H < tempTOThres)
-	precStopTO <- (dat$Prec > precTOThres)
+	precStopTO <- (dat$Prec$H > precTOThres)
 	cornGDD[is.na(cornGDD)] <- 0
 	
 	dims <-list(cornNc$dim$lon,
@@ -158,9 +158,9 @@ aprioriVars <- function(dirTrees,
 	fVars<- list(var.def.ncdf('CornGDD', '0.1*F*days', dims, 999, prec="integer"),
 							 var.def.ncdf('FawGDD', '0.1*C*days', dims, 999, prec="integer"),
 							 var.def.ncdf('Corn', 'Hectares', list(cornNc$dim$lon, cornNc$dim$lat), 999, prec="integer"),
-							 var.def.ncdf('windStopTO', 'Boolean', dims,999, prec="short"),
-							 var.def.ncdf('tempStopTO', 'Boolean', dims,999, prec="short"),
-							 var.def.ncdf('precStopTO', 'Boolean', dims,999, prec="short"),
+							 var.def.ncdf('windStopTO', 'Boolean', dims,2, prec="short"),
+							 var.def.ncdf('tempStopTO', 'Boolean', dims,2, prec="short"),
+							 var.def.ncdf('precStopTO', 'Boolean', dims,2, prec="short")
 							 )
 	
 	anc <- create.ncdf(pathOut,fVars)
@@ -168,7 +168,9 @@ aprioriVars <- function(dirTrees,
 	put.var.ncdf(anc, "CornGDD", cornGDD*10)
 	put.var.ncdf(anc, "FawGDD", fawGrw*10)
 	put.var.ncdf(anc, "Corn", dat$C)
-	put.var.ncdf(anc, "TailWind", TailWind)
+	put.var.ncdf(anc, 'precStopTO', precStopTO)
+	put.var.ncdf(anc, 'tempStopTO', tempStopTO)
+	put.var.ncdf(anc, 'windStopTO', windStopTO)
 	att.put.ncdf(anc, 0 , "PlantingTimes", plantTimes)
 	att.put.ncdf(anc, 0 , "HarvestTimes", harvestTimes)
 	att.put.ncdf(anc, 0 , "CornThres", CornThres)

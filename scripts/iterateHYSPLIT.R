@@ -10,8 +10,10 @@ require(ncdf)
 require(readr)
 require(insol)
 
-realWd <- gsub("/r_code","",ifelse(!grepl("Moth",getwd()),dirname(sys.frame(1)$ofile),getwd()))
-load(paste(realWd,"cfg.Rout",sep="/"))
+realWd <- system.file(package = "biosplit")
+load(paste(realWd,"cfg.RData",sep="/"))
+source(paste("C:/Users/Siddarta.Jairam/Documents/MothMigrationModel", "R", "utils.R", sep='/'))
+
 nc <- open.ncdf(cfg$AprioriLoc)
 
 varNames <- names(nc$var)
@@ -1148,15 +1150,17 @@ for(di in seq(startDay,cfg$endDay)){
 		if (condLowAmt$migrant || condRetired) mMoth <- mMoth[-mi,drop = FALSE]
 		else{
 			#Got Moths that want to fly but are they able to fly?
-			xi <-map2block(tSplit[[2]]$grid[1,1],1,1)
-			yi <-map2block(tSplit[[2]]$grid[1,2],2,1)
-			#newWind <-ifelse((windThres<0 && mMoth[[mi]]$origin=="FL" && di<100),2.5,windThres)
-			newWind <- cfg$windThres
-			wi <- apr$TailWind[xi,yi,di-1]
-			condW <- (is.na(wi) || wi<newWind)
+			xi <- map2block(tSplit[[2]]$grid[1,1],1,1)
+			yi <- map2block(tSplit[[2]]$grid[1,2],2,1)
+			
 			condSk <- (length(which(cfg$skip==di))!=0)
 			condTired <- (mMoth[[mi]]$flights %% cfg$succFlightLim)==0
-			if (condW || condSk || condTired){
+			if (any(condSk,
+							condTired,
+							apr$windStopTO[xi,yi,di],
+							apr$precStopTO[xi,yi,di],
+							apr$tempStopTO[xi,yi,di],
+							na.rm = TRUE)){
 				mMoth[[mi]] <- tSplit[[2]]
 				mMoth[[mi]]$flights <- mMoth[[mi]]$flights+.1
 				mi <- mi+1
@@ -1254,7 +1258,7 @@ for(di in seq(startDay,cfg$endDay)){
 		Eggs <- list()
 		youngAdults <- list()
 		
-		if (length(Eggs)>0){
+		if (length(Cohort)>0){
 			#Clean cohort
 			tCoh <- growCohort(Cohort,di)
 

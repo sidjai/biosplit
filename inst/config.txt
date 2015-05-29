@@ -24,7 +24,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2013
-runName = runInterYear
+runName = runminFlightCareer
 
 #Cropscape m 
 xmin = -1005735
@@ -54,9 +54,9 @@ writeFlag = 1
 # make an automated readme file?
 makeReadmeFlag = 1
 
-codeChanges = Added ability to set Top of the model and Vertical Motion from the config file
-outEveryDayStart = 140
-outEveryDayEnd = 300
+codeChanges = Add in takeoff cues in AprioriVars to get the variable
+outEveryDayStart = 1
+outEveryDayEnd = 365
 
 #ncdf2trapdata.R
 
@@ -83,9 +83,9 @@ harvestTimes = c(25, 39, 195, 300)
 #All in Celcius
 TGDDbaseCrop = 10
 TGDDbaseFAW = 13.8
-tempTOThres = 9999
-precTOThres = (-9999)
-windTOThres = (-9999)
+tempTOThres = (-9999)
+precTOThres = (9999)
+windTOThres = (9999)
 
 #iterateHYSPLIT.R
 
@@ -116,9 +116,9 @@ skip = c(0)
 altCornDay  = 100
 #num of nights that a moth can fly in succession
 succFlightLim = 3
-migCareerLimit = 99
+migCareerLimit = 2
 #altAnalysis
-delNightDurFlag = 0
+delNightDurFlag = 1
 flightPropAfterSilk = 0.9
 flightPropBeforeSilk = 0.1
 

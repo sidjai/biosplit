@@ -34,7 +34,7 @@ inp = CStr(Command$)
 On Error GoTo coda
 
 'direc = direc & "\" &  Join(Array(yr)) & "\" & runName & "\"
-direc = inp & "/"
+direc = Split(inp,Chr(34))(1) & "/"
 
 
 If (yr<0) Then 'just to make this code not run in normal circumstances

@@ -15,11 +15,14 @@ makeRunFun <- function(driver, ext){
 		stop(paste("pkg doesn't have any", ext, "files"))
 	}
 	
-	scrDir <- system.file(package = "biosplit")
+	base <- system.file(package = "biosplit")
 	
-	scrDir <- paste(scrDir, 
+	scrDir <- paste(base, 
 								 switch(ext, R="scripts", BAS="surfer", py="jython")
 								 ,sep='/')
+	if (!is.na(match(ext, 'R'))){
+		scrDir <- "C:/Users/Siddarta.Jairam/Documents/MothMigrationModel/scripts"
+	}
 	
 	driver <- if(langFlag == 1){
 		#R scripts
@@ -43,18 +46,18 @@ makeRunFun <- function(driver, ext){
 		
 		command <- paste("CD", scrDir)
 		
-		command[2] <- paste(driver, scrName, paste(quoteSt(args), collapse = " "))
+		command[2] <- paste(driver, scrName, paste(quoteSt(args, ext), collapse = " "))
 		
 		input <- paste(command,collapse=" && ")
 		
 		cat("\n","#######", paste("calling", scrName),"\n")
 		if(verbose) cat(input)
 		
-		jk <- shell(input,mustWork=TRUE)
-		
+		jk <- shell(input,mustWork=TRUE, intern = verbose)
+		if(verbose) cat('\n',jk,'\n')
 		
 	})
 }
-quoteSt <- function(instr){
+quoteSt <- function(instr, tok){
 	paste0("\"", instr, "\"")
 }

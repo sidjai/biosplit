@@ -207,7 +207,7 @@ addAppendix <- function(res,
 	apen <- ""
 	apen[2] <- paste("#",assump)
 	apen[3] <- paste("#",simData)
-	apen[4] <- paste("# Trap file:",cfg$trapName)
+	apen[4] <- paste("# Trap file:", pathTrap)
 	apen[5] <- ""
 	apen[6] <- paste("# Used Nearest neighbor:",
 									 paste(nearestSet, collapse = " | "))
