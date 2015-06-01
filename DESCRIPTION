@@ -2,13 +2,18 @@ Package: biosplit
 Title: BioSplit model for Moth Migration
 Version: 0.1.3.9000
 Authors@R: person('Siddarta', 'Jairam', , 'sidjsb@gmail.com', role = c("aut","cre"))
-Description: A biological model of insect growth and death across generations 	connected to a physical model of migration patterns as a meterological dispersion of passive particles in the HySplit (NOAA) model.
+Description: 
+	A combination of a biological model for growth and the physical model of migration. The 	biological model comes from the growth cycles of a migratory moth (Fall Armyworm) using 	growing degree days and corn production measurements. The migration model is for passive 	dispersion of particles coming from the HYSPLIT model created by US NOAA. To get these 	programs to talk to one another, a metwork of pre processing and post processing has been 	developed and included. The result is a model that can account 
 Depends: R (>= 3.1.1)
 Imports:
 	httr,
 	insol,
 	ncdf,
 	raster,
-	rgdal
+	rgdal	
+SystemRequirements:
+	HYSPLIT (>= 4 svn 460)
+	MeteoInfo (>1.2 Java Ed)
+	Suggests: Golden Software Surfer (>=12.0)
 License: GPL 2.0
 LazyData: true

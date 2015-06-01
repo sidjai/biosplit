@@ -40,12 +40,15 @@ doRun <- function(push = ""){
 
 pushLoc <- 'X:/2 WESTBROOK/Sid/Hysplit Out Moth table'
 
-#changeConfig("runName","runBaseNightandFlight",
-#						 "migCareerLimit",3)
-#doRun(pushLoc)
+
+changeConfig("runName","runBaseFullNight",
+						 "precTOThres",9999)
+cfg <- loadConfig()
+collectAprioriVars(cfg)
+doRun(pushLoc)
 
 
-changeConfig("runName","runTOcueTemp",
+changeConfig("runName","runBFNTOcueTemp",
 						 "tempTOThres", 10)
 
 cfg <- loadConfig()
@@ -53,9 +56,10 @@ collectAprioriVars(cfg)
 doRun(pushLoc)
 
 
-changeConfig("runName","runTOcuePrec",
+changeConfig("runName","runBFNTOcuePrec",
 						 "tempTOThres",-9999,
-						 "precTOThres",0.01)
+						 "precTOThres",0.001)
 
+cfg <- loadConfig()
 collectAprioriVars(cfg)
 doRun(pushLoc)
