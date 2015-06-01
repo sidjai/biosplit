@@ -7,6 +7,14 @@ RLoc <- "C:/Users/Siddarta.Jairam/Documents/R/R-3.2.0"
 runScripter <- makeRunFun(goldLoc,'BAS')
 runRscript <- makeRunFun(RLoc,"R")
 
+cfg <- loadConfig()
+
+boBox <- raster::extent(cfg$xmin, cfg$xmax, cfg$ymin, cfg$ymax)
+cropGrid <- raster::raster(boBox,
+													 crs = cfg$cropProj,resolution = cfg$spc)
+niceGrid <- raster::projectExtent(cropGrid,cfg$niceProj)
+
+
 doRun <- function(push = ""){
 	cfg <- loadConfig()
 	runRscript("iterateHYSPLIT.R")
@@ -32,9 +40,9 @@ doRun <- function(push = ""){
 
 pushLoc <- 'X:/2 WESTBROOK/Sid/Hysplit Out Moth table'
 
-changeConfig("runName","runBaseNightandFlight",
-						 "migCareerLimit",3)
-doRun(pushLoc)
+#changeConfig("runName","runBaseNightandFlight",
+#						 "migCareerLimit",3)
+#doRun(pushLoc)
 
 
 changeConfig("runName","runTOcueTemp",
