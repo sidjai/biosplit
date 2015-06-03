@@ -42,7 +42,8 @@ pushLoc <- 'X:/2 WESTBROOK/Sid/Hysplit Out Moth table'
 
 
 changeConfig("runName","runBaseFullNight",
-						 "precTOThres",9999)
+						 "precTOThres",9999,
+						 "delNightDurFlag", 0)
 cfg <- loadConfig()
 collectAprioriVars(cfg)
 doRun(pushLoc)

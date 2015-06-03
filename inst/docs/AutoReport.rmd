@@ -1,15 +1,20 @@
 ---
-title: "Model Improvement, v0.1.0-v0.1.2"
+title: "Auto Report"
 author: "Siddarta Jairam"
 date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
 output: 
   word_document:
     reference_docx: AutoReporttemp.docx
+params:
+	runs: c('runInterYear','runAbsFlightLimit','runNightDurDel')
+	years: c(2013, 2013, 2013)
+	dirSim: 'C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table'
 ---
 
 ```{r setup, include=FALSE}
 library(knitr)
 library(jpeg)
+library(biosplit)
 knitr::opts_chunk$set(fig.width=6.5, fig.height=3,fig.pos='center',echo=FALSE,comment='>',dpi=800)
 realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
 load(paste(realWd,"cfg.Rout",sep="/"))
@@ -62,15 +67,14 @@ findDiff <- function(vecvars,compareInd=1:length(vecvars)){
 This report will compare these runs:
 
 ```{r context}
-SimDir <- 'C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table'
 #runs <- c('runDataRedo','runHelloWorld','runInterYear','runFLwinter')
 #years <- c('2011','2012','2013','2014')
 runs <- c('runInterYear','runAbsFlightLimit','runNightDurDel','runFlightAndNight')
 years <- c('2013','2013','2013','2013')
-rwyear <- paste(years,runs,sep='/')
-fullDir <- paste(SimDir,rwyear,sep='/')
+rwyear <- paste(params$years, params$runs, sep='/')
+fullDir <- paste(params$dirSim,rwyear,sep='/')
 numRuns <- length(rwyear)
-compareRuns <- 2:4
+compareRuns <- 1:numRuns
 cat(paste(rwyear,colllapse='|'))
 ```
 
@@ -126,3 +130,40 @@ contours <- vapply(conPaths,function(pth){
 
 mosaicImage(contours,labelx=rwyear,labely=dates,offsetx=.08,marb=.2,marl=.11)
 ```
+
+#Validation
+
+A simple measure that can be used to assess the accuracy of the model is to compare it to observed trap captures. This values were collected via PestWatch for 66 locations East of the Rockies. These were then turned into a regular grid of first occurance values using krieging spatial averaging. This was compared with the first occurances of the simulation and shown in the table below. 
+
+```{r}
+figList <- updateCntList(figList,"firstOccTable")
+```
+
+####Table `r figList$firstOccTable`. The average of the absolute value of the difference between the simulation first Occurance and the trap first occurance
+
+```{r}
+trapGridFold <- "C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/"
+trapGrid <- "firstOccTrap.grd"
+trapGridTypes <- c(trapGrid, 
+									 gsub("Trap", "TrapSoft", trapGrid),
+									 gsub("Trap", "TrapStrict", trapGrid))
+valTab <- vapply(rwyear, function(x){
+	direc <- paste(cfg$SimOutFold, x, sep='/')
+	
+	vapply(trapGridTypes, function(trapPath){
+		predObv <- ncdf2trapgrid(direc,
+														 paste0(trapGridFold,trapPath),
+														 paste(direc, "Sim-TrapFirstOcc.nc",sep='/')
+		)
+		#The spatial average distance between the weeks
+		mean(abs(predObv),na.rm=TRUE)
+	},1)
+	
+},rep(1,3))
+
+kable(as.data.frame(valTab))
+```
+
+The strict blanking is taking out all the traps that had moths in their traps on the first week which does not prove that it is the first week of occurance. The soft blanking is blanking the values that are outliers. Right now the clear outliers are at the begining of the simulation in North florida and central TX. This could be because of the overwintering population definition may be different than reality due to effects of other crops or warmer areas near the coast. Another reason could be because of having year round crops in certain areas that is not accounted for. There could also be a safe haven region in central TX and Florida where moths could survive and live through the winter without overwintering.
+
+In any case, the "no blanking" case has 54 values, the soft blanking case has 50 values and the strict blanking has 33 values. These by area values are then grided the sam way to produce a comparision on the same spatial extent. However, the significance of the numbers should be changed with these number of values.

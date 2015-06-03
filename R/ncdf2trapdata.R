@@ -187,9 +187,12 @@ ncdf2trapdata <- function(dirSim,
 #'@export
 ncdf2trapgrid <- function(dirSim, 
 													pathTrapGrid,
-													pathOut, goodRas){
+													pathOut,
+													goodProj = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'){
 	
 	trapRas <- raster::raster(pathTrapGrid)
+	projection(trapRas) <- goodProj
+	
 	trapMat <- as.matrix(trapRas)
 	
 	dat <- openSimNC(dirSim)
@@ -204,7 +207,7 @@ ncdf2trapgrid <- function(dirSim,
 	},rep(1,extDim[2]))
 	
 	resMat <- predMat - trapMat
-	resRas <- raster::raster(resMat,template = goodRas)
+	resRas <- raster::raster(resMat,template = trapRas)
 	
 	raster::writeRaster(resRas,
 											filename = pathOut,
