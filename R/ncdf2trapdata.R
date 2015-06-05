@@ -184,16 +184,17 @@ ncdf2trapdata <- function(dirSim,
 #'@param pathOut The path where the nc file should be saved
 #'@param goodRas A raster with the target grid, projection and extent
 #'@return Works as a byproduct by writing a grd of the difference and the xydiff
+#'@import raster
 #'@export
 ncdf2trapgrid <- function(dirSim, 
 													pathTrapGrid,
 													pathOut,
 													goodProj = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'){
 	
-	trapRas <- raster::raster(pathTrapGrid)
-	raster::projection(trapRas) <- goodProj
+	trapRas <- raster(pathTrapGrid)
+	projection(trapRas) <- goodProj
 	
-	trapMat <- raster::as.matrix(trapRas)
+	trapMat <- as.matrix(trapRas)
 	
 	dat <- openSimNC(dirSim)
 	extDim <- dim(dat$sim$TXMoth)
@@ -207,14 +208,16 @@ ncdf2trapgrid <- function(dirSim,
 	},rep(1,extDim[2]))
 	
 	resMat <- predMat - trapMat
-	resRas <- raster::raster(resMat,template = trapRas)
+	resRas <- raster(resMat,
+									 template = raster(paste(dirSim, "Final.nc", sep='/')))
 	
-	raster::writeRaster(resRas,
-											filename = pathOut,
-											format="CDF",
-											varname = "Pred-obv",
-											varunit = "wk",
-											overwrite=TRUE)
+	writeRaster(resRas,
+							filename = pathOut,
+							format="CDF",
+							varname = "Pred-obv",
+							varunit = "wk",
+							overwrite=TRUE
+							)
 }
 
 openSimNC <- function(dirSim){

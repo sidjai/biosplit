@@ -79,7 +79,7 @@ If (IsObject(frame)) Then
 		.LabelFont.Bold = True
 		.LabelFont.BackColorRGBA.Opacity = 100
 
-		.LabelFormat.Type = srfLabGeneral
+		.LabelFormat.Type = srfLabFixed
 		.LabelFormat.TrimExponent = True
 		.LabelFormat.NumDigits = 0
 

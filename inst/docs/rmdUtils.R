@@ -6,10 +6,13 @@ dispVar <- function(var){
 	cat(paste(deparse(substitute(var)),var,sep=' = '),'\n')
 }
 mosaicImage <- function(pathMat,
-												labelx=paste0('x',1:dim(pathMat)[2]),
-												labely=paste0('y',1:dim(pathMat)[1]),
-												offsetx=.1,offsety=.1,marl=.1,marb=.1){
-	labelx <- gsub("/", "\n",labelx)
+												labelx = paste0('x',1:dim(pathMat)[2]),
+												labely = paste0('y',1:dim(pathMat)[1]),
+												offsetx = .1, offsety = .1,
+												marl = .1, marb = .1,
+												leftAlignYaxis = FALSE){
+	labelx <- gsub("/", "\n", labelx)
+	labely <- gsub("/", "\n", labely)
 	pathMat <- as.matrix(pathMat)
 	
 	xlen <- dim(pathMat)[2]
@@ -28,7 +31,13 @@ mosaicImage <- function(pathMat,
 	
 	
 	for(yi in 1:ylen){
-		text(x=0,y=ylen-yi+.55,labels=labely[yi])
+		#Y axis labels
+		if( leftAlignYaxis){
+			text(x=0,y=ylen-yi+.55,labels=labely[yi], pos = 4)
+		} else {
+			text(x=0,y=ylen-yi+.55,labels=labely[yi])
+		}
+		
 		for(xi in 1:xlen){
 			path <- pathMat[yi,xi]
 			
@@ -42,6 +51,7 @@ mosaicImage <- function(pathMat,
 			
 			
 			if (yi==ylen){
+				#X axis labels
 				text(x=xi-.35,y=0.01,labels=labelx[xi])
 			}
 		}
@@ -74,11 +84,11 @@ grabFunc <- function(path,funcName,returnFun=1,shouldCat=0,atStart=1){
 	}
 }
 
-findDiff <- function(vecvars,compareInd=1:length(vecvars)){
+findDiff <- function(vecvars, labelCol, compareInd=1:length(vecvars)){
 	first <- compareInd[1]
 	cond <- strsplit(vecvars,';')
 	diff <- matrix('Same values', nrow = 1, ncol = length(vecvars))
-	colnames(diff) <- rwyear
+	colnames(diff) <- labelCol
 	locCnt <- 1 
 	for (var in seq(1,length(cond[[1]]))){
 		allCond <- vapply(1:length(vecvars),function(x){
@@ -116,3 +126,12 @@ findDiff <- function(vecvars,compareInd=1:length(vecvars)){
 	}
 	return(diff)
 }
+
+cleanLabel <- function(x){
+	x <- gsub('/', ' ', x)
+	x <- gsub(".grd", '', x)
+	x <- gsub("run", '', x)
+	return(x)
+}
+	
+	

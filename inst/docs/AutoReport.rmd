@@ -1,10 +1,10 @@
 ---
-title: "Auto Report"
+title: "Auto Report Flight And Night"
 author: "Siddarta Jairam"
 date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
 output: 
   word_document:
-    reference_docx: AutoReporttemp.docx
+    reference_docx: BiologicalEqstemp.docx
 ---
 
 ```{r setup, include=FALSE}
@@ -25,13 +25,14 @@ This report will compare these runs:
 #years <- c('2011','2012','2013','2014')
 goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
 params <- list()
-params$runs <- c('runInterYear','runAbsFlightLimit','runNightDurDel','runFlightAndNight')
-params$years <- c('2013','2013','2013','2013')
+#params$runs <- c('runInterYear','runAbsFlightLimit','runNightDurDel','runFlightAndNight')
+params$runs <- c("runBaseFullNight", "runBFNTOcueTemp", "runBFNTOcuePrec")
+params$years <- c('2013','2013','2013')
 rwyear <- paste(params$years, params$runs, sep='/')
 params$dirSim <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
 fullDir <- paste(params$dirSim, rwyear,sep='/')
 numRuns <- length(rwyear)
-compareRuns <- 2:numRuns
+compareRuns <- 1:numRuns
 cat(paste(rwyear,colllapse='|'))
 ```
 
@@ -47,8 +48,8 @@ cat(condFiles[3:4,2])
 The differences between the different runs are as follows:
 
 ```{r}
-bioDiff <- findDiff(condFiles[3,],compareRuns)
-simDiff <- findDiff(condFiles[4,],compareRuns)
+bioDiff <- findDiff(condFiles[3,], cleanLabel(rwyear), compareRuns)
+simDiff <- findDiff(condFiles[4,], cleanLabel(rwyear), compareRuns)
 
 figList <- updateCntList(figList,"bioDiff")
 ```
@@ -90,7 +91,7 @@ mosaicImage(contours,labelx=rwyear,labely=dates,offsetx=.08,marb=.2,marl=.11)
 
 #Validation
 
-A simple measure that can be used to assess the accuracy of the model is to compare it to observed trap captures. This values were collected via PestWatch for 66 locations East of the Rockies. These were then turned into a regular grid of first occurance values using krieging spatial averaging. This was compared with the first occurances of the simulation and shown in the table below. 
+A simple measure that can be used to assess the accuracy of the model is to compare it to observed trap captures. This values were collected via PestWatch for 66 locations East of the Rockies. These were then turned into a regular grid of first occurrence values using krieging spatial averaging. This was compared with the first occurrences of the simulation and shown in the table below. 
 
 ```{r}
 figList <- updateCntList(figList,"firstOccTable")
@@ -118,14 +119,23 @@ valTab <- vapply(rwyear, function(x){
 	
 },rep(1,3))
 
+colnames(valTab) <- cleanLabel(colnames(valTab))
+rownames(valTab) <- cleanLabel(rownames(valTab))
+
 kable(valTab)
 ```
 
-The strict blanking is taking out all the traps that had moths in their traps on the first week which does not prove that it is the first week of occurance. The soft blanking is blanking the values that are outliers. Right now the clear outliers are at the begining of the simulation in North florida and central TX. This could be because of the overwintering population definition may be different than reality due to effects of other crops or warmer areas near the coast. Another reason could be because of having year round crops in certain areas that is not accounted for. There could also be a safe haven region in central TX and Florida where moths could survive and live through the winter without overwintering.
+The strict blanking is taking out all the traps that had moths in their traps on the first week which does not prove that it is the first week of occurrence. The soft blanking is blanking the values that are outliers. Right now the clear outliers are at the beginning of the simulation in North Florida and central TX. This could be because of the overwintering population definition may be different than reality due to effects of other crops or warmer areas near the coast. Another reason could be because of having year round crops in certain areas that is not accounted for. There could also be a safe haven region in central TX and Florida where moths could survive and live through the winter without overwintering.
 
-In any case, the "no blanking" case has 54 values, the soft blanking case has 50 values and the strict blanking has 33 values. These by area values are then grided the sam way to produce a comparision on the same spatial extent. However, the significance of the numbers should be changed with these number of values. The final graphs are shown below.
+In any case, the "no blanking" case has 54 values, the soft blanking case has 50 values and the strict blanking has 33 values. These by area values are then grided the same way to produce a comparison on the same spatial extent. However, the significance of the numbers should be changed with these number of values. The final graphs are shown below. The plotted variable is the simulation value subtracted from the gridded trap value. This means negative numbers (red) are areas where the simulation moths arrived earlier than in reality, and positive numbers (blue) are areas where the simulation moths arrived later than in reality.
 
-```{r fig.height=(40/length(rwyear)), fig.show='hold'}
+```{r}
+figList <- updateCntList(figList,"firstOccMap")
+```
+
+####Table `r figList$firstOccMap`. The spatial distribution of the differences between the predicted simulation values and the gridded trap capture values. Negative (red) represents and early simulation while positive (blue) values represent a late simulation
+
+```{r fig.height=(32/4), fig.show='hold'}
 runScripter <- makeRunFun(goldLoc, "BAS")
 valid <- vapply(rwyear, function(des){
 		direc <- paste(params$dirSim, des, sep='/')
@@ -133,5 +143,6 @@ valid <- vapply(rwyear, function(des){
 		return(paste(direc, "jpeg", "Contours", "Sim-TrapFirstOcc.jpg", sep='/'))
 	},'e')
 
-mosaicImage(valid,labelx=rep("Strict",4), labely=rwyear, offsetx=.08, marb=.2, marl=.11)
+mosaicImage(valid,labelx=rep("Strict",4), labely=rwyear,
+						offsetx=0, marb=.05, marl=.35, leftAlignYaxis = TRUE)
 ```
