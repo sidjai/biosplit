@@ -5,10 +5,6 @@ date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
 output: 
   word_document:
     reference_docx: AutoReporttemp.docx
-params:
-	runs: c('runInterYear','runAbsFlightLimit','runNightDurDel')
-	years: c(2013, 2013, 2013)
-	dirSim: 'C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table'
 ---
 
 ```{r setup, include=FALSE}
@@ -16,52 +12,11 @@ library(knitr)
 library(jpeg)
 library(biosplit)
 knitr::opts_chunk$set(fig.width=6.5, fig.height=3,fig.pos='center',echo=FALSE,comment='>',dpi=800)
-realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
+realWd <- system.file(package = "biosplit", "docs")
 load(paste(realWd,"cfg.Rout",sep="/"))
 figList <- list()
-source(paste(realWd,"docs/rmdFunctions.R",sep='/'))
-findDiff <- function(vecvars,compareInd=1:length(vecvars)){
-	first <- compareInd[1]
-	cond <- strsplit(vecvars,';')
-	diff <- matrix('Same values', nrow = 1, ncol = length(vecvars))
-	colnames(diff) <- rwyear
-	locCnt <- 1 
-	for (var in seq(1,length(cond[[1]]))){
-		allCond <- vapply(1:length(vecvars),function(x){
-			if(is.element(x,compareInd)){
-				cond[[x]][var]
-			} else "blank"},'one')
-		test <- allCond[compareInd] %in% cond[[first]][var]
-		
-			
-		if(!min(test)){
-			#There is a difference between the runs so output it
-			if(grepl("=",allCond[[first]])){
-				parse <- strsplit(allCond,' = ')
-				diff <- rbind(diff,vapply(1:length(vecvars),function(x){
-					if(is.element(x,compareInd)){
-						parse[[x]][2]
-					} else "blank"},'one'))
-				nrname <- parse[[first]][1]
-			} else {
-				diff <- rbind(diff,allCond)
-				nrname <- paste0("Starting Location",locCnt)
-				locCnt <- locCnt+1
-			}
-			
-			#add the rowname from the thing that is different
-			
-			rownames(diff)[dim(diff)[1]] <- nrname
-			
-			#diff <- paste0(diff,paste(allCond,collapse=' != '),'\n')
-		}
-	}
-	
-	if (dim(diff)[1]>1){ 
-		diff <- diff[-1,,drop=FALSE]
-	}
-	return(diff)
-}
+source(paste(realWd,"rmdFunctions.R",sep='/'))
+
 ```
 
 This report will compare these runs:
@@ -69,12 +24,15 @@ This report will compare these runs:
 ```{r context}
 #runs <- c('runDataRedo','runHelloWorld','runInterYear','runFLwinter')
 #years <- c('2011','2012','2013','2014')
-runs <- c('runInterYear','runAbsFlightLimit','runNightDurDel','runFlightAndNight')
-years <- c('2013','2013','2013','2013')
+goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
+params <- list()
+params$runs <- c('runInterYear','runAbsFlightLimit','runNightDurDel','runFlightAndNight')
+params$years <- c('2013','2013','2013','2013')
 rwyear <- paste(params$years, params$runs, sep='/')
-fullDir <- paste(params$dirSim,rwyear,sep='/')
+params$dirSim <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
+fullDir <- paste(params$dirSim, rwyear,sep='/')
 numRuns <- length(rwyear)
-compareRuns <- 1:numRuns
+compareRuns <- 2:numRuns
 cat(paste(rwyear,colllapse='|'))
 ```
 
@@ -141,14 +99,14 @@ figList <- updateCntList(figList,"firstOccTable")
 
 ####Table `r figList$firstOccTable`. The average of the absolute value of the difference between the simulation first Occurance and the trap first occurance
 
-```{r}
+```{r, results = 'asis'}
 trapGridFold <- "C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/"
 trapGrid <- "firstOccTrap.grd"
 trapGridTypes <- c(trapGrid, 
 									 gsub("Trap", "TrapSoft", trapGrid),
 									 gsub("Trap", "TrapStrict", trapGrid))
 valTab <- vapply(rwyear, function(x){
-	direc <- paste(cfg$SimOutFold, x, sep='/')
+	direc <- paste(params$dirSim, x, sep='/')
 	
 	vapply(trapGridTypes, function(trapPath){
 		predObv <- ncdf2trapgrid(direc,
@@ -156,14 +114,25 @@ valTab <- vapply(rwyear, function(x){
 														 paste(direc, "Sim-TrapFirstOcc.nc",sep='/')
 		)
 		#The spatial average distance between the weeks
-		mean(abs(predObv),na.rm=TRUE)
+		mean(abs(predObv[,]),na.rm=TRUE)
 	},1)
 	
 },rep(1,3))
 
-kable(as.data.frame(valTab))
+kable(valTab)
 ```
 
 The strict blanking is taking out all the traps that had moths in their traps on the first week which does not prove that it is the first week of occurance. The soft blanking is blanking the values that are outliers. Right now the clear outliers are at the begining of the simulation in North florida and central TX. This could be because of the overwintering population definition may be different than reality due to effects of other crops or warmer areas near the coast. Another reason could be because of having year round crops in certain areas that is not accounted for. There could also be a safe haven region in central TX and Florida where moths could survive and live through the winter without overwintering.
 
-In any case, the "no blanking" case has 54 values, the soft blanking case has 50 values and the strict blanking has 33 values. These by area values are then grided the sam way to produce a comparision on the same spatial extent. However, the significance of the numbers should be changed with these number of values.
+In any case, the "no blanking" case has 54 values, the soft blanking case has 50 values and the strict blanking has 33 values. These by area values are then grided the sam way to produce a comparision on the same spatial extent. However, the significance of the numbers should be changed with these number of values. The final graphs are shown below.
+
+```{r fig.height=(40/length(rwyear)), fig.show='hold'}
+runScripter <- makeRunFun(goldLoc, "BAS")
+valid <- vapply(rwyear, function(des){
+		direc <- paste(params$dirSim, des, sep='/')
+		runScripter("ncdf2contour.BAS", direc, verbose = 0)
+		return(paste(direc, "jpeg", "Contours", "Sim-TrapFirstOcc.jpg", sep='/'))
+	},'e')
+
+mosaicImage(valid,labelx=rep("Strict",4), labely=rwyear, offsetx=.08, marb=.2, marl=.11)
+```

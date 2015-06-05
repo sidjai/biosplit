@@ -191,9 +191,9 @@ ncdf2trapgrid <- function(dirSim,
 													goodProj = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'){
 	
 	trapRas <- raster::raster(pathTrapGrid)
-	projection(trapRas) <- goodProj
+	raster::projection(trapRas) <- goodProj
 	
-	trapMat <- as.matrix(trapRas)
+	trapMat <- raster::as.matrix(trapRas)
 	
 	dat <- openSimNC(dirSim)
 	extDim <- dim(dat$sim$TXMoth)

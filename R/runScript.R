@@ -34,7 +34,7 @@ makeRunFun <- function(driver, ext){
 	}
 	
 	return(function(scrName, args="",
-									verbose = FALSE){
+									verbose = 1){
 		
 		if (!grepl(paste0('[.]', ext), scrName)){
 			stop(paste("Code:", scrName, "| is not of a supported language"))
@@ -49,12 +49,14 @@ makeRunFun <- function(driver, ext){
 		command[2] <- paste(driver, scrName, paste(quoteSt(args, ext), collapse = " "))
 		
 		input <- paste(command,collapse=" && ")
+		if(verbose > 0){
+			cat("\n","#######", paste("calling", scrName),"\n")
+			
+			if(verbose > 1) cat(input)
+		}
 		
-		cat("\n","#######", paste("calling", scrName),"\n")
-		if(verbose) cat(input)
-		
-		jk <- shell(input,mustWork=TRUE, intern = verbose)
-		if(verbose) cat('\n',jk,'\n')
+		jk <- shell(input,mustWork=TRUE, intern = verbose > 1)
+		if(verbose > 1) cat('\n',jk,'\n')
 		
 	})
 }

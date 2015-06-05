@@ -10,6 +10,7 @@ mosaicImage <- function(pathMat,
 												labely=paste0('y',1:dim(pathMat)[1]),
 												offsetx=.1,offsety=.1,marl=.1,marb=.1){
 	labelx <- gsub("/", "\n",labelx)
+	pathMat <- as.matrix(pathMat)
 	
 	xlen <- dim(pathMat)[2]
 	ylen <- dim(pathMat)[1]
@@ -33,7 +34,7 @@ mosaicImage <- function(pathMat,
 			
 			if (length(path)>0 && file.exists(path)){
 				#on non windows need to resize
-				rasterImage(readJPEG(path,native=TRUE),
+				rasterImage(jpeg::readJPEG(path,native=TRUE),
 										xleft=xmins[xi],ybottom=ymins[yi],
 										xright=xmaxs[xi],ytop=ymaxs[yi],
 										interpolate = FALSE)
@@ -71,4 +72,47 @@ grabFunc <- function(path,funcName,returnFun=1,shouldCat=0,atStart=1){
 	} else {
 		return(comd)
 	}
+}
+
+findDiff <- function(vecvars,compareInd=1:length(vecvars)){
+	first <- compareInd[1]
+	cond <- strsplit(vecvars,';')
+	diff <- matrix('Same values', nrow = 1, ncol = length(vecvars))
+	colnames(diff) <- rwyear
+	locCnt <- 1 
+	for (var in seq(1,length(cond[[1]]))){
+		allCond <- vapply(1:length(vecvars),function(x){
+			if(is.element(x,compareInd)){
+				cond[[x]][var]
+			} else "blank"},'one')
+		test <- allCond[compareInd] %in% cond[[first]][var]
+		
+		
+		if(!min(test)){
+			#There is a difference between the runs so output it
+			if(grepl("=",allCond[[first]])){
+				parse <- strsplit(allCond,' = ')
+				diff <- rbind(diff,vapply(1:length(vecvars),function(x){
+					if(is.element(x,compareInd)){
+						parse[[x]][2]
+					} else "blank"},'one'))
+				nrname <- parse[[first]][1]
+			} else {
+				diff <- rbind(diff,allCond)
+				nrname <- paste0("Starting Location",locCnt)
+				locCnt <- locCnt+1
+			}
+			
+			#add the rowname from the thing that is different
+			
+			rownames(diff)[dim(diff)[1]] <- nrname
+			
+			#diff <- paste0(diff,paste(allCond,collapse=' != '),'\n')
+		}
+	}
+	
+	if (dim(diff)[1]>1){ 
+		diff <- diff[-1,,drop=FALSE]
+	}
+	return(diff)
 }

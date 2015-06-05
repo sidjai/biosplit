@@ -4,7 +4,8 @@
 \alias{ncdf2trapgrid}
 \title{Post-processing: Compare the output with the gridded trap data}
 \usage{
-ncdf2trapgrid(dirSim, pathTrapGrid, pathOut, goodRas)
+ncdf2trapgrid(dirSim, pathTrapGrid, pathOut,
+  goodProj = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 }
 \arguments{
 \item{dirSim}{The simulation output folder}
