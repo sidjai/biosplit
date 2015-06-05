@@ -36,7 +36,7 @@ compareRuns <- 1:numRuns
 cat(paste(rwyear,colllapse='|'))
 ```
 
-The conditions that the run was done in is as follows:
+The conditions that the run was done in are as follows:
 
 ```{r conditions}
 condFiles <- vapply(fullDir,function(x){
@@ -91,7 +91,7 @@ mosaicImage(contours,labelx=rwyear,labely=dates,offsetx=.08,marb=.2,marl=.11)
 
 #Validation
 
-A simple measure that can be used to assess the accuracy of the model is to compare it to observed trap captures. This values were collected via PestWatch for 66 locations East of the Rockies. These were then turned into a regular grid of first occurrence values using krieging spatial averaging. This was compared with the first occurrences of the simulation and shown in the table below. 
+A simple measure that can be used to assess the accuracy of the model is to compare it to observed trap captures. These values were collected via PestWatch for 66 locations East of the Rockies. These were then turned into a regular grid of first occurrence values using krieging spatial averaging. This was compared with the first occurrences of the simulation and shown in the table below. 
 
 ```{r}
 figList <- updateCntList(figList,"firstOccTable")
@@ -127,7 +127,7 @@ kable(valTab)
 
 The strict blanking is taking out all the traps that had moths in their traps on the first week which does not prove that it is the first week of occurrence. The soft blanking is blanking the values that are outliers. Right now the clear outliers are at the beginning of the simulation in North Florida and central TX. This could be because of the overwintering population definition may be different than reality due to effects of other crops or warmer areas near the coast. Another reason could be because of having year round crops in certain areas that is not accounted for. There could also be a safe haven region in central TX and Florida where moths could survive and live through the winter without overwintering.
 
-In any case, the "no blanking" case has 54 values, the soft blanking case has 50 values and the strict blanking has 33 values. These by area values are then grided the same way to produce a comparison on the same spatial extent. However, the significance of the numbers should be changed with these number of values. The final graphs are shown below. The plotted variable is the simulation value subtracted from the gridded trap value. This means negative numbers (red) are areas where the simulation moths arrived earlier than in reality, and positive numbers (blue) are areas where the simulation moths arrived later than in reality.
+In any case, the "no blanking" case has 54 values, the soft blanking case has 50 values and the strict blanking has 33 values. These by location first ocurance values are then grided the same way to produce a comparison on the same spatial extent. However, the significance of the numbers should be changed with these number of values. The final graphs are shown below. The plotted variable is the simulation value subtracted from the gridded trap value. This means negative numbers (red) are areas where the simulation moths arrived earlier than in reality, and positive numbers (blue) are areas where the simulation moths arrived later than in reality.
 
 ```{r}
 figList <- updateCntList(figList,"firstOccMap")

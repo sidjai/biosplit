@@ -1,7 +1,7 @@
 ---
 title: "Functions in the Biological Model"
 author: "Siddarta Jairam"
-date: "Thursday, April 02, 2015"
+date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
 output: 
   word_document:
     reference_docx: BiologicalEqstemp.docx
@@ -10,11 +10,12 @@ output:
 knitr::opts_chunk$set(fig.width=6.5, fig.height=3.5,fig.pos='center',echo=FALSE,comment='>',dpi=800)
 library(ggplot2)
 library(insol)
-realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
-load(paste(realWd,"cfg.Rout",sep="/"))
+library(biosplit)
 
+cfg <- loadConfig()
+realWd <- system.file(package = "biosplit")
 figList <- list()
-source(paste(realWd,"docs/rmdFunctions.R",sep='/'))
+source(paste(realWd, "docs", "rmdUtils.R", sep='/'))
 theme_set(getNiceTheme())
 ```
 
@@ -27,7 +28,7 @@ The corn acreage was collected from CropScape and aggregated for the 40x40km gri
 
 Currently the planting and harvesting practices are assumed to be fully represented by date of action which is dependent only on latitude. With warmer climates in the south comes early dates for both planting and harvesting corn. In the corn belt above Oklahoma, the dates plateaus. A linear piecewise function is said to encapsulate these practices as shown below. 
 ```{r}
-aprioriLoc <- paste(realWd,'r_code','aprioriVars.R',sep='/')
+aprioriLoc <- paste(realWd,'R','aprioriVars.R',sep='/')
 getTimingSplit <- grabFunc(aprioriLoc,'getTimingSplit')
 
 ys <- seq(21.1969,51.1009,by=0.396)

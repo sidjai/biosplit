@@ -20,9 +20,8 @@ doRun <- function(push = ""){
 	runRscript("iterateHYSPLIT.R")
 	predObv <- ncdf2trapgrid(cfg$SimOutFold,
 													 "C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/firstOccTrap.grd",
-													 paste(cfg$SimOutFold, "Sim-TrapFirstOcc.nc",sep='/'),
-													 niceGrid
-	)
+													 paste(cfg$SimOutFold, "Sim-TrapFirstOcc.nc",sep='/')
+													 )
 	#The spatial average distance between the weeks
 	notes <- sprintf("The spatial average of the simulated distance away from the trap values is %.2f wks",
 								 	mean(abs(predObv[,,]),na.rm=TRUE))
@@ -30,6 +29,8 @@ doRun <- function(push = ""){
 	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = FALSE, notes = notes)
 	runScripter("Mothtxt2contour.BAS",cfg$SimOutFold)
 	runScripter("Mothtxt2ClassPost.BAS",cfg$SimOutFold)	
+	runScripter("ncdf2contour.BAS",cfg$SimOutFold)
+	
 	if(nchar(push)>0){
 		file.copy(cfg$SimOutFold, 
 							paste(push, cfg$year, sep='/'),
@@ -41,26 +42,15 @@ doRun <- function(push = ""){
 pushLoc <- 'X:/2 WESTBROOK/Sid/Hysplit Out Moth table'
 
 
-changeConfig("runName","runBaseFullNight",
-						 "precTOThres",9999,
+changeConfig("runName","runFDHighLatThres",
+						 "FLwinterCutoff", 28.5, 
+						 "TXwinterCutoff", 28.5)
+cfg <- loadConfig()
+collectAprioriVars(cfg)
+doRun(pushLoc)
+
+
+changeConfig("runName","runFNHighLatThres",
 						 "delNightDurFlag", 0)
-cfg <- loadConfig()
-collectAprioriVars(cfg)
-doRun(pushLoc)
 
-
-changeConfig("runName","runBFNTOcueTemp",
-						 "tempTOThres", 10)
-
-cfg <- loadConfig()
-collectAprioriVars(cfg)
-doRun(pushLoc)
-
-
-changeConfig("runName","runBFNTOcuePrec",
-						 "tempTOThres",-9999,
-						 "precTOThres",0.001)
-
-cfg <- loadConfig()
-collectAprioriVars(cfg)
 doRun(pushLoc)
