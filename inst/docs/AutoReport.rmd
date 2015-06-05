@@ -13,9 +13,8 @@ library(jpeg)
 library(biosplit)
 knitr::opts_chunk$set(fig.width=6.5, fig.height=3,fig.pos='center',echo=FALSE,comment='>',dpi=800)
 realWd <- system.file(package = "biosplit", "docs")
-load(paste(realWd,"cfg.Rout",sep="/"))
 figList <- list()
-source(paste(realWd,"rmdFunctions.R",sep='/'))
+source(paste(realWd,"rmdUtils.R",sep='/'))
 
 ```
 
