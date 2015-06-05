@@ -1034,11 +1034,13 @@ mMothOut <- CohortOut <- list(array(0, dim=c(dim(apr$Corn),52)),array(0, dim=c(d
 #Get the input cohort areas
 
 winterPop <- overWinter(cfg$FLwinterCutoff,"FL")
+numFLWin <- length(winterPop)
 winterPop <- lappend(winterPop,overWinter(cfg$TXwinterCutoff,"TX"))
 
 #check if all overwinter populations are over corn
 startCorn <- as.numeric(testEnv(winterPop,jd=45)[,"cAmt"])
-if(max(startCorn==0)){
+viableLoc <- which(startCorn > cfg$CornThres)
+if(max(startCorn==0) || length(viableLoc) < 1){
 	stop(paste0(
 		"The overwintering locations are over places without corn with the amounts being:",
 		paste(startCorn,collapse="|")))
@@ -1050,10 +1052,11 @@ if(abs(checkAmt-cfg$stAmount) > 10){
 	stop(paste0("The overwinter population calculation did not go right, calc Pop:",checkAmt, " specified amount:", cfg$stAmount))
 }
 
+midFLPop <- viableLoc[which((viableLoc - (numFLWin/2))>0)[1]]
 # get the start day from the overwinter populations
-xi <- map2block(winterPop[[1]]$grid[1],1,1)
-yi <- map2block(winterPop[[1]]$grid[2],2,1)
-startDay <- which(apr$CornGDD[xi,yi,] >cfg$infestThres)[1]
+xi <- map2block(winterPop[[midFLPop]]$grid[1],1,1)
+yi <- map2block(winterPop[[midFLPop]]$grid[2],2,1)
+startDay <- which(apr$CornGDD[xi,yi,] > cfg$infestThres)[1]
 Cohort <- winterPop
 winterPop <- NULL
 
