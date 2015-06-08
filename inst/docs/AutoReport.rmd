@@ -1,5 +1,5 @@
 ---
-title: "Auto Report Flight And Night"
+title: "Auto Report overwinter threshold"
 author: "Siddarta Jairam"
 date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
 output: 
@@ -27,7 +27,8 @@ goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
 params <- list()
 #params$runs <- c('runInterYear','runAbsFlightLimit','runNightDurDel','runFlightAndNight')
 params$runs <- c("runBaseFullNight", "runBFNTOcueTemp", "runBFNTOcuePrec")
-params$years <- c('2013','2013','2013')
+params$runs <- c("runBaseNightandFlight", "runFDHighLatThres","runFNHighLatThres")
+params$years <- c("2013", "2013", "2013")
 rwyear <- paste(params$years, params$runs, sep='/')
 params$dirSim <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
 fullDir <- paste(params$dirSim, rwyear,sep='/')

@@ -16,6 +16,7 @@ cfg <- loadConfig()
 realWd <- system.file(package = "biosplit")
 figList <- list()
 source(paste(realWd, "docs", "rmdUtils.R", sep='/'))
+realWd <- "C:/Users/Siddarta.Jairam/Documents/MothMigrationModel"
 theme_set(getNiceTheme())
 ```
 
@@ -29,7 +30,7 @@ The corn acreage was collected from CropScape and aggregated for the 40x40km gri
 Currently the planting and harvesting practices are assumed to be fully represented by date of action which is dependent only on latitude. With warmer climates in the south comes early dates for both planting and harvesting corn. In the corn belt above Oklahoma, the dates plateaus. A linear piecewise function is said to encapsulate these practices as shown below. 
 ```{r}
 aprioriLoc <- paste(realWd,'R','aprioriVars.R',sep='/')
-getTimingSplit <- grabFunc(aprioriLoc,'getTimingSplit')
+getTimingSplit <- grabFunc(aprioriLoc,"getTimingSplit")
 
 ys <- seq(21.1969,51.1009,by=0.396)
 
@@ -49,8 +50,17 @@ figList <- updateCntList(figList,'cornDates')
 
 This fits well with reported numbers done by USDA Ag. Handbook 628 2010, though these numbers are hard to collect and have a large error bound. After the corn has been planted, the degree days are accumulated, GDD~corn~ , with minimum and maximum temperatures for that day as shown below.
 ```{r}
-jk <- grabFunc(aprioriLoc,'1.8 * ',returnFun=0,shouldCat=1, atStart=0)
+calcDegDay <- grabFunc(aprioriLoc,"calcDegDay")
+highs <- 10:35
+DD <- 1.8 * calcDegDay(highs, 10, highLim = 30,lowLim = 10, shGrow = FALSE)
+cdat <- data.frame(High_Temps = highs, Degree_Days = DD)
+sdf <- ggplot(cdat, aes(x=High_Temps, y=Degree_Days)) + geom_line()
+sdf + xlab(expression("High Temperatures at 3PM (" *
+         degree * "C)"))+ ylab(expression("Degree Days (" * degree * "F)"))
+figList <- updateCntList(figList,'cornGrowth')
 ```
+
+####Figure `r figList$cornGrowth`. How corn is grown with increasing high temperatures with a fixed low temperature at 10C
 
 This means that below the corn threshold, the GDD~corn~ is 0. The GDD~corn~ starts accumulating  on the planting date and stops at the harvest date where it goes back down to 0. The accumulation is bounded at 10&deg;C and 30&deg;C.
 
@@ -83,8 +93,8 @@ dispVar(cfg$flightPropBeforeSilk)
 dispVar(cfg$flightPropAfterSilk)
 
 cornGDD <- seq(0,3000,by=50)
-iterateLoc <- paste(realWd,'r_code','iterateHYSPLIT.R',sep='/')
-genFlightProp <- grabFunc(iterateLoc, 'genFlightProp',shouldCat=1)
+iterateLoc <- paste(realWd,"scripts", "iterateHYSPLIT.R", sep='/')
+genFlightProp <- grabFunc(iterateLoc, 'genFlightProp', shouldCat=1)
 
 fp <- qplot(cornGDD,genFlightProp(cornGDD),ylim=c(0,1))
 fp + geom_line() + xlab(expression("GDD (" *
@@ -142,7 +152,7 @@ The reason the time is limited to hour length is due HYSPLIT stipulating that mi
 After HYSPLIT runs, the check for whether the migrant population wants to settle down in a location is a variable called livability. The qualitative definition is the suitability of the area for a population of FAW. In the future this can include factors like pesticide use, predators, disease, number of days in flight, etc. Right now it is a piecewise function just on GDD~corn~. The functions is as follows:
 ```{r}
 dispVar(cfg$infestThres)
-howLivable <- grabFunc(iterateLoc, 'howLivable',shouldCat=1)
+howLivable <- grabFunc(iterateLoc, 'howLivable', shouldCat=1)
 ```
 
 Here 'cGrowth' is the GDD~corn~ in &deg;F. 1000&deg;F refers to a fully emerged plant. 1400&deg;F is the silking stage. 2400&deg;F refers to a developed plant.  The function looks like this:

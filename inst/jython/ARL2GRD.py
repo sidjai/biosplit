@@ -5,6 +5,7 @@ from org.meteoinfo.data import GridData
 import org.meteoinfo.map.MapView
 from org.meteoinfo.projection import ProjectionInfo
 from calendar import monthrange
+from calendar import month_abbr
 import os.path
 import sys
 import os
