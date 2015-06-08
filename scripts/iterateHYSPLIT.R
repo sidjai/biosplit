@@ -1,55 +1,372 @@
-#!C:/Program Files/R/R-3.1.1/bin/x64/Rscript.exe
-# source("C:/Users/Siddarta.Jairam/Documents/MothMigrationModel/r_code/iterateHYSPLIT.R")
-rm(list=ls(all=TRUE))
-#options(show.error.locations=TRUE)
-tic <- Sys.time()
+#'Run the biosplit model for a year
+#'
+#'Simulates continental moth migration over the course of a year. 
+#'	Requires HYSPLIT to be installed.
+#'@param config The configuration object returned by loadConfig 
+#'	or from loading the cfg.RData in the config.txt location
+#'@import ncdf
+#'@import readr
+#'
+#'@return Time stamp. if called for in cfg, also writes the weekly snapshots of
+#'	 populations, in .txt and .nc format. 
+#'	 It also outputs a final nc file after everything is completed.
+#'@export
+runBiosplit <- function(cfg){
+	
+	tic <- Sys.time()
+	realWd <- system.file(package = "biosplit")
+	
+	nc <- open.ncdf(cfg$AprioriLoc)
 
-require(rgdal)
-require(raster)
-require(ncdf)
-require(readr)
-require(insol)
+	varNames <- names(nc$var)
+	Plant <- att.get.ncdf(nc,0,"PlantingTimes")$value
+	Harvest <- att.get.ncdf(nc,0,"HarvestTimes")$value
+	CornThres <- att.get.ncdf(nc,0,"CornThres")$value
+	
+	apr<-lapply(varNames, function(x) get.var.ncdf(nc,x))
+	names(apr) <- varNames
+	close.ncdf(nc)
+	xmapvec <- nc$dim$lon$vals
+	ymapvec <- nc$dim$lat$vals
+	
+	bndx <- c(min(xmapvec),max(xmapvec))
+	bndy <- c(min(ymapvec),max(ymapvec))
+	
+	#do some tests on apr to make sure it was done correctly
+	#apr$CornGDD[is.na(apr$CornGDD)] <- 40000
+	if(any(is.na(apr$CornGDD))){
+		stop("aprioriVars messed up | there are NAs in cornGDD")
+	}
+	if(any(is.na(apr$Corn))){
+		stop("aprioriVars messed up | there are NAs in corn")
+	}
+	if(any(apr$Corn<0)){
+		stop("aprioriVars messed up | there are negatives in corn")
+	}
 
-realWd <- system.file(package = "biosplit")
-load(paste(realWd,"cfg.RData",sep="/"))
-source(paste("C:/Users/Siddarta.Jairam/Documents/MothMigrationModel", "R", "utils.R", sep='/'))
+	#Get Assumptions from the cfg object
+	stAss <- charmatch('totFlag',names(cfg))+1
+	endAss <- charmatch('relAmtFL',names(cfg))
+	Assump <- vapply(stAss:endAss,function(x) paste(names(cfg[x]),cfg[x],sep=' = '),"")
+	
+	Assump <-paste(Assump,collapse = '; ')
+	
+	
+	#Get from the simulation criteria as supplied in the setup.cfg file
+		#Should have been changed before simulation if you want non-default
+		#The options secified in the config file under simulation assumptions will change but nothing else
+	
 
-nc <- open.ncdf(cfg$AprioriLoc)
+	simEmploy <- switch(cfg$simType, single=2, Fake=3, 1)
 
-varNames <- names(nc$var)
-Plant <- att.get.ncdf(nc,0,"PlantingTimes")$value
-Harvest <- att.get.ncdf(nc,0,"HarvestTimes")$value
-CornThres <- att.get.ncdf(nc,0,"CornThres")$value
+	simData <- readLines(paste(cfg$HyWorking, "setup.cfg", sep= '/'), warn=0)
+	simData <- as.matrix(simData)
 
-apr<-lapply(varNames, function(x) get.var.ncdf(nc,x))
-names(apr) <- varNames
-close.ncdf(nc)
-apr$CornGDD[is.na(apr$CornGDD)] <- 40000
-cat(which(is.na(apr$CornGDD)))
-cat(which(is.na(apr$Corn)|apr$Corn<0))
+	# Set some data off the Control file
+	
+	if (simEmploy==1){
+		#Multi run so set for all three control files
+		controlPaths <- paste(paste(cfg$HyWorking,"CONTROL", sep='/'),1:3,sep='.')
+	} else if(simEmploy==2){
+		#Single run so just change the intial one
+		controlPaths <- paste(cfg$HyWorking, "CONTROL", sep='/')
+	}	else controlPaths <- ''
+	
+	depos <- vapply(controlPaths, function(x)changeControlInitial(x), "hello")
+	
+	simData <- rbind(simData, "Control Variables")
+	
+	simData <- rbind(simData,
+		paste0("Vertical Motion routine = ", cfg$verticalMotionRoutine,","),
+		paste0("Top of Model = ", cfg$topOfModel,","))
+	simData <- rbind(simData,"Deposition = ", depos[1])
+	
+	simData <-paste(simData,collapse = ' ')
+	simData <- gsub(",",";",simData)
+	
+	
+	#Create README file
+	makeREADME(cfg$READMELoc,cfg$SimOutFold,cfg$makeReadmeFlag)
+	
+	Moth <- list()
+	mMoth <- list()
+	youngAdults <- list()
+	youngMig <- list()
+	Eggs <- list()
+	Cohort <- list()
+	winterPop <- list()
+	mig <- 1
+	wk <- 1
+	numFlights <- c()
+	
+	mMothOut <- CohortOut <- list(array(0, dim=c(dim(apr$Corn),52)),array(0, dim=c(dim(apr$Corn),52)))
+	
+	#Get the input cohort areas
+	
+	winterPop <- overWinter(cfg$FLwinterCutoff,"FL")
+	numFLWin <- length(winterPop)
+	winterPop <- lappend(winterPop,overWinter(cfg$TXwinterCutoff,"TX"))
+	
+	#check if all overwinter populations are over corn
+	startCorn <- as.numeric(testEnv(winterPop,jd=45)[,"cAmt"])
+	viableLoc <- which(startCorn > cfg$CornThres)
+	if(max(startCorn==0) || length(viableLoc) < 1){
+		stop(paste0(
+			"The overwintering locations are over places without corn with the amounts being:",
+			paste(startCorn,collapse="|")))
+	}
+	
+	#Check if the overwinter population sum to the start amount
+	checkAmt <- sum(makePopTable(winterPop)[,3])
+	if(abs(checkAmt-cfg$stAmount) > 10){
+		stop(paste0("The overwinter population calculation did not go right, calc Pop:",checkAmt, " specified amount:", cfg$stAmount))
+	}
+	
+	midFLPop <- viableLoc[which((viableLoc - (numFLWin/2))>0)[1]]
+	# get the start day from the overwinter populations
+	xi <- map2block(winterPop[[midFLPop]]$grid[1],1,1)
+	yi <- map2block(winterPop[[midFLPop]]$grid[2],2,1)
+	startDay <- which(apr$CornGDD[xi,yi,] > cfg$infestThres)[1]
+	Cohort <- winterPop
+	winterPop <- NULL
+	
+	#iterate through the days of the year
+		#start simulation
+	for(di in seq(startDay,cfg$endDay)){
+		
+		
+		tPos<-strptime(paste(di, cfg$year),"%j %Y")
+		k <- 1
+		
+		
+		#
+		#add the newly emited moths to their "career paths"
+		#
+		
+		youngAdults <- cleanAll(youngAdults, cfg$mothThres)
+		
+		if (length(youngAdults)>0){
+			for (ya in seq(1, length(youngAdults))){
+				tSplit <- willFly(youngAdults[[ya]],di,1)
+				
+				if (colSums(tSplit[[1]]$grid, na.rm = TRUE)[3] > cfg$mothThres){
+					Moth <- lappend(Moth,tSplit[[1]])
+				}
+				
+				sp <- cleanPop(tSplit[[2]])
+				if (length(sp)>0 
+						&& colSums(makePopTable(sp), na.rm = TRUE)[3] > cfg$mothThres){
+					youngMig <- rbind(youngMig,tSplit[[2]])
+				}
+				
+			}
+			youngAdults=list()	
+		}
+		
+		siz <- dim(youngMig)
+		if (!is.null(siz) && length(youngMig) > 0){
+			mMoth <- lappend(mMoth,combinelPop(youngMig[,1 , drop = FALSE]))
+			youngMig <- youngMig[, -1, drop = FALSE]
+		}
+		
+		#Moth algebra
+		tpop <- list()
+		tpop <- cleangrowMoths(Moth,Eggs,di)
+		Moth <- tpop[[1]]
+		Eggs <- tpop[[2]]
+		
+		tpop <- list()
+		tpop <- cleangrowMoths(mMoth,Eggs,di)
+		mMoth <- tpop[[1]]
+		Eggs <- tpop[[2]]
+		
+		
+		if (length(mMoth)>0){
+			cat("Day", di, strftime(tPos," %m/%d/%y"),"\n")
+			
+			#some of the migrant moths may decide to settle down
+			#so they will be subtracted from the population and added to the Moth list
+			
+			mi <- length(mMoth)
+			while (mi > 0){
+				
+				tSplit <- willFly(mMoth[[mi]],di,0)
+				condLowAmt <- lapply(tSplit,function(x){
+					dim(x$grid)[1] == 0 ||
+						colSums(x$grid)[3] < cfg$mothThres*dim(x$grid)[1]
+				})
+				
+				condRetired <- (mMoth[[mi]]$flights >= cfg$migCareerLimit)
+				
+				#What to do with the Local population?
+				if (!condLowAmt$stay || condRetired){
+					Moth<-lappend(Moth,
+												if(condRetired){
+													mMoth[[mi]]
+												} else { 
+													tSplit[[1]]
+												})
+				}
+				
+				#What to do with the Migrants?
+				if (condLowAmt$migrant || condRetired) mMoth <- mMoth[-mi,drop = FALSE]
+				else{
+					#Got Moths that want to fly but are they able to fly?
+					xi <- map2block(tSplit[[2]]$grid[1,1],1,1)
+					yi <- map2block(tSplit[[2]]$grid[1,2],2,1)
+					
+					condSk <- (length(which(cfg$skip==di))!=0)
+					condTired <- (mMoth[[mi]]$flights %% cfg$succFlightLim)==0
+					if (any(condSk,
+									condTired,
+									apr$windStopTO[xi,yi,di],
+									apr$precStopTO[xi,yi,di],
+									apr$tempStopTO[xi,yi,di],
+									na.rm = TRUE)){
+						mMoth[[mi]] <- tSplit[[2]]
+						mMoth[[mi]]$flights <- mMoth[[mi]]$flights+.1
+						
+					} else{
+						
+						#Got Moths that can fly
+						
+						#####################################################
+						#Migrate the species
+						#####################################################
+						shouldPlot <-ifelse((di >=cfg$invPlotFlag && mig%%10==0),1,0)
+						if (simEmploy == 1){
+							mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
+						} else if (simEmploy == 2){
+							mMoth[[mi]]$grid <- runHysplit(.1,shouldPlot)
+						} else {
+							mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
+						}
+						
+						mig <- mig+1
+						
+						#get rid of the Moths that went out of bounds
+						mMoth[[mi]] <- migrateDeath(mMoth[[mi]],di)
+						if (dim(mMoth[[mi]]$grid)[1]==0)  mMoth <- mMoth[-mi,drop = FALSE]
+						else {
+							mMoth[[mi]]$flights <- round(mMoth[[mi]]$flights + 1,0)
+							
+						}
+					}
+				}
+				mi <- (mi - 1)
+				
+			}
+		}
+		
+		mMoth <- cleanAll(mMoth,cfg$mothThres)
+		Moth <- cleanAll(Moth,cfg$mothThres)
+		
+		mMoth <- combinelPop(mMoth)
+		Moth  <- combinelPop(Moth)
+		
+		#Test to see if it needs to output every day
+		txtFlag <- (di==sort(c(cfg$outEveryDayStart,cfg$outEveryDayEnd,di))[2])
+		if(txtFlag){
+			if(length(mMoth)>0) try(mMothOut <- makeOutput(mMoth,mMothOut,Moth,1))
+		}
+		
+		###########################
+		#do end of week calculations
+		###########################
+		if (di%%7==1 & di<=359){
+			#End of week
+			
+			
+			Eggs <- combineEggs(Eggs)
+			
+			youngMig <- list()
+			if (di < 130){
+				fldie <- c("TX")
+				fldie <- c(fldie,vapply(Cohort,function(x)x$origin,""))
+				fldie <- c(fldie,vapply(Moth,function(x)x$origin,""))
+				fldie <- c(fldie,vapply(mMoth,function(x)x$origin,""))
+				fldie <- c(fldie,vapply(Eggs,function(x)x$origin,""))
+				
+				if(length(which(fldie=="FL"))==0){
+					stop("FL died off, abandon ship")
+				}
+			}
+			
+			#get all the outputs
+			
+			if (length(Cohort)>0) CohortOut <- makeOutput(Cohort,CohortOut)
+			if (length(mMoth)>0){
+				cat("End week", wk,"\n")
+				mMothOut <- makeOutput(mMoth,mMothOut,Moth)
+				wk<-wk+1
+			}
+			
+			##
+			#do cohort biological
+			##
+			
+			#Eggs
+			#combine eggs
+			if (length(Eggs)>0){
+				Cohort <- lappend(Cohort,Eggs)
+			}
+			Eggs <- list()
+			youngAdults <- list()
+			
+			if (length(Cohort)>0){
+				#Clean cohort
+				tCoh <- growCohort(Cohort,di)
+				
+				#Clean cohort
+				Cohort <- cleanAll(tCoh[[1]],cfg$cohortThres)
+				
+				youngAdults <- tCoh[[2]]
+			}
+			
+		}
+		
+	}
+	
+	#Clean up + final output
+	if (cfg$writeFlag){
+		dims <-list(nc$dim$lon,
+								nc$dim$lat,
+								dim.def.ncdf( "Time", "weeks", 1:52, unlim=TRUE ))
+		
+		fVars<- list(var.def.ncdf('TXCohort', '#Immature moths',dims,1.e30),
+								 var.def.ncdf('FLCohort', '#Immature moths',dims,1.e30),
+								 var.def.ncdf('TXMoth', '#Moths',dims,1.e30),
+								 var.def.ncdf('FLMoth', '#Moths',dims,1.e30))
+		onc <-create.ncdf(paste(cfg$SimOutFold,"Final.nc",sep="/"),fVars)
+		
+		put.var.ncdf(onc,"TXCohort",CohortOut[[1]])
+		put.var.ncdf(onc,"FLCohort",CohortOut[[2]])
+		put.var.ncdf(onc,"TXMoth",mMothOut[[1]])
+		put.var.ncdf(onc,"FLMoth",mMothOut[[2]])
+		
+		att.put.ncdf(onc,0,"Assumptions",Assump)
+		att.put.ncdf(onc,0,"simData",simData)
+		close.ncdf(onc)
+	}
+	
+	toc <- round(as.double(Sys.time() - tic, units = "hours"),2)
+	cat("Time elapsed:",toc,"hrs","\n")
+	if (cfg$makeReadmeFlag){
+		mat <- readLines(cfg$READMELoc)
+		log <- vapply(mat,function(x) grepl("Duration",x),TRUE)
+		ind <- which(log)[1]
+		
+		mat[ind] <- paste0(mat[ind],toc,' hrs')
+		jnk <- writeLines(mat,con=cfg$READMELoc)
+	}
+	jnk <- writeLines(
+		paste(numFlights,collapse='\n'),
+		con=paste(cfg$SimOutFold,"numFlights.txt",sep='/'))
+	toc	
+	
+}
 
-xmapvec <- nc$dim$lon$vals
-ymapvec <- nc$dim$lat$vals
-
-bndx <- c(min(xmapvec),max(xmapvec))
-bndy <- c(min(ymapvec),max(ymapvec))
-stAss <- charmatch('totFlag',names(cfg))+1
-endAss <- charmatch('relAmtFL',names(cfg))
-Assump <- vapply(stAss:endAss,function(x) paste(names(cfg[x]),cfg[x],sep=' = '),"")
-
-Assump <-paste(Assump,collapse = '; ')
-
-simEmploy <- switch(cfg$simType,single=2,Fake=3,1)
-
-#get the simulation criteria as supplied in the setup.cfg file
-#Should have been changed before simulation if you want non-default
-#The options secified in the config file under simulation assumptions will change but nothing else
-
-simData <-readLines(paste(cfg$HyWorking,"setup.cfg",sep= "/"),warn=0)
-simData <- as.matrix(simData)
-
-# Set some data off the Control file
-changeControlInitial <-function(path){
+changeControlInitial <- function(path){
 	newCon <- befCon <- readLines(path)
 	
 	indVert <- charmatch("C:/",befCon)-3
@@ -66,32 +383,6 @@ changeControlInitial <-function(path){
 	
 	return(paste(depo ,collapse = '|'))
 }
-
-if (simEmploy==1){
-	#Multi run so set for all three control files)
-	controlPaths <- paste(paste(cfg$HyWorking,"CONTROL",sep="/"),1:3,sep='.')
-} else if(simEmploy==2){
-	#Single run so just change the intial one
-	controlPaths <- paste(cfg$HyWorking,"CONTROL",sep="/")
-}	else controlPaths <- ''
-
-depos <- vapply(controlPaths,function(x)changeControlInitial(x),"hello")
-
-simData <- rbind(simData,"Control Variables")
-
-simData <- rbind(simData,
-	paste0("Vertical Motion routine = ", cfg$verticalMotionRoutine,","),
-	paste0("Top of Model = ", cfg$topOfModel,","))
-simData <- rbind(simData,"Deposition = ", depos[1])
-
-simData <-paste(simData,collapse = ' ')
-simData <- gsub(",",";",simData)
-
-
-############################################
-#Lots of functions
-############################################
-
 makeLife <- function(flagMoth,loc,GDD,origin){
 	
 	life <- list()
@@ -233,7 +524,14 @@ genFlightProp <- function(cGrowth){
 }
 
 getNightDur <- function(lat, lon, day){
-	sunLight <- daylength(lat,lon,day,1)[,3]
+	if (requireNamespace("insol", quietly = TRUE)) {
+		sunLight <- insol::daylength(lat,lon,day,1)[,3]
+	} else {
+		#from: http://mathforum.org/library/drmath/view/56478.html
+		part = asin(.39795*cos(.2163108 + 2*atan(.9671396*tan(.00860(day-186)))))
+		sunLight = 24 - (24/pi)*acos((sin(0.8333*pi/180) + sin(lat*pi/180)*sin(part))
+																 /(cos(lat*pi/180)*cos(part)))
+	}
 	names(sunLight) <- NULL
 	if(is.nan(sunLight[1])) stop(paste0("Astro calc messed up royally with NaNs used vals:",paste(avgLat,avgLon,di)))
 	if(sunLight[1]<0 || sunLight[1]>24) stop(paste0("Astro calc came up with weird response of:",sunLight))
@@ -1011,303 +1309,6 @@ overWinter <- function(region,origin){
 	return(lpop)
 }
 
-###############################################################################
-#Actual program
-###############################################################################
-
-#Create README file
-makeREADME(cfg$READMELoc,cfg$SimOutFold,cfg$makeReadmeFlag)
-
-Moth <- list()
-mMoth <- list()
-youngAdults <- list()
-youngMig <- list()
-Eggs <- list()
-Cohort <- list()
-winterPop <- list()
-mig <- 1
-wk <- 1
-numFlights <- c()
-
-mMothOut <- CohortOut <- list(array(0, dim=c(dim(apr$Corn),52)),array(0, dim=c(dim(apr$Corn),52)))
-
-#Get the input cohort areas
-
-winterPop <- overWinter(cfg$FLwinterCutoff,"FL")
-numFLWin <- length(winterPop)
-winterPop <- lappend(winterPop,overWinter(cfg$TXwinterCutoff,"TX"))
-
-#check if all overwinter populations are over corn
-startCorn <- as.numeric(testEnv(winterPop,jd=45)[,"cAmt"])
-viableLoc <- which(startCorn > cfg$CornThres)
-if(max(startCorn==0) || length(viableLoc) < 1){
-	stop(paste0(
-		"The overwintering locations are over places without corn with the amounts being:",
-		paste(startCorn,collapse="|")))
-}
-
-#Check if the overwinter population sum to the start amount
-checkAmt <- sum(makePopTable(winterPop)[,3])
-if(abs(checkAmt-cfg$stAmount) > 10){
-	stop(paste0("The overwinter population calculation did not go right, calc Pop:",checkAmt, " specified amount:", cfg$stAmount))
-}
-
-midFLPop <- viableLoc[which((viableLoc - (numFLWin/2))>0)[1]]
-# get the start day from the overwinter populations
-xi <- map2block(winterPop[[midFLPop]]$grid[1],1,1)
-yi <- map2block(winterPop[[midFLPop]]$grid[2],2,1)
-startDay <- which(apr$CornGDD[xi,yi,] > cfg$infestThres)[1]
-Cohort <- winterPop
-winterPop <- NULL
-
-for(di in seq(startDay,cfg$endDay)){
-	
-	#Add input Cohorts when the infestation is possible
-	if(length(winterPop) >0){
-		
-		#Cohort <- lappend(Cohort,winterPop[Bvec])
-		#witnerPop  <- winterPop[!winterPop[Bvec]]
-	}
-	tPos<-strptime(paste(toString(di),toString(cfg$year)),"%j %Y")
-	k <- 1
-	
-
-	#
-	#add the newly emited moths to their "career paths"
-	#
-	
-	youngAdults <- cleanAll(youngAdults,cfg$mothThres)
-
-	if (length(youngAdults)>0){
-	for (ya in seq(1, length(youngAdults))){
-		tSplit <- willFly(youngAdults[[ya]],di,1)
-		
-		if (colSums(tSplit[[1]]$grid,na.rm = TRUE)[3] > cfg$mothThres){
-			Moth <- lappend(Moth,tSplit[[1]])
-		}
-		sp <- cleanPop(tSplit[[2]])
-		if (length(sp)>0 
-		    && colSums(makePopTable(sp),na.rm = TRUE)[3] > cfg$mothThres){
-			#mMoth <- lappend(mMoth,tSplit[[2]])
-			youngMig <- rbind(youngMig,tSplit[[2]])
-		}
-
-	}
-	youngAdults=list()	
-	}
-  
-	siz <- dim(youngMig)
-	if (!is.null(siz) && length(youngMig)>0){
-# 		dind <- ifelse(di%%7==0,8,(di%%7))
-		mMoth <- lappend(mMoth,combinelPop(youngMig[,1,drop = FALSE]))
-		youngMig <- youngMig[,-1,drop = FALSE]
-# 		for (ym in seq(1:siz[1])){
-# 			mMoth <- lappend(mMoth,youngMig[[ym,dind]])
-# 		}
-	}
-
-	#Moth algebra
-	tpop <- list()
-	tpop <- cleangrowMoths(Moth,Eggs,di)
-	Moth <- tpop[[1]]
-	Eggs <- tpop[[2]]
-
-	tpop <- list()
-	tpop <- cleangrowMoths(mMoth,Eggs,di)
-	mMoth <- tpop[[1]]
-	Eggs <- tpop[[2]]
-
-
-	mMoth <- cleanPop(mMoth)
-	#mMoth <- combinelPop(mMoth)
-	
-	
-	if (length(mMoth)>0){
-	cat("Day", di, strftime(tPos," %m/%d/%y"),"\n")
-
-	#some of the migrant moths may decide to settle down
-	#so they will be subtracted from the population and added to the Moth list
-
-	mi<-1
-	while (mi <= length(mMoth)){
-
-		tSplit <- willFly(mMoth[[mi]],di,0)
-		condLowAmt <- lapply(tSplit,function(x){
-			dim(x$grid)[1] == 0 ||
-				colSums(x$grid)[3] < cfg$mothThres*dim(x$grid)[1]
-		})
-		
-		condRetired <- (mMoth[[mi]]$flights >= cfg$migCareerLimit)
-		
-		#What to do with the Local population?
-		if (!condLowAmt$stay || condRetired){
-			Moth<-lappend(Moth,
-										if(condRetired){
-											mMoth[[mi]]
-											} else { 
-												tSplit[[1]]
-											})
-		}
-		
-		#What to do with the Migrants?
-		if (condLowAmt$migrant || condRetired) mMoth <- mMoth[-mi,drop = FALSE]
-		else{
-			#Got Moths that want to fly but are they able to fly?
-			xi <- map2block(tSplit[[2]]$grid[1,1],1,1)
-			yi <- map2block(tSplit[[2]]$grid[1,2],2,1)
-			
-			condSk <- (length(which(cfg$skip==di))!=0)
-			condTired <- (mMoth[[mi]]$flights %% cfg$succFlightLim)==0
-			if (any(condSk,
-							condTired,
-							apr$windStopTO[xi,yi,di],
-							apr$precStopTO[xi,yi,di],
-							apr$tempStopTO[xi,yi,di],
-							na.rm = TRUE)){
-				mMoth[[mi]] <- tSplit[[2]]
-				mMoth[[mi]]$flights <- mMoth[[mi]]$flights+.1
-				mi <- mi+1
-			} else{
-				
-				#Got Moths that can fly
-				
-				#take the migratory FAW and change the CONTROL and EMITIMES files to beg a HYSPLIT run
-				#changeInput(ifelse(mi==1,1,0),tPos,tSplit[[2]])
-			
-			
-				#####################################################
-				#Migrate the species
-				#####################################################
-				shouldPlot <-ifelse((di >=cfg$invPlotFlag && mig%%10==0),1,0)
-				if (simEmploy == 1){
-					mMoth[[mi]]$grid <- multiHysplit(tSplit[[2]],1,tPos,shouldPlot)
-				} else if (simEmploy == 2){
-					mMoth[[mi]]$grid <- runHysplit(.1,shouldPlot)
-				} else {
-					mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
-				}
-	
-				mig <- mig+1
-	
-				#distribute the GDDs
-				#mMoth[[mi]]$GDD <- rep(mMoth[[mi]]$GDD,dim(mMoth[[mi]]$grid)[1])
-	
-				#get rid of the Moths that went out of bounds
-				mMoth[[mi]] <- migrateDeath(mMoth[[mi]],di)
-				if (dim(mMoth[[mi]]$grid)[1]==0)  mMoth <- mMoth[-mi,drop = FALSE]
-				else {
-					mMoth[[mi]]$flights <- round(mMoth[[mi]]$flights + 1,0)
-					mi<-mi+1
-				}
-		  }
-		}
-		
-		
-	}
-	}
-  	#cat(length(mMoth))
-	mMoth <- cleanAll(mMoth,cfg$mothThres)
-	Moth <- cleanAll(Moth,cfg$mothThres)
-	
-	mMoth <- combinelPop(mMoth)
-	Moth  <- combinelPop(Moth)
-
-	#Test to see if it needs to output every day
-	txtFlag <- (di==sort(c(cfg$outEveryDayStart,cfg$outEveryDayEnd,di))[2])
-	if(txtFlag){
-		if(length(mMoth)>0) try(mMothOut <- makeOutput(mMoth,mMothOut,Moth,1))
-	}
-
-	###########################
-	#do the bio model every week
-	###########################
-	if (di%%7==1 & di<=359){
-		#End of week
-    
-		#combine moths
-		
-		Eggs <- combineEggs(Eggs)
-
-		youngMig <- list()
-		if (di < 130){
-			fldie <- c("TX")
-			fldie <- c(fldie,vapply(Cohort,function(x)x$origin,""))
-			fldie <- c(fldie,vapply(Moth,function(x)x$origin,""))
-			fldie <- c(fldie,vapply(mMoth,function(x)x$origin,""))
-			fldie <- c(fldie,vapply(Eggs,function(x)x$origin,""))
-		
-			if(length(which(fldie=="FL"))==0){
-				stop("FL died off, abandon ship")
-			}
-		}
-		#get all the outputs
-		#txtFlag <- (di==sort(c(outEveryDayStart,outEveryDayEnd,di))[2])
-		if (length(Cohort)>0) CohortOut <- makeOutput(Cohort,CohortOut)
-		if (length(mMoth)>0){
-			cat("End week", wk,"\n")
-			mMothOut <- makeOutput(mMoth,mMothOut,Moth)
-			wk<-wk+1
-		}
-
-		##
-		#do biological model with cohorts
-		##
-
-		#Eggs
-		#combine eggs
-		if (length(Eggs)>0){
-			Cohort <- lappend(Cohort,Eggs)
-		}
-		Eggs <- list()
-		youngAdults <- list()
-		
-		if (length(Cohort)>0){
-			#Clean cohort
-			tCoh <- growCohort(Cohort,di)
-
-			#Clean cohort
-			Cohort <- cleanAll(tCoh[[1]],cfg$cohortThres)
-		
-			youngAdults <- tCoh[[2]]
-		}
-					
-	}
-	
-}
-if (cfg$writeFlag){
-	dims <-list(nc$dim$lon,
-		nc$dim$lat,
-		dim.def.ncdf( "Time", "weeks", 1:52, unlim=TRUE ))
-
-	fVars<- list(var.def.ncdf('TXCohort', '#Immature moths',dims,1.e30),
-			 var.def.ncdf('FLCohort', '#Immature moths',dims,1.e30),
-			 var.def.ncdf('TXMoth', '#Moths',dims,1.e30),
-			 var.def.ncdf('FLMoth', '#Moths',dims,1.e30))
-	onc <-create.ncdf(paste(cfg$SimOutFold,"Final.nc",sep="/"),fVars)
-
-	put.var.ncdf(onc,"TXCohort",CohortOut[[1]])
-	put.var.ncdf(onc,"FLCohort",CohortOut[[2]])
-	put.var.ncdf(onc,"TXMoth",mMothOut[[1]])
-	put.var.ncdf(onc,"FLMoth",mMothOut[[2]])
-
-	att.put.ncdf(onc,0,"Assumptions",Assump)
-	att.put.ncdf(onc,0,"simData",simData)
-	close.ncdf(onc)
-}
-
-toc <- round(as.double(Sys.time() - tic, units = "hours"),2)
-cat("Time elapsed:",toc,"hrs","\n")
-if (cfg$makeReadmeFlag){
-	mat <- readLines(cfg$READMELoc)
-	log <- vapply(mat,function(x) grepl("Duration",x),TRUE)
-	ind <- which(log)[1]
-	
-	mat[ind] <- paste0(mat[ind],toc,' hrs')
-	jnk <- writeLines(mat,con=cfg$READMELoc)
-}
-jnk <- writeLines(
-	paste(numFlights,collapse='\n'),
-	con=paste(cfg$SimOutFold,"numFlights.txt",sep='/'))
 #org <-sapply(Moth,function(x)x$grid)
 #org <-t(org)
 #max(sapply(Cohort,function(x)x$grid[2]))
