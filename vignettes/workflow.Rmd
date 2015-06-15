@@ -130,9 +130,7 @@ Compare the rasters
 
 predObv <- ncdf2trapgrid(cfg$SimOutFold,
 												"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/firstOccTrap.grd",
-												paste(cfg$SimOutFold, "Sim-TrapFirstOcc.nc",sep='/'),
-												niceGrid
-												)
+												paste(cfg$SimOutFold, "Sim-TrapFirstOcc.nc",sep='/'))
 #The spatial average distance between the weeks
 mean(abs(predObv[,,]),na.rm=TRUE)
 
@@ -149,7 +147,7 @@ runScripter("Mothtxt2ClassPost.BAS",cfg$SimOutFold)
 
 require scripter
 ```{r}
-runScript("Mothtxt2contour.BAS",cfg$SimOutFold)
+runScripter("Mothtxt2contour.BAS",cfg$SimOutFold)
 ```
 
 

@@ -24,7 +24,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2013
-runName = testBaseFD
+runName = testEggCh
 
 #Cropscape m 
 xmin = -1005735
@@ -56,7 +56,7 @@ makeReadmeFlag = 1
 
 codeChanges = Add in takeoff cues in AprioriVars to get the variable
 outEveryDayStart = 1
-outEveryDayEnd = 365
+outEveryDayEnd = 400
 
 #ncdf2trapdata.R
 
@@ -122,8 +122,8 @@ delNightDurFlag = 1
 flightPropAfterSilk = 0.9
 flightPropBeforeSilk = 0.1
 
-FLwinterCutoff = 27
-TXwinterCutoff = 27
+FLwinterCutoff = 28.5
+TXwinterCutoff = 28.5
 relAmtFL = 0.1
 OverwinterFL = -81, 26.9
 OverwinterFL = -80.7, 26.5

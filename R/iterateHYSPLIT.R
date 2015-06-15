@@ -1088,9 +1088,8 @@ growMoths <- function(pop, ctx){
 							 "infestLmt",
 							 "infestThres",
 							 "eggsPerInfest", "oviDay", "eggsPerInfest", "capEggs")
-	newEggs <- list()
+	
 	grdLen <- length(ctx$xs)
-	remEggs <- rep.int(pop$numEggs,grdLen)
 
 	#first do growth and death
 	pop$daysOld <- pop$daysOld+1
@@ -1109,38 +1108,43 @@ growMoths <- function(pop, ctx){
 	
 	
 	#Lay Eggs?
-	if (pop$daysOld > ctx$oviDay 
-			&& pop$numEggs > ctx$eggsPerInfest){
-		#row specific checks
-		layTest <- (pop$grid[,3] > 0 &
-									ctx$CornGDD/10 < ctx$infestLmt &
-									ctx$CornGDD/10 > ctx$infestThres)
-		
-		
-		remEggs[layTest] <- pop$numEggs-ctx$eggsPerInfest
-		
-		nEggs <- ctx$eggsPerInfest*pop$grid[layTest,3]
-		for (r in which(layTest)){
-			nEggs = pop$grid[r,3]*ctx$eggsPerInfest
-			newEggs <- lappend(newEggs, 
-				makeLife(0,cbind(pop$grid[r,1],pop$grid[r,2],nEggs),0,pop$origin, ctx$capEggs))
-		}
-
-	}
-	
+	newEggs <- list()
 	opop <- pop
-	#seperate the population if a portion did not lay eggs and the others did
-	if (length(newEggs)>0){
+	
+	laySet <- (pop$grid[,3] > 0 &
+						 ctx$CornGDD/10 < ctx$infestLmt &
+						 ctx$CornGDD/10 > ctx$infestThres)
+	
+	if (pop$daysOld > ctx$oviDay &&
+			pop$numEggs > ctx$eggsPerInfest &&
+			any(laySet)){
+		
+		remEggs <- rep.int(pop$numEggs, grdLen)
+		
+		remEggs[laySet] <- pop$numEggs - ctx$eggsPerInfest
+		
+		nEggPos <- cbind(pop$grid[laySet, 1],
+										 pop$grid[laySet, 2],
+										 ctx$eggsPerInfest * pop$grid[laySet, 3])
+		
+		newEggs <- lapply(1:dim(nEggPos)[1], function(x){
+			makeLife(0, nEggPos[x, ], 0, pop$origin, ctx$capEggs)
+		})
+		
+	
+		
+		#seperate the population if a portion did not lay eggs and the others did
+		
 		niq <- unique(remEggs)
 		if( length(niq) > 1){
 			opop <- list()
 			for (q in seq(1,length(niq))){
 				opop[[q]] <- pop
-				ind <- which(remEggs==niq[q])
-				opop[[q]]$grid <- pop$grid[ind,,drop=FALSE]
+				opop[[q]]$grid <- pop$grid[remEggs==niq[q], ,drop=FALSE]
 				opop[[q]]$numEggs <- niq[q]
 			}
 		} else opop$numEggs <- niq
+	
 	}
 	
 	if (length(names(opop))>0) opop <- cleanGrid(opop)

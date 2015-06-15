@@ -17,18 +17,18 @@ niceGrid <- raster::projectExtent(cropGrid,cfg$niceProj)
 
 doRun <- function(push = ""){
 	cfg <- loadConfig()
-	runRscript("iterateHYSPLIT.R")
+	runBiosplit(cfg)
 	predObv <- ncdf2trapgrid(cfg$SimOutFold,
 													 "C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/firstOccTrap.grd",
 													 paste(cfg$SimOutFold, "Sim-TrapFirstOcc.nc",sep='/')
 													 )
-	#The spatial average distance between the weeks
+	
 	notes <- sprintf("The spatial average of the simulated distance away from the trap values is %.2f wks",
 								 	mean(abs(predObv[,,]),na.rm=TRUE))
 	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = TRUE, notes = notes)
 	ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = FALSE, notes = notes)
 	runScripter("Mothtxt2contour.BAS",cfg$SimOutFold)
-	runScripter("Mothtxt2ClassPost.BAS",cfg$SimOutFold)	
+	runScripter("Mothtxt2ClassPost.BAS",cfg$SimOutFold)
 	runScripter("ncdf2contour.BAS",cfg$SimOutFold)
 	
 	if(nchar(push)>0){
@@ -42,15 +42,63 @@ doRun <- function(push = ""){
 pushLoc <- 'X:/2 WESTBROOK/Sid/Hysplit Out Moth table'
 
 
-changeConfig("runName","runFDHighLatThres",
-						 "FLwinterCutoff", 28.5, 
-						 "TXwinterCutoff", 28.5)
+changeConfig("runName","runMultYearDv020",
+						 "year", 2011)
+
 cfg <- loadConfig()
+unitsDict <- list( T02M = 'K', V10M = 'm/s North', TPP3 = 'm', SOLT = 'K')
+vapply(cfg$wantedMetVars, function(var){
+	namu <- paste0(var, "Fold")
+	rawMet2nicenc(dirTreeIn = cfg[[namu]],
+								projKey = cfg$MetMappingLoc,
+								unit = unitsDict[[var]],
+								niceGrid = niceGrid)
+	TRUE},TRUE)
 collectAprioriVars(cfg)
 doRun(pushLoc)
 
 
-changeConfig("runName","runFNHighLatThres",
+changeConfig("runName","runMultYearFv020",
 						 "delNightDurFlag", 0)
 
 doRun(pushLoc)
+
+changeConfig("runName","runMultYearDv020",
+						 "year", 2012,
+						 "delNightDurFlag", 1)
+
+cfg <- loadConfig()
+vapply(cfg$wantedMetVars, function(var){
+	namu <- paste0(var, "Fold")
+	rawMet2nicenc(dirTreeIn = cfg[[namu]],
+								projKey = cfg$MetMappingLoc,
+								unit = unitsDict[[var]],
+								niceGrid = niceGrid)
+	TRUE},TRUE)
+collectAprioriVars(cfg)
+doRun(pushLoc)
+
+changeConfig("runName","runMultYearFv020",
+						 "delNightDurFlag", 0)
+doRun(pushLoc)
+
+
+changeConfig("runName","runMultYearDv020",
+						 "year", 2014,
+						 "delNightDurFlag", 1)
+
+cfg <- loadConfig()
+vapply(cfg$wantedMetVars, function(var){
+	namu <- paste0(var, "Fold")
+	rawMet2nicenc(dirTreeIn = cfg[[namu]],
+								projKey = cfg$MetMappingLoc,
+								unit = unitsDict[[var]],
+								niceGrid = niceGrid)
+	TRUE},TRUE)
+collectAprioriVars(cfg)
+doRun(pushLoc)
+
+changeConfig("runName","runMultYearFv020",
+						 "delNightDurFlag", 0)
+doRun(push)
+
