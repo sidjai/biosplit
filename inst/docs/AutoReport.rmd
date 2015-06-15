@@ -1,17 +1,22 @@
 ---
-title: "Auto Report overwinter threshold"
+title: "Auto Report"
 author: "Siddarta Jairam"
 date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
+geometry: margin=1in
 output: 
   word_document:
     reference_docx: BiologicalEqstemp.docx
+params:
+  runs: c("runFDHighLatThres", "runMultYearDv020")
+  years: c(2013, 2011)
+  dirSim: "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
 ---
 
 ```{r setup, include=FALSE}
 library(knitr)
 library(jpeg)
 library(biosplit)
-knitr::opts_chunk$set(fig.width=6.5, fig.height=3,fig.pos='center',echo=FALSE,comment='>',dpi=800)
+knitr::opts_chunk$set(fig.width=7, fig.height=3, fig.pos='center', echo=FALSE, comment='>', dpi=800)
 realWd <- system.file(package = "biosplit", "docs")
 figList <- list()
 source(paste(realWd,"rmdUtils.R",sep='/'))
@@ -24,13 +29,13 @@ This report will compare these runs:
 #runs <- c('runDataRedo','runHelloWorld','runInterYear','runFLwinter')
 #years <- c('2011','2012','2013','2014')
 goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
-params <- list()
+# params <- list()
 #params$runs <- c('runInterYear','runAbsFlightLimit','runNightDurDel','runFlightAndNight')
-params$runs <- c("runBaseFullNight", "runBFNTOcueTemp", "runBFNTOcuePrec")
-params$runs <- c("runBaseNightandFlight", "runFDHighLatThres","runFNHighLatThres")
-params$years <- c("2013", "2013", "2013")
+# params$runs <- c("runBaseFullNight", "runBFNTOcueTemp", "runBFNTOcuePrec")
+# params$runs <- c("runBaseNightandFlight", "runFDHighLatThres","runFNHighLatThres")
+# params$years <- c("2013", "2013", "2013")
 rwyear <- paste(params$years, params$runs, sep='/')
-params$dirSim <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
+# params$dirSim <- "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
 fullDir <- paste(params$dirSim, rwyear,sep='/')
 numRuns <- length(rwyear)
 compareRuns <- 1:numRuns
@@ -70,7 +75,7 @@ figList <- updateCntList(figList,"jpgTable")
 Here is the output:
 
 ####Table `r figList$jpgTable`. Contour plots of instaneous snapshots of the Moth population in the different runs at specific times throughout the migration time for FAW throughout late spring to fall.
-```{r fig.height=(20/length(rwyear)),fig.show='hold'}
+```{r fig.height=(20/length(rwyear)), fig.width=(6.5), message=FALSE, fig.show='hold'}
 #define jpeg table
 times <- c('051','053','063','073','091')
 dates <- strftime(strptime(paste0(times,'0'),'%m%d'),'%b\n%d')
@@ -102,7 +107,7 @@ figList <- updateCntList(figList,"firstOccTable")
 
 ```{r, results = 'asis'}
 trapGridFold <- "C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/"
-trapGrid <- "firstOccTrap.grd"
+trapGrid <- "2013firstOccTrap.grd"
 trapGridTypes <- c(trapGrid, 
 									 gsub("Trap", "TrapSoft", trapGrid),
 									 gsub("Trap", "TrapStrict", trapGrid))
@@ -136,7 +141,7 @@ figList <- updateCntList(figList,"firstOccMap")
 
 ####Table `r figList$firstOccMap`. The spatial distribution of the differences between the predicted simulation values and the gridded trap capture values. Negative (red) represents and early simulation while positive (blue) values represent a late simulation
 
-```{r fig.height=(32/4), fig.show='hold'}
+```{r fig.height=(32/4), fig.width=(6.5) , message=FALSE, fig.show='hold'}
 runScripter <- makeRunFun(goldLoc, "BAS")
 valid <- vapply(rwyear, function(des){
 		direc <- paste(params$dirSim, des, sep='/')

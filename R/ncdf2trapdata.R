@@ -194,9 +194,16 @@ ncdf2trapgrid <- function(dirSim,
 	trapRas <- raster(pathTrapGrid)
 	projection(trapRas) <- goodProj
 	
-	trapMat <- as.matrix(trapRas)
-	
 	dat <- openSimNC(dirSim)
+	
+	boBox <- extent(dat$lon[1], rev(dat$lon)[1], rev(dat$lat)[1], dat$lat[1])
+	niceGrid <- raster(boBox,
+										 nrows = dim(dat$lat)[1],
+										 ncols = dim(dat$lon)[1],
+										 crs = goodProj)
+	
+	trapMat <- as.matrix(resample(trapRas, niceGrid))
+	
 	extDim <- dim(dat$sim$TXMoth)
 	predMat <- vapply(1:extDim[1], function(xi){
 		vapply(1:extDim[2], function(yi){
@@ -208,8 +215,7 @@ ncdf2trapgrid <- function(dirSim,
 	},rep(1,extDim[2]))
 	
 	resMat <- predMat - trapMat
-	resRas <- raster(resMat,
-									 template = raster(paste(dirSim, "Final.nc", sep='/')))
+	resRas <- raster(resMat, template = niceGrid)
 	
 	writeRaster(resRas,
 							filename = pathOut,

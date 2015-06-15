@@ -32,7 +32,7 @@ Currently the planting and harvesting practices are assumed to be fully represen
 aprioriLoc <- paste(realWd,'R','aprioriVars.R',sep='/')
 getTimingSplit <- grabFunc(aprioriLoc,"getTimingSplit")
 
-ys <- seq(21.1969,51.1009,by=0.396)
+ys <- seq(23.22184, 49.32604,by=0.396)
 
 plant <- getTimingSplit(cfg$plantTimes,ys)
 harvest <- getTimingSplit(cfg$harvestTimes,ys)
@@ -124,11 +124,12 @@ figList <- updateCntList(figList,'spread')
 
 Each subdivided population of migrant moths that can and wants to fly is sent into a seperate run into HYSPLIT. The only thing that HYSPLIT sees is indiscriminate particles at the specified locations launched up to 500m at dusk over the course of an hour. Hpwever, there are some location specific parameters that are reset every flight. One of these is the area of emmision being the amount of corn in the take-off grid cell. The idea is that the abundance of corn would lead to more local movement throughout the day simulated by a growing circle centered on the center of the grid cell. In this way, areas with little corn are basically point sources which can be easily manipulated by a stray gust of wind, where a large corn producing area can be more resilient.
 
-Another parameter that changed is the duration of the flight. The flight duration is defined as the time between dusk and dawn minus one hour. Over the course of the year and along the journey northward, this difference changes. This is shown below.
+Another parameter that changed is the duration of the flight. The flight duration is defined as the time between dusk and dawn minus one hour. As the earth rotates around the sun, the time between dusk and dawn changes with respect to latitude. This is shown below.
+
 ```{r}
 getNightDur <- grabFunc(iterateLoc,'getNightDur')
 
-jds <- 1:300
+jds <- 1:360
 dat <- list()
 gridLen <- length(ys)
 dat1 <- data.frame(xindp = jds, ydep = getNightDur(ys[1],30,jds),
@@ -145,7 +146,7 @@ pDur + geom_line() + xlab("Julian Day")+ ylab("Flight Duration (hrs)")
 figList <- updateCntList(figList,'flightDur')
 ```
 
-####Figure `r figList$flightDur`. The distribution of the length of flight with respect to the latitudes and the day of the year.
+####Figure `r figList$flightDur`. The distribution of the length of flight with respect to the latitudes and the day of the year. The solid line refers to `r ys[1]` latitude (Middle of Mexico), the dotted line refers to `r ys[gridLen/2]` latitude () and the dashed line refers to  `r ys[gridLen]` latitude (CA-US border)
 
 The reason the time is limited to hour length is due HYSPLIT stipulating that minutes cannot be specified when the time is above 1 hour. If this were not the case, the familiar curves would be shown with the higher latitudes having a higher amplitude. 
 
