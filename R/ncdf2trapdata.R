@@ -182,8 +182,9 @@ ncdf2trapdata <- function(dirSim,
 #'@param dirSim The simulation output folder 
 #'@param pathTrapGrid The path to the trap grd location
 #'@param pathOut The path where the nc file should be saved
-#'@param goodRas A raster with the target grid, projection and extent
-#'@return Works as a byproduct by writing a grd of the difference and the xydiff
+#'@param goodProj The projection of the target raster
+#'@return A raster of the difference between the simulation and the trap data 
+#'which is also saved in the path specified as an nc file
 #'@import raster
 #'@export
 ncdf2trapgrid <- function(dirSim, 

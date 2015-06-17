@@ -19,7 +19,7 @@ doRun <- function(push = ""){
 	cfg <- loadConfig()
 	runBiosplit(cfg)
 	predObv <- ncdf2trapgrid(cfg$SimOutFold,
-													 "C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/firstOccTrap.grd",
+													 "C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/2013firstOccTrap.grd",
 													 paste(cfg$SimOutFold, "Sim-TrapFirstOcc.nc",sep='/')
 													 )
 	
@@ -42,26 +42,9 @@ doRun <- function(push = ""){
 pushLoc <- 'X:/2 WESTBROOK/Sid/Hysplit Out Moth table'
 
 
-changeConfig("runName","runMultYearDv020",
-						 "year", 2011)
-
 cfg <- loadConfig()
 unitsDict <- list( T02M = 'K', V10M = 'm/s North', TPP3 = 'm', SOLT = 'K')
-vapply(cfg$wantedMetVars, function(var){
-	namu <- paste0(var, "Fold")
-	rawMet2nicenc(dirTreeIn = cfg[[namu]],
-								projKey = cfg$MetMappingLoc,
-								unit = unitsDict[[var]],
-								niceGrid = niceGrid)
-	TRUE},TRUE)
-collectAprioriVars(cfg)
-doRun(pushLoc)
 
-
-changeConfig("runName","runMultYearFv020",
-						 "delNightDurFlag", 0)
-
-doRun(pushLoc)
 
 changeConfig("runName","runMultYearDv020",
 						 "year", 2012,
@@ -76,7 +59,7 @@ vapply(cfg$wantedMetVars, function(var){
 								niceGrid = niceGrid)
 	TRUE},TRUE)
 collectAprioriVars(cfg)
-doRun(pushLoc)
+#doRun(pushLoc)
 
 changeConfig("runName","runMultYearFv020",
 						 "delNightDurFlag", 0)
@@ -101,4 +84,27 @@ doRun(pushLoc)
 changeConfig("runName","runMultYearFv020",
 						 "delNightDurFlag", 0)
 doRun(push)
+
+rmarkdown::render(system.file("docs", "AutoReport.rmd", package = "biosplit"),
+									params = list(
+										runs = rep("runMultYearDv020",4),
+										years = c(2011, 2012, 2013, 2014)
+									)
+)
+
+file.copy(system.file("docs", "AutoReport.docx", package = "biosplit"),
+					"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/AutoReportMultiD")
+
+					
+rmarkdown::render(system.file("docs", "AutoReport.rmd", package = "biosplit"),
+									params = list(
+										runs = rep("runMultYearFv020",4),
+										years = c(2011, 2012, 2013, 2014)
+									)
+)
+
+file.copy(system.file("docs", "AutoReport.docx", package = "biosplit"),
+					"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/AutoReportMultiF")
+
+
 

@@ -7,7 +7,7 @@
 runBiosplit(cfg)
 }
 \arguments{
-\item{config}{The configuration object returned by loadConfig
+\item{cfg}{The configuration object returned by loadConfig
 or from loading the cfg.RData in the config.txt location}
 }
 \value{

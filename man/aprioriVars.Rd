@@ -29,6 +29,12 @@ calculations of corn growth in units of celcius.}
 
 \item{TGDDbaseFAW}{The base temperature value for the degree day
 calculations of insect growth in units of celcius.}
+
+\item{windTOThres}{If the wind speed (m/s) is greater than this value then don't fly}
+
+\item{tempTOThres}{If the temp (degC) is lower than this value then don't fly}
+
+\item{precTOThres}{If the precipitation (3hr acc. m) is greater than this value then don't fly}
 }
 \value{
 Works as a byproduct of the saving of the ncdf file.

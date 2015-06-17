@@ -26,11 +26,11 @@ makeRunFun <- function(driver, ext){
 	
 	driver <- if(langFlag == 1){
 		#R scripts
-		 quoteSt(paste(driver,"bin","Rscript.exe",sep="/"))
+		 quoteSt(paste(driver, "bin", "Rscript.exe", sep='/'))
 	} else if(langFlag ==2){
-		paste(quoteSt(paste(driver,"Scripter","Scripter.exe",sep="/")), "-x")
+		paste(quoteSt(paste(driver, "Scripter", "Scripter.exe", sep="/")), "-x")
 	} else {
-		quoteSt(paste(meteoLoc,"meteoinfo.bat",sep="/"))
+		quoteSt(paste(driver, "meteoinfo.bat", sep="/"))
 	}
 	
 	return(function(scrName, args="",

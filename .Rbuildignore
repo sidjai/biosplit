@@ -1,7 +1,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 .gitignore
-surf_code/
-docs/
-Python_code/
-R/DataRoadmap.R
+cfg.RData
+cfg.txt
+Rconsole

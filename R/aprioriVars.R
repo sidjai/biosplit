@@ -52,6 +52,9 @@ collectAprioriVars <- function(config){
 #'  calculations of corn growth in units of celcius. 
 #' @param TGDDbaseFAW The base temperature value for the degree day
 #'  calculations of insect growth in units of celcius.
+#' @param windTOThres If the wind speed (m/s) is greater than this value then don't fly
+#' @param tempTOThres If the temp (degC) is lower than this value then don't fly
+#' @param precTOThres If the precipitation (3hr acc. m) is greater than this value then don't fly
 #' @return Works as a byproduct of the saving of the ncdf file.
 #' @details The units for the ouput values are set up to reduce the size of the 
 #' 	data. The degree day values are done in 0.1*C*day or 0.1*F*day so

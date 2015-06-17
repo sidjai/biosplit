@@ -2,10 +2,9 @@
 #'
 #'Simulates continental moth migration over the course of a year. 
 #'	Requires HYSPLIT to be installed.
-#'@param config The configuration object returned by loadConfig 
+#'@param cfg The configuration object returned by loadConfig 
 #'	or from loading the cfg.RData in the config.txt location
 #'@import ncdf
-#'@import readr
 #'
 #'@return Time stamp. if called for in cfg, also writes the weekly snapshots of
 #'	 populations, in .txt and .nc format. 
@@ -279,7 +278,7 @@ runBiosplit <- function(cfg){
 						} else if (simEmploy == 2){
 							mMoth[[mi]]$grid <- manHysplit(tPos, shouldPlot)
 						} else {
-							mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid)
+							mMoth[[mi]]$grid <- testFakeHysplit(tSplit[[2]]$grid, di)
 						}
 						
 						mig <- mig+1
@@ -539,7 +538,7 @@ makeMapConverter <- function(xaxis, yaxis, tol){
 	return(f)
 }
 
-testEnv <- function(lpop,w=-9999,jd, cornMap, cGDDmap){
+testEnv <- function(lpop,w=-9999,jd, map2block, cornMap, cGDDmap, infestThres){
 	
 	#profName <- 
 	#Rprof("C:/Users/Siddarta.Jairam/Documents/iterateProf3.out",memory.profiling = TRUE)
@@ -554,12 +553,12 @@ testEnv <- function(lpop,w=-9999,jd, cornMap, cGDDmap){
 	popType <- switch(names(lpop[[1]])[3], daysOld=1, GDD=0)
 	tab <- makePopTable(lpop,verboseNames=1)
 	
-	xbs <- x2block(as.numeric(tab[,1]))
-	ybs <- y2block(as.numeric(tab[,2]))
+	xbs <- map2block(as.numeric(tab[,1]), 1)
+	ybs <- map2block(as.numeric(tab[,2]), 2)
 	ind  <- cbind(xbs,ybs)
 	cAmt <- cornMap[ind]
 	cGDD <- round(cGDDmap[cbind(ind,jd)]/10,2)
-	Livability <- howLivable(cGDD, cfg$infestThres)
+	Livability <- howLivable(cGDD, infestThres)
 	#Livability <- vapply(cGDD,function(x) howLivable(x),1)
 	if(popType){
 		eg <- as.matrix(lapply(lpop,function(x) x$numEggs))
@@ -569,20 +568,20 @@ testEnv <- function(lpop,w=-9999,jd, cornMap, cGDDmap){
 			
 }
 
-findOnMap <- function(map,xl,xt,yl,yt,num=0){
-	xbl <- x2block(xl)
-	xbt <- x2block(xt)
-	ybl <- y2block(yl)
-	ybt <- y2block(yt)
+findOnMap <- function(map,xl,xt,yl,yt,map2block,num=0){
+	xbl <- map2block(xl, 1)
+	xbt <- map2block(xt, 1)
+	ybl <- map2block(yl, 2)
+	ybt <- map2block(yt, 2)
 	
 	slice <- which(map[xbl:xbt,ybt:ybl]>num,arr.ind=TRUE)
-	slice[,1]<- x2block(slice[,1]+xbl, FALSE)
-	slice[,2]<- y2block(slice[,2]+ybt, FALSE)
+	slice[,1]<- map2block(slice[,1]+xbl, 1, FALSE)
+	slice[,2]<- map2block(slice[,2]+ybt, 2, FALSE)
 	return(slice)
 }
 
-getxy <- function(bx,by,dir=FALSE){
-	return(c(x2block(bx,dir),y2block(by,dir)))
+getxy <- function(bx, by, map2block, dir=FALSE){
+	return(c(map2block(bx,1,dir), map2block(by,2,dir)))
 }
 
 howLivable <- function(cGrowth, infestThres){
@@ -610,7 +609,7 @@ getNightDur <- function(lat, lon, day){
 																 /(cos(lat*pi/180)*cos(part)))
 	}
 	names(sunLight) <- NULL
-	if(is.nan(sunLight[1])) stop(paste0("Astro calc messed up royally with NaNs used vals:",paste(avgLat,avgLon,di)))
+	if(is.nan(sunLight[1])) stop(paste0("Astro calc messed up royally with NaNs used vals:",paste(lat, lon, day)))
 	if(sunLight[1]<0 || sunLight[1]>24) stop(paste0("Astro calc came up with weird response of:",sunLight))
 	return(round((24-sunLight)-1,0))
 }
@@ -647,7 +646,7 @@ makeHysplitInputChanger <- function(hyDir, cornMap, delNightDurFlag, map2block){
 		
 		#Control file
 	
-		befCon <- read_lines(paste(hyDir, paste0("CONTROL.", PID), sep='/'))
+		befCon <- readr::read_lines(paste(hyDir, paste0("CONTROL.", PID), sep='/'))
 		indMon <- charmatch("C:/", befCon)+1
 		newCon <- befCon
 		
@@ -726,7 +725,7 @@ makeHysplitCaller <- function(hyDir, hyExePath){
 	realEnv$xaxis <- hyDir
 	realEnv$xaxis <- hyExePath
 	
-	f <- function(hold,PID){
+	callHy <- function(hold,PID){
 		
 		junk <- tryCatch({
 			 shell(paste(paste("CD", hyDir), paste(hyExePath, PID), sep=" && "),
@@ -734,7 +733,7 @@ makeHysplitCaller <- function(hyDir, hyExePath){
 			 },
 			error = function(cond){
 				Sys.sleep(3)
-				callHysplit(hold,PID)
+				callHy(hold,PID)
 			},
 			warning = function(cond){
 				if (grepl("900",cond)){
@@ -744,13 +743,13 @@ makeHysplitCaller <- function(hyDir, hyExePath){
 											 Look at MESSAGE.%f \n %s", PID, cond))
 				} else {
 					Sys.sleep(3)
-					callHysplit(hold,PID)
+					callHy(hold,PID)
 					#stop(paste("run",PID,"too little computing space, supply more or limit model\n Using pop",mi,'\n',cond)))
 				}
 			}
 		)
 	}
-	realEnv$callHysplit <- f
+	realEnv$callHy <- f
 	environment(f) <- realEnv
 	return(f)
 	
@@ -919,14 +918,12 @@ multiHysplit <- function(hyDir, pop, date, shPlotFlag,
 	return(out)
 }
 
-testFakeHysplit <- function(tgrd){
+testFakeHysplit <- function(tgrd, jd){
 	ogrd <- tgrd
 	avgLon <- mean(tgrd[,1])
 	avgLat <- mean(tgrd[,2])
-	sunLight <- daylength(avgLat,avgLon,di,1)[3]
-	if(is.nan(sunLight)) stop(paste0("Astro calc messed up royally with NaNs used vals:",paste(avgLat,avgLon,di)))
-	if(sunLight<0 || sunLight>24) stop(paste0("Astro calc came up with weird response of:",sunLight))
-	mag <- ((24-round(sunLight,1))-1)*(5/12)
+	mag <- getNightDur(avgLat,avgLon,jd) * (5/12)
+	
 	for (gj in seq(1,dim(tgrd)[1])){
 		xrandOffset <- runif(1,-mag,mag)
 		yrandOffset <- runif(1,0,mag)

@@ -14,10 +14,11 @@ ncdf2trapgrid(dirSim, pathTrapGrid, pathOut,
 
 \item{pathOut}{The path where the nc file should be saved}
 
-\item{goodRas}{A raster with the target grid, projection and extent}
+\item{goodProj}{The projection of the target raster}
 }
 \value{
-Works as a byproduct by writing a grd of the difference and the xydiff
+A raster of the difference between the simulation and the trap data
+which is also saved in the path specified as an nc file
 }
 \description{
 Compares the grided first occurance of the traps with the output first occurance
