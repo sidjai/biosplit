@@ -749,9 +749,9 @@ makeHysplitCaller <- function(hyDir, hyExePath){
 			}
 		)
 	}
-	realEnv$callHy <- f
-	environment(f) <- realEnv
-	return(f)
+	realEnv$callHy <- callHy
+	environment(callHy) <- realEnv
+	return(callHy)
 	
 	
 }

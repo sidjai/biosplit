@@ -1,14 +1,17 @@
-biosplit v0.2.0 (Release upcomming)
+biosplit v0.2.0 (Release 6/17/2015, 2nd multi-year model)
 -----------------------------------
 
 Major changes
 - Made code into a package instead of scripts
 - Added ncdf2trapgrid to grid the trap data and compare first week of capture to the simulation
-- Changed how and when Met data is collected making it
+- Changed how and when Met data is collected making it a function.
+- Changed file structure to put all the data into one folder. Normalized the names to use the raw data designations as
 
 Minor changes
 - Added take-off thresholds for precipition and temperature
-- Changed file structure to put all the data into one folder. Normalized the names to use the raw data designations as
+- Made it pass CRAN checks
+- Added an interface for AprioriVars to easily make new equations
+- Made an interface in runBiosplit called "getContext" which passes only the values that it needs and subsets apr automatically
 
 
 biosplit v0.1.3 (Release 5/1/2015)
