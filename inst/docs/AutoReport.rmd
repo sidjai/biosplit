@@ -5,7 +5,7 @@ date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
 geometry: margin=1in
 output: 
   word_document:
-    reference_docx: BiologicalEqstemp.docx
+    reference_docx: rmdTemp.docx
 params:
   runs: c("runFDHighLatThres", "runMultYearDv020")
   years: c(2013, 2011)

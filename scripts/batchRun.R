@@ -45,20 +45,6 @@ pushLoc <- 'X:/2 WESTBROOK/Sid/Hysplit Out Moth table'
 cfg <- loadConfig()
 unitsDict <- list( T02M = 'K', V10M = 'm/s North', TPP3 = 'm', SOLT = 'K')
 
-
-changeConfig("runName","runMultYearDv020",
-						 "year", 2012,
-						 "delNightDurFlag", 1)
-
-cfg <- loadConfig()
-vapply(cfg$wantedMetVars, function(var){
-	namu <- paste0(var, "Fold")
-	rawMet2nicenc(dirTreeIn = cfg[[namu]],
-								projKey = cfg$MetMappingLoc,
-								unit = unitsDict[[var]],
-								niceGrid = niceGrid)
-	TRUE},TRUE)
-collectAprioriVars(cfg)
 #doRun(pushLoc)
 
 changeConfig("runName","runMultYearFv020",

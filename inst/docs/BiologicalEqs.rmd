@@ -1,10 +1,10 @@
 ---
-title: "Functions in the Biological Model"
-author: "Siddarta Jairam"
+title: Functions in the Biological Model
+author: 'Siddarta Jairam'
 date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
-output: 
+output:   
   word_document:
-    reference_docx: BiologicalEqstemp.docx
+    reference_docx: rmdTemp.docx
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width=6.5, fig.height=3.5,fig.pos='center',echo=FALSE,comment='>',dpi=800)
@@ -14,9 +14,10 @@ library(biosplit)
 
 cfg <- loadConfig()
 realWd <- system.file(package = "biosplit")
-figList <- list()
-source(paste(realWd, "docs", "rmdUtils.R", sep='/'))
 realWd <- "C:/Users/Siddarta.Jairam/Documents/MothMigrationModel"
+figList <- list()
+source(paste(realWd, "inst", "docs", "rmdUtils.R", sep='/'))
+
 theme_set(getNiceTheme())
 ```
 
@@ -29,8 +30,8 @@ The corn acreage was collected from CropScape and aggregated for the 40x40km gri
 
 Currently the planting and harvesting practices are assumed to be fully represented by date of action which is dependent only on latitude. With warmer climates in the south comes early dates for both planting and harvesting corn. In the corn belt above Oklahoma, the dates plateaus. A linear piecewise function is said to encapsulate these practices as shown below. 
 ```{r}
-aprioriLoc <- paste(realWd,'R','aprioriVars.R',sep='/')
-getTimingSplit <- grabFunc(aprioriLoc,"getTimingSplit")
+aprioriLoc <- paste(realWd,'R', 'aprioriVars.R', sep='/')
+getTimingSplit <- grabFunc(aprioriLoc, "getTimingSplit")
 
 ys <- seq(23.22184, 49.32604,by=0.396)
 
@@ -51,11 +52,11 @@ figList <- updateCntList(figList,'cornDates')
 This fits well with reported numbers done by USDA Ag. Handbook 628 2010, though these numbers are hard to collect and have a large error bound. After the corn has been planted, the degree days are accumulated, GDD~corn~ , with minimum and maximum temperatures for that day as shown below.
 ```{r}
 calcDegDay <- grabFunc(aprioriLoc,"calcDegDay")
-highs <- 10:35
+highs <- 5:35
 DD <- 1.8 * calcDegDay(highs, 10, highLim = 30,lowLim = 10, shGrow = FALSE)
 cdat <- data.frame(High_Temps = highs, Degree_Days = DD)
 sdf <- ggplot(cdat, aes(x=High_Temps, y=Degree_Days)) + geom_line()
-sdf + xlab(expression("High Temperatures at 3PM (" *
+sdf + xlab(expression("High Temperatures at 4PM (" *
          degree * "C)"))+ ylab(expression("Degree Days (" * degree * "F)"))
 figList <- updateCntList(figList,'cornGrowth')
 ```
@@ -93,10 +94,15 @@ dispVar(cfg$flightPropBeforeSilk)
 dispVar(cfg$flightPropAfterSilk)
 
 cornGDD <- seq(0,3000,by=50)
-iterateLoc <- paste(realWd,"scripts", "iterateHYSPLIT.R", sep='/')
+iterateLoc <- paste(realWd, "R", "iterateHYSPLIT.R", sep='/')
 genFlightProp <- grabFunc(iterateLoc, 'genFlightProp', shouldCat=1)
 
-fp <- qplot(cornGDD,genFlightProp(cornGDD),ylim=c(0,1))
+fp <- qplot(cornGDD,
+						genFlightProp(cornGDD,
+													cfg$infestLmt,
+													cfg$flightPropBeforeSilk,
+													cfg$flightPropAfterSilk)
+						,ylim=c(0,1))
 fp + geom_line() + xlab(expression("GDD (" *
          degree * "F)"))+ ylab("Prop. of migrant moths")
 figList <- updateCntList(figList,'genFlight')
@@ -146,7 +152,7 @@ pDur + geom_line() + xlab("Julian Day")+ ylab("Flight Duration (hrs)")
 figList <- updateCntList(figList,'flightDur')
 ```
 
-####Figure `r figList$flightDur`. The distribution of the length of flight with respect to the latitudes and the day of the year. The solid line refers to `r ys[1]` latitude (Middle of Mexico), the dotted line refers to `r ys[gridLen/2]` latitude () and the dashed line refers to  `r ys[gridLen]` latitude (CA-US border)
+####Figure `r figList$flightDur`. The distribution of flight duration with respect to latitude and day of the year. The solid line represents  `r round(ys[1],2)` latitude (Tip of TX), the dotted line refers to `r round(ys[gridLen/2], 2)` latitude () and the dashed line refers to  `r ys[gridLen]` latitude (CA-US border)
 
 The reason the time is limited to hour length is due HYSPLIT stipulating that minutes cannot be specified when the time is above 1 hour. If this were not the case, the familiar curves would be shown with the higher latitudes having a higher amplitude. 
 
@@ -158,7 +164,9 @@ howLivable <- grabFunc(iterateLoc, 'howLivable', shouldCat=1)
 
 Here 'cGrowth' is the GDD~corn~ in &deg;F. 1000&deg;F refers to a fully emerged plant. 1400&deg;F is the silking stage. 2400&deg;F refers to a developed plant.  The function looks like this:
 ```{r}
-p <- qplot(cornGDD,howLivable(cornGDD),ylim=c(0,1))
+p <- qplot(cornGDD,
+					 howLivable(cornGDD, cfg$infestThres),
+					 ylim=c(0,1))
 p + geom_line() + xlab(expression("GDD(" *
          degree * "F)"))+ ylab("Livability")
 figList <- updateCntList(figList,'howLivable')
