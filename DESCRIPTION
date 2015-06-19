@@ -4,15 +4,16 @@ Version: 0.2.0.9000
 Authors@R: person('Siddarta', 'Jairam', , 'sidjsb@gmail.com', role = c("aut","cre"))
 Description: A combination of a biological model for growth and the physical model of migration. The biological model comes from the growth cycles of a migratory moth (Fall Armyworm) using growing degree days and corn production measurements. The migration model is for passive 	dispersion of particles coming from the HYSPLIT model created by US NOAA. To get these 	programs to talk to one another, a metwork of pre processing and post processing has been developed and included. The result is a model that can account for the biological and atmospheric parts of national moth migration.
 Depends: R (>= 3.1.1)
-Imports:
+Imports: 
 	httr,
 	ncdf,
 	raster,
 	rgdal
-Suggests:
+Suggests: 
 	readr,
-	insol
-SystemRequirements:
+	insol,
+    testthat
+SystemRequirements: 
 	HYSPLIT (>= 4 svn 460)
 	MeteoInfo (>1.2 Java Ed)
 	Suggests: Golden Software Surfer (>=12.0)
