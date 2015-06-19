@@ -7,7 +7,7 @@ map2block <- makeMapConverter(seq(.1, .5, by=.1),
 ctx <- list()
 
 ctx$xs <- ctx$ys <- 1
-ctx$CornGDD <- 9
+ctx$CornGDD <- 90
 ctx$infestLmt <- 10
 ctx$lifeSpan <- 10
 ctx$infestThres <- 1
@@ -45,8 +45,17 @@ test_that("Egg laying", {
 
 test_that("No egg laying", {
 	
-	#change ctx to a bad case 
-	tEggs <- growMoths(moth, ctx)[[2]]
-	expect_equal(length(tEggs),0)
+	#change ctx to a bad case
+	negctx <- lapply(1:5, function(x)(ctx))
+	negctx[[1]]$CornGDD <- 110 #Corn is too ripe
+	negctx[[2]]$CornGDD <- 9 #Corn is not even leafing
+	negctx[[3]]$oviDay <- 500 #too young to lay
+	negctx[[4]]$eggsPerInfest <- 10 #Not enough eggs to lay
+	
+	lapply(negctx, function(x){
+		tEggs <- growMoths(moth, x)[[2]]
+		expect_equal(length(tEggs),0)
+	})
+	
 	
 })
