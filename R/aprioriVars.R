@@ -149,9 +149,9 @@ aprioriVars <- function(dirTrees,
 		}
 	}
 	
-	windStopTO <- (dat$Wind$H > windTOThres)
-	tempStopTO <- (dat$Air$H < tempTOThres)
-	precStopTO <- (dat$Prec$H > precTOThres)
+	windStopTO <- (dat$Wind$H > windTOThres)[,,1:365]
+	tempStopTO <- (dat$Air$H < tempTOThres)[,,1:365]
+	precStopTO <- (dat$Prec$H > precTOThres)[,,1:365]
 	cornGDD[is.na(cornGDD)] <- 0
 	
 	dims <-list(cornNc$dim$lon,
