@@ -54,11 +54,18 @@ NASS2TIFs(cfg$CropFold[1], cfg$year, cropGrid)
 
 convert the downloaded Tiff 30m blocks to 40 km blocks and get rid of projection
 ```{r}
-outName <- paste(cfg$CropFold[2],paste0("aggCrop_", cfg$year, "test.dat"),sep="/")
-rawCrop2nicenc(cfg$CropFold[1],outName,cropGrid)
+finCrop <- paste(cfg$CropFold[2],paste0("aggCrop_", cfg$year, ".nc"), sep='/')
+rawCrop2nicenc(cfg$CropFold[1], outName, cropGrid)
 ```
 
+add in Canada
 
+```{r}
+addCanada <- "C:/Users/Siddarta.Jairam/Documents/Documentation/Untitled Polygon.kml"
+finAddCrop <- gsub("[.]nc", "add.nc", finCrop)
+addCropArea(finCrop, addCanada, cropAmt = 1, pathOut = finAddCrop)
+
+```
 ##Meterological
 
 Go through the ARL data 
