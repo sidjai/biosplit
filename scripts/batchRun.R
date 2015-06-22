@@ -42,34 +42,26 @@ doRun <- function(push = ""){
 pushLoc <- 'X:/2 WESTBROOK/Sid/Hysplit Out Moth table'
 
 
-cfg <- loadConfig()
+
 unitsDict <- list( T02M = 'K', V10M = 'm/s North', TPP3 = 'm', SOLT = 'K')
 
 #doRun(pushLoc)
 
 changeConfig("runName","runMultYearFv020",
-						 "delNightDurFlag", 0)
+						 "delNightDurFlag", 0,
+						 "year", 2012)
+cfg <- loadConfig()
 doRun(pushLoc)
 
 
 changeConfig("runName","runMultYearDv020",
-						 "year", 2014,
+						 "year", 2013,
 						 "delNightDurFlag", 1)
 
 cfg <- loadConfig()
-vapply(cfg$wantedMetVars, function(var){
-	namu <- paste0(var, "Fold")
-	rawMet2nicenc(dirTreeIn = cfg[[namu]],
-								projKey = cfg$MetMappingLoc,
-								unit = unitsDict[[var]],
-								niceGrid = niceGrid)
-	TRUE},TRUE)
-collectAprioriVars(cfg)
+
 doRun(pushLoc)
 
-changeConfig("runName","runMultYearFv020",
-						 "delNightDurFlag", 0)
-doRun(push)
 
 rmarkdown::render(system.file("docs", "AutoReport.rmd", package = "biosplit"),
 									params = list(
@@ -79,7 +71,8 @@ rmarkdown::render(system.file("docs", "AutoReport.rmd", package = "biosplit"),
 )
 
 file.copy(system.file("docs", "AutoReport.docx", package = "biosplit"),
-					"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/AutoReportMultiD")
+					"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/AutoReportMultiD.docx",
+					overwrite = TRUE)
 
 					
 rmarkdown::render(system.file("docs", "AutoReport.rmd", package = "biosplit"),
@@ -90,7 +83,8 @@ rmarkdown::render(system.file("docs", "AutoReport.rmd", package = "biosplit"),
 )
 
 file.copy(system.file("docs", "AutoReport.docx", package = "biosplit"),
-					"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/AutoReportMultiF")
+					"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/AutoReportMultiF.docx",
+					overwrite = TRUE)
 
 
 
