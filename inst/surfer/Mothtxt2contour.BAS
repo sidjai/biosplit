@@ -41,15 +41,24 @@ If (numLevels<0) Then
 				ElseIf (InStr(Err.Description,"Directory")>0) Then
 					Err = 0
 					Resume Next
+				ElseIf(InStr(Err.Description,"GoTo")>0) Then
+					Err = 0
+					Resume Next
+				ElseIf(InStr(Err.Description,"no such")>0) Then
+					Err = 0
+					Resume Next
 				Else
 					Debug.Print  "Err="; Err.Description ; Err
 					Debug.Print  Err.Source
+					Wait(1)
 					Resume Next
 					'Error Err
 				End If
 End If
 
 
+inp = Split(inp,Chr(34))(1)
+Debug.Print(inp)
 mainFol = inp
 outFinal = mainFol & "/"
 outFol =mainFol & "/jpeg/"

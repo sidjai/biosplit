@@ -1,0 +1,22 @@
+citHeader("To cite biosplit in publications use:")
+
+citEntry(entry = "Article",
+  title        = "Modeling Seasonal Migration of Fall Armyworm Moths",
+  author       = personList(as.person("John K. Westbrook"),
+                   as.person("Rodney N. Nagoshi"),
+		   as.person("Rob L. Meagher"),
+		   as.person("Shelby J. Fleischer"),
+		   as.person("Siddarta Jairam")),
+  journal      = "International Journal of Biometeorology",
+  year         = "2015",
+  volume       = "00",
+  number       = "0",
+  pages        = "1--13",
+  url          = "none",
+
+  textVersion  =
+  paste("J. K. Westbrook, R. N. Nagoshi, R. L. Meagher, and S. J. Fleischer, S. Jairam",
+	"(2015)",
+	"Modeling Seasonal Migration of Fall Armyworm Moths",
+	"International Journal of Biometeorology")
+)

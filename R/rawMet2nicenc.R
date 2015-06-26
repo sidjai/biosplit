@@ -1,73 +1,115 @@
-
-realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
-load(paste(realWd,"cfg.Rout",sep="/"))
-
-tic <- Sys.time()
-
-require(rgdal)
-require(raster)
-require(ncdf)
-
-args <- paste(commandArgs(),collapse=",")
-
-cropProj <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-translate <- as.matrix(read.table(paste(cfg$MetARLDir,paste0(cfg$metDataType,"Grid2.txt"),sep="/")))
-
-goodProj <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-
-boBox <- extent(cfg$xmin, cfg$xmax, cfg$ymin, cfg$ymax)
-cropGrid <- raster(boBox,
-	crs = cropProj,resolution = cfg$spc)
-finGrid <- projectExtent(cropGrid,goodProj)
-finExt <- extent(finGrid)
-
-processMet <- function(f,tFlag){
-	ras <- raster(f)
+#'Process the daily grid files into a nice netCDF file
+#'
+#'Goes through the twice daily grid files for one variable and projects, crops and combines them
+#'	into two managable nc files for the highs and the lows.
+#'	The grids are produced by ARL2GRD.py and the result is used by aprioriVars.R.
+#'@param dirTreeIn A character array of the three directories to use
+#'	1) where the input files are located
+#'	2) where the projected .nc slices are going to be outputted
+#'	3) where the final combined output .nc file is outputted
+#'
+#'@param projKey A string with the projection info either in the form of
+#'	a file location of a mapping table or proj4string for the input grids
+#'
+#'@param niceGrid A grid of the final extent and projection that is needed
+#'@param unit A string designating the unit of the variable...use deg for degree
+#'@param transCol A vector with column numbers for the mapping table, (lat,long),
+#'	Only used if projKey is a mapping table file location
+#'@return Saves the projected and cropped slices in the second entry in DirTreeIn,
+#'	and two nc files with the stacked nc files for the Highs and the lows for the whole year
+#'	
+#'@import ncdf
+#'@export
+rawMet2nicenc <- function(dirTreeIn,
+													projKey,
+													niceGrid,
+													unit = 'unitless',
+													transCol = c(1,2)){
 	
-	if(tFlag){
+	#if dirTreeIn is a list of 3 out the second and final in last folder
+	metFiles <- parseFiles(dirTreeIn[1], 'grd')
+	reqAmt <- 2 * (365 + (file2year(metFiles[1]) %% 4 == 0))
+	#check for the number of files
+	if(length(metFiles) != reqAmt){
+		stop(sprintf("Folder: %s only has %d grid files in it, needs %d",
+								 dirTreeIn[1], length(metFiles),  reqAmt))
+	}
+	
+	slicencFiles <- gsub('grd', 'nc', gsub(dirTreeIn[1], dirTreeIn[2], metFiles))
+	
+	
+	KtoC <- grepl("K",unit)
+	unit <- gsub("K", "degC", unit)
+	
+	if (file.exists(projKey)){
+		#its a table with lat lon mapping in the first 2 columns
+		projDict <- as.matrix(read.table(projKey))[,transCol]
+	} else {
+		projDict <- c(projKey,raster::projection(niceGrid))
+	}
+	
+	prog <- txtProgressBar(style = 3)
+	confirm <- vapply(1:length(metFiles), function(x){
+		setTxtProgressBar(prog,x/length(metFiles))
+		ras <- processMet(metFiles[x], projDict, niceGrid, convertKtoC = KtoC)
+		sult <- try(raster::writeRaster(ras,
+														filename = slicencFiles[x],
+														format = "CDF", overwrite=TRUE),
+								silent=TRUE)
+		
+		return(raster::isLonLat(sult))
+		},1)
+	
+	
+	badInd <- which(!confirm)
+	if(length(badInd) != 0 ){
+		stop(paste("These files did not project right:\n", 
+							 paste(metFiles[badInd],collapse= '\n')))
+	}
+	
+	type <- c("L", "H")
+	for (time in 1:2){
+		inFiles <- slicencFiles[seq(time,length(slicencFiles),2)]
+		spliceStack <- raster::stack(inFiles,quick=TRUE)
+		pathOut <- paste(dirTreeIn[3], paste0("Combined", type[[time]], ".nc"),sep="/")
+		
+		junk <- try(raster::writeRaster(spliceStack, filename = pathOut,
+														format="CDF", varname = type[[time]], varunit = unit, overwrite=TRUE)
+								,silent=TRUE)
+	}
+}
+
+processMet <- function(pathMet, transDict, niceGrid, convertKtoC = FALSE){
+	ras <- raster(pathMet)
+	
+	if(convertKtoC){
 		ras <- calc(ras,function(x)x-273.15)
 	}
-
-	points <- rasterToPoints(ras)
-	xyz <- cbind(translate[,c(1,2)],points[,3])
-	inboBox <- ((xyz[,1] > finExt@xmin & xyz[,1]< finExt@xmax) &
-		(xyz[,2] > finExt@ymin & xyz[,2]< finExt@ymax))
-	xyzwExt <- xyz[inboBox,]
 	
-	ras <- rasterize(xyzwExt[,c(1,2)],finGrid,field=xyzwExt[,3],fun=mean)
+	xyz <- projMet(ras,transDict)
+	
+	cut <- niceGrid@extent
+	
+	#manually extract 
+	inboBox <- ((xyz[,1] > cut@xmin & xyz[,1]< cut@xmax) &
+								(xyz[,2] > cut@ymin & xyz[,2]< cut@ymax))
+	xyzwCrop <- xyz[inboBox,]
+	
+	ras <- raster::rasterize(xyzwCrop[,c(1,2)], niceGrid, field = xyzwCrop[,3], fun = mean)
 	return(ras)
 }
 
-
-metTree <- list(cfg$AirTempFold,cfg$WindFold,cfg$SoilTempFold)
-tempFlag <- c(TRUE,FALSE,TRUE)
-
-#All Met data in the ARL files that we want
-for (ty in seq(1,length(metTree))){
-	cat(metTree[[ty]][1],"\n")
-	rawFiles <- list.files(metTree[[ty]][1])
-	ncFiles <- gsub('grd','nc',rawFiles)
-	confirm <- vapply(rawFiles,function(name){
-		ras <- processMet(paste(metTree[[ty]][1],name,sep="/"),tempFlag[[ty]])
-		sult <- try(writeRaster(ras,
-			filename=paste(metTree[[ty]][2], gsub('grd','nc',name), sep="/"),
-			format="CDF", overwrite=TRUE),silent=TRUE)
-		return(isLonLat(sult))
-		},1)
-
-	if(!min(confirm)) stop("grd conversion failed, one grid not latlon")
-
-	# combine the slices
-	type <- c("L","H")
-	for (pe in 1:2){
-		inFiles <- paste(metTree[[ty]][2],ncFiles[seq(pe,length(ncFiles),2)],sep="/")
-		spliceStack <- stack(inFiles,quick=TRUE)
-		nameOut <- paste(metTree[[ty]][3],paste0("combined", type[[pe]], ".nc"),sep="/")
-		
-		junk <- try(writeRaster(spliceStack,filename=nameOut,
-			format="CDF",varname = type[[pe]], overwrite=TRUE),silent=TRUE)
+projMet <- function(rs, dict){
+	
+	if(is.character(dict)){
+		raster::projection(rs) <- dict[1]
+		rs <- raster::projectRaster(rs,dict[2])
+		datum <- raster::rasterToPoints(rs)
+	} else {
+		points <- raster::rasterToPoints(rs)
+		datum <- cbind(dict, points[,3])
 	}
+	
+	return(datum)
 }
 
-toc <- round(as.double(Sys.time() - tic, units = "mins"),2)
-cat(toc,'\n')

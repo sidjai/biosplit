@@ -1,0 +1,160 @@
+---
+title: "workflow"
+author: "Siddarta Jairam"
+date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
+output: 
+  word_document:
+    reference_docx: AutoReporttemp.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=6.5, fig.height=3.5,fig.pos='center',echo=TRUE,comment='>',dpi=800)
+library(ggplot2)
+library(biosplit)
+realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
+load(paste(realWd,"cfg.Rout",sep="/"))
+
+figList <- list()
+source(paste(realWd,"docs/rmdFunctions.R",sep='/'))
+theme_set(getNiceTheme())
+
+meteoLoc <- "C:/Users/Siddarta.Jairam/Desktop/sid/MeteoInfo1.2"
+goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
+RLoc <- "C:/Users/Siddarta.Jairam/Documents/R/R-3.2.0"
+```
+
+#Setup
+
+When the package is installed there is a blank "config.txt" file created in the package directory. This holds all the information about the run and the file folders. Ultimately, most of the file folders are optional but the parameters are vital to how the biological side of the program runs. One file folder that is neccesary is the location of the HYSPLIT working directory and the installed "execs" file. *This program assumes that the HYSPLIT is installed.*
+
+```{r}
+cfg <- loadConfig()
+tail(names(cfg))
+```
+
+Make the grids of the different manipulation steps:
+
+```{r}
+boBox <- raster::extent(cfg$xmin, cfg$xmax, cfg$ymin, cfg$ymax)
+cropGrid <- raster::raster(boBox,
+	crs = cfg$cropProj,resolution = cfg$spc)
+niceGrid <- raster::projectExtent(cropGrid,cfg$niceProj)
+```
+
+
+#Data Collection
+
+##Crop
+
+Download the files directly from NASS cropscape
+
+```{r}
+NASS2TIFs(cfg$CropFold[1], cfg$year, cropGrid)
+```
+
+convert the downloaded Tiff 30m blocks to 40 km blocks and get rid of projection
+```{r}
+finCrop <- paste(cfg$CropFold[2],paste0("aggCrop_", cfg$year, ".nc"), sep='/')
+rawCrop2nicenc(cfg$CropFold[1], outName, cropGrid)
+```
+
+add in Canada
+
+```{r}
+addCanada <- "C:/Users/Siddarta.Jairam/Documents/Documentation/Untitled Polygon.kml"
+finAddCrop <- gsub("[.]nc", "add.nc", finCrop)
+addCropArea(finCrop, addCanada, cropAmt = 1, pathOut = finAddCrop)
+
+```
+##Meterological
+
+Go through the ARL data 
+Require MeteoInfo
+
+```{r}
+runMeteo <- makeRunFun(meteoLoc,"py")
+runMeteo("ARL2GRD.py",
+				 c(cfg$MetARLFold, cfg$proARLDir, cfg$wantedMetVars, recursive = TRUE), TRUE)
+```
+
+Change the extent of the data
+
+```{r}
+
+#get the units for the variables (comes from readme of the met data used
+unitsDict <- list( T02M = 'K', V10M = 'm/s North', TPP3 = 'm', SOLT = 'K')
+vapply(cfg$wantedMetVars, function(var){
+	namu <- paste0(var, "Fold")
+	rawMet2nicenc(dirTreeIn = cfg[[namu]],
+								projKey = cfg$MetMappingLoc,
+								unit = unitsDict[[var]],
+								niceGrid = niceGrid)
+	TRUE},TRUE)
+							
+							
+												
+```
+
+
+#Running the program
+
+Transform this raw data into the derived variables used by the program
+```{r}
+collectAprioriVars(cfg)
+```
+
+Call the model
+```{r}
+runRscript <- makeRunFun(RLoc,"R")
+runRscript("iterateHysplit.R")
+```
+
+#Post-processing
+
+Make the tables
+```{r}
+ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc, shDoSum = TRUE)
+
+runs <- c("runInterYear","runAbsFlightLimit","runFlightAndNight","runNightDurDel")
+pushLoc <- paste('X:/2 WESTBROOK/Sid/Hysplit Out Moth table',cfg$year, sep='/')
+vapply(runs, function(x){
+	direc <- gsub(cfg$runName, x, cfg$SimOutFold)
+	direc[2] <- paste(pushLoc, x, sep='/')
+	ncdf2trapdata(direc[1], cfg$TrapLoc[paste0(cfg$year)])
+	pathCSV <- paste0(direc, "/TrapFinal")
+	vapply(c('H.csv','V.csv'), function(x){
+		
+		file.copy(paste0(pathCSV[1],x), paste0(pathCSV[2],x), overwrite = TRUE)
+	},TRUE)
+		
+},rep(TRUE,2))
+
+```
+
+Compare the rasters
+
+```{r}
+
+predObv <- ncdf2trapgrid(cfg$SimOutFold,
+												"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/firstOccTrap.grd",
+												paste(cfg$SimOutFold, "Sim-TrapFirstOcc.nc",sep='/'))
+#The spatial average distance between the weeks
+mean(abs(predObv[,,]),na.rm=TRUE)
+
+```
+
+
+Make the maps
+require scripter
+```{r}
+
+runScripter <- makeRunFun(goldLoc, "BAS")
+runScripter("Mothtxt2ClassPost.BAS",cfg$SimOutFold)
+```
+
+require scripter
+```{r}
+runScripter("Mothtxt2contour.BAS",cfg$SimOutFold)
+```
+
+

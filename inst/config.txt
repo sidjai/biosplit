@@ -6,10 +6,10 @@
 CropDir = C:/Users/Siddarta.Jairam/Documents/Crop Data
 SimOutDir = C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table
 MetARLDir = C:/Users/Siddarta.Jairam/Documents/ARL packed files
-AirTempDir = C:/Users/Siddarta.Jairam/Documents/Hysplit temp data
-SoilTempDir = C:/Users/Siddarta.Jairam/Documents/Hysplit soilT data
-WindDir = C:/Users/Siddarta.Jairam/Documents/Hysplit wind data
+proARLDir = C:/Users/Siddarta.Jairam/Documents/Hysplit processed data
 docuDir = C:/Users/Siddarta.Jairam/Documents/Documentation
+
+MetMappingLoc = edasGrid2.txt
 
 #hysplit locations
 HyBase = C:/hysplit4/exec
@@ -24,7 +24,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2013
-runName = runLatThresWinter
+runName = testEggCh
 
 #Cropscape m 
 xmin = -1005735
@@ -33,6 +33,11 @@ ymin = 284055
 ymax = 2924055
 
 spc = 40000
+
+cropProj = +proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs
+niceProj = +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs
+
+wantedMetVars = c('T02M','V10M','TPP3')
 
 #####
 #Program specific vars
@@ -49,13 +54,18 @@ writeFlag = 1
 # make an automated readme file?
 makeReadmeFlag = 1
 
-codeChanges = Added ability to set Top of the model and Vertical Motion from the config file
-outEveryDayStart = 140
-outEveryDayEnd = 300
+codeChanges = Added crop data for Canada set at 76 for South Ontario
+outEveryDayStart = 1
+outEveryDayEnd = 400
 
 #ncdf2trapdata.R
 
-trapName = FAW Data Locations 2011 (3.1 version).csv
+trapName = list()
+trapName$`2014` = FAW2013 SumCatch GE 10 FAW3_3.csv
+trapName$`2013` = FAW2013 SumCatch GE 10 FAW3_3.csv
+trapName$`2012` = FAW Trap Locations (Counties) for 2011, 2012, and 2013.csv
+trapName$`2011` = FAW Trap Locations (Counties) for 2011, 2012, and 2013.csv
+
 #Use the single nc file (1) or the slice nc files (per day) (0)
 totFlag = 1
 
@@ -73,7 +83,9 @@ harvestTimes = c(25, 39, 195, 300)
 #All in Celcius
 TGDDbaseCrop = 10
 TGDDbaseFAW = 13.8
-
+tempTOThres = (-9999)
+precTOThres = (9999)
+windTOThres = (9999)
 
 #iterateHYSPLIT.R
 
@@ -83,7 +95,6 @@ mothThres = 2
 cohortThres = 1
 cohortGDDThres = 346.2
 #cohortGDDLmt = 2400
-windThres = (-9999)
 #Corn GDD check for laying eggs
 infestThres = 100 
 infestLmt = 2000
@@ -105,14 +116,14 @@ skip = c(0)
 altCornDay  = 100
 #num of nights that a moth can fly in succession
 succFlightLim = 3
-migCareerLimit = 99
+migCareerLimit = 3
 #altAnalysis
-delNightDurFlag = 0
+delNightDurFlag = 1
 flightPropAfterSilk = 0.9
 flightPropBeforeSilk = 0.1
 
-FLwinterCutoff = 27
-TXwinterCutoff = 27
+FLwinterCutoff = 28.5
+TXwinterCutoff = 28.5
 relAmtFL = 0.1
 OverwinterFL = -81, 26.9
 OverwinterFL = -80.7, 26.5

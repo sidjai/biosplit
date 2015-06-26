@@ -1,20 +1,23 @@
 ---
-title: "Functions in the Biological Model"
-author: "Siddarta Jairam"
-date: "Thursday, April 02, 2015"
-output: 
+title: Functions in the Biological Model
+author: 'Siddarta Jairam'
+date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
+output:   
   word_document:
-    reference_docx: BiologicalEqstemp.docx
+    reference_docx: rmdTemp.docx
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width=6.5, fig.height=3.5,fig.pos='center',echo=FALSE,comment='>',dpi=800)
 library(ggplot2)
 library(insol)
-realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
-load(paste(realWd,"cfg.Rout",sep="/"))
+library(biosplit)
 
+cfg <- loadConfig()
+realWd <- system.file(package = "biosplit")
+realWd <- "C:/Users/Siddarta.Jairam/Documents/MothMigrationModel"
 figList <- list()
-source(paste(realWd,"docs/rmdFunctions.R",sep='/'))
+source(paste(realWd, "inst", "docs", "rmdUtils.R", sep='/'))
+
 theme_set(getNiceTheme())
 ```
 
@@ -27,10 +30,10 @@ The corn acreage was collected from CropScape and aggregated for the 40x40km gri
 
 Currently the planting and harvesting practices are assumed to be fully represented by date of action which is dependent only on latitude. With warmer climates in the south comes early dates for both planting and harvesting corn. In the corn belt above Oklahoma, the dates plateaus. A linear piecewise function is said to encapsulate these practices as shown below. 
 ```{r}
-aprioriLoc <- paste(realWd,'r_code','aprioriVars.R',sep='/')
-getTimingSplit <- grabFunc(aprioriLoc,'getTimingSplit')
+aprioriLoc <- paste(realWd,'R', 'aprioriVars.R', sep='/')
+getTimingSplit <- grabFunc(aprioriLoc, "getTimingSplit")
 
-ys <- seq(21.1969,51.1009,by=0.396)
+ys <- seq(23.22184, 49.32604,by=0.396)
 
 plant <- getTimingSplit(cfg$plantTimes,ys)
 harvest <- getTimingSplit(cfg$harvestTimes,ys)
@@ -48,8 +51,17 @@ figList <- updateCntList(figList,'cornDates')
 
 This fits well with reported numbers done by USDA Ag. Handbook 628 2010, though these numbers are hard to collect and have a large error bound. After the corn has been planted, the degree days are accumulated, GDD~corn~ , with minimum and maximum temperatures for that day as shown below.
 ```{r}
-jk <- grabFunc(aprioriLoc,'1.8 * ',returnFun=0,shouldCat=1, atStart=0)
+calcDegDay <- grabFunc(aprioriLoc,"calcDegDay")
+highs <- 5:35
+DD <- 1.8 * calcDegDay(highs, 10, highLim = 30,lowLim = 10, shGrow = FALSE)
+cdat <- data.frame(High_Temps = highs, Degree_Days = DD)
+sdf <- ggplot(cdat, aes(x=High_Temps, y=Degree_Days)) + geom_line()
+sdf + xlab(expression("High Temperatures at 4PM (" *
+         degree * "C)"))+ ylab(expression("Degree Days (" * degree * "F)"))
+figList <- updateCntList(figList,'cornGrowth')
 ```
+
+####Figure `r figList$cornGrowth`. How corn is grown with increasing high temperatures with a fixed low temperature at 10C
 
 This means that below the corn threshold, the GDD~corn~ is 0. The GDD~corn~ starts accumulating  on the planting date and stops at the harvest date where it goes back down to 0. The accumulation is bounded at 10&deg;C and 30&deg;C.
 
@@ -82,10 +94,15 @@ dispVar(cfg$flightPropBeforeSilk)
 dispVar(cfg$flightPropAfterSilk)
 
 cornGDD <- seq(0,3000,by=50)
-iterateLoc <- paste(realWd,'r_code','iterateHYSPLIT.R',sep='/')
-genFlightProp <- grabFunc(iterateLoc, 'genFlightProp',shouldCat=1)
+iterateLoc <- paste(realWd, "R", "iterateHYSPLIT.R", sep='/')
+genFlightProp <- grabFunc(iterateLoc, 'genFlightProp', shouldCat=1)
 
-fp <- qplot(cornGDD,genFlightProp(cornGDD),ylim=c(0,1))
+fp <- qplot(cornGDD,
+						genFlightProp(cornGDD,
+													cfg$infestLmt,
+													cfg$flightPropBeforeSilk,
+													cfg$flightPropAfterSilk)
+						,ylim=c(0,1))
 fp + geom_line() + xlab(expression("GDD (" *
          degree * "F)"))+ ylab("Prop. of migrant moths")
 figList <- updateCntList(figList,'genFlight')
@@ -113,11 +130,12 @@ figList <- updateCntList(figList,'spread')
 
 Each subdivided population of migrant moths that can and wants to fly is sent into a seperate run into HYSPLIT. The only thing that HYSPLIT sees is indiscriminate particles at the specified locations launched up to 500m at dusk over the course of an hour. Hpwever, there are some location specific parameters that are reset every flight. One of these is the area of emmision being the amount of corn in the take-off grid cell. The idea is that the abundance of corn would lead to more local movement throughout the day simulated by a growing circle centered on the center of the grid cell. In this way, areas with little corn are basically point sources which can be easily manipulated by a stray gust of wind, where a large corn producing area can be more resilient.
 
-Another parameter that changed is the duration of the flight. The flight duration is defined as the time between dusk and dawn minus one hour. Over the course of the year and along the journey northward, this difference changes. This is shown below.
+Another parameter that changed is the duration of the flight. The flight duration is defined as the time between dusk and dawn minus one hour. As the earth rotates around the sun, the time between dusk and dawn changes with respect to latitude. This is shown below.
+
 ```{r}
 getNightDur <- grabFunc(iterateLoc,'getNightDur')
 
-jds <- 1:300
+jds <- 1:360
 dat <- list()
 gridLen <- length(ys)
 dat1 <- data.frame(xindp = jds, ydep = getNightDur(ys[1],30,jds),
@@ -134,19 +152,21 @@ pDur + geom_line() + xlab("Julian Day")+ ylab("Flight Duration (hrs)")
 figList <- updateCntList(figList,'flightDur')
 ```
 
-####Figure `r figList$flightDur`. The distribution of the length of flight with respect to the latitudes and the day of the year.
+####Figure `r figList$flightDur`. The distribution of flight duration with respect to latitude and day of the year. The solid line represents  `r round(ys[1],2)` latitude (Tip of TX), the dotted line refers to `r round(ys[gridLen/2], 2)` latitude () and the dashed line refers to  `r ys[gridLen]` latitude (CA-US border)
 
 The reason the time is limited to hour length is due HYSPLIT stipulating that minutes cannot be specified when the time is above 1 hour. If this were not the case, the familiar curves would be shown with the higher latitudes having a higher amplitude. 
 
 After HYSPLIT runs, the check for whether the migrant population wants to settle down in a location is a variable called livability. The qualitative definition is the suitability of the area for a population of FAW. In the future this can include factors like pesticide use, predators, disease, number of days in flight, etc. Right now it is a piecewise function just on GDD~corn~. The functions is as follows:
 ```{r}
 dispVar(cfg$infestThres)
-howLivable <- grabFunc(iterateLoc, 'howLivable',shouldCat=1)
+howLivable <- grabFunc(iterateLoc, 'howLivable', shouldCat=1)
 ```
 
 Here 'cGrowth' is the GDD~corn~ in &deg;F. 1000&deg;F refers to a fully emerged plant. 1400&deg;F is the silking stage. 2400&deg;F refers to a developed plant.  The function looks like this:
 ```{r}
-p <- qplot(cornGDD,howLivable(cornGDD),ylim=c(0,1))
+p <- qplot(cornGDD,
+					 howLivable(cornGDD, cfg$infestThres),
+					 ylim=c(0,1))
 p + geom_line() + xlab(expression("GDD(" *
          degree * "F)"))+ ylab("Livability")
 figList <- updateCntList(figList,'howLivable')

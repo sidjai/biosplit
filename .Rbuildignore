@@ -1,0 +1,6 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+.gitignore
+cfg.RData
+cfg.txt
+Rconsole
