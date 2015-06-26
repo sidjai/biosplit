@@ -54,7 +54,7 @@ writeFlag = 1
 # make an automated readme file?
 makeReadmeFlag = 1
 
-codeChanges = Add in takeoff cues in AprioriVars to get the variable
+codeChanges = Added crop data for Canada set at 76 for South Ontario
 outEveryDayStart = 1
 outEveryDayEnd = 400
 

@@ -47,44 +47,29 @@ unitsDict <- list( T02M = 'K', V10M = 'm/s North', TPP3 = 'm', SOLT = 'K')
 
 #doRun(pushLoc)
 
-changeConfig("runName","runMultYearFv020",
-						 "delNightDurFlag", 0,
-						 "year", 2012)
-cfg <- loadConfig()
+changeConfig("runName","runWithCanada",
+						 "delNightDurFlag", 1,
+						 "year", 2011)
 doRun(pushLoc)
 
 
-changeConfig("runName","runMultYearDv020",
-						 "year", 2013,
-						 "delNightDurFlag", 1)
-
-cfg <- loadConfig()
-
+changeConfig("year", 2012)
 doRun(pushLoc)
 
+changeConfig("year", 2013)
+doRun(pushLoc)
+
+changeConfig("year", 2014)
+doRun(pushLoc)
 
 rmarkdown::render(system.file("docs", "AutoReport.rmd", package = "biosplit"),
 									params = list(
-										runs = rep("runMultYearDv020",4),
+										runs = rep("runWithCanada",4),
 										years = c(2011, 2012, 2013, 2014)
 									)
 )
 
 file.copy(system.file("docs", "AutoReport.docx", package = "biosplit"),
-					"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/AutoReportMultiD.docx",
+					"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/AutoReportCanada.docx",
 					overwrite = TRUE)
-
-					
-rmarkdown::render(system.file("docs", "AutoReport.rmd", package = "biosplit"),
-									params = list(
-										runs = rep("runMultYearFv020",4),
-										years = c(2011, 2012, 2013, 2014)
-									)
-)
-
-file.copy(system.file("docs", "AutoReport.docx", package = "biosplit"),
-					"C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/AutoReportMultiF.docx",
-					overwrite = TRUE)
-
-
 
