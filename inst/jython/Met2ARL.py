@@ -21,24 +21,14 @@ def filterList(filter,list):
 			result += [l]
 	return result
 
-configLoc = os.path.dirname(os.path.realpath('__file__')).replace("Python_code","cfg.txt")
-configTxt = open(configLoc)
-raw = configTxt.readlines()[1:]
-cfg = {"x":"hello"}
-for line in raw:
-	nice = line.strip('"').strip('"\n').split(' ="')
-	key = nice[1].strip(' "')
-	if re.search('c\(\\\\',key) is not None:
-		key = re.findall('[^"]+',key)[1::2]
-		
-		cfg.update({nice[0]:key})
+dirIn = sys.argv[1]
+pathOut = sys.argv[2]
 
-#outFile = cfg['MetARLFold']
-outFile = "C:/Users/Siddarta.Jairam/Documents/ARL packed files/2066/NARRCAP/narrcap2066"
-#Get all the files in the directory
+#pathOut = "C:/Users/Siddarta.Jairam/Documents/ARL packed files/2066/NARRCAP/narrcap2066"
+#dirIn = "C:/Users/Siddarta.Jairam/Documents/NARCCAP/2066"
 
 #take file name and splice into a dictionary of:
-#{correspondingARLvariable: file, ncvariable,level,sttimeInd,endtimeInd}
+#{fullFile: var, ncvariable,level}
 
 varDict = {'pr':'TPP3','tas':'T02M','ps':'PRSS','uas':'U10M','vas':'V10M','husnp':'RELH0m',\
 	'hus':'RELH','ua':'UWND','va':'VWND','zg':'HGTS','ta':'TEMP'}
@@ -46,28 +36,36 @@ groundVars = ['PRSS','T02M','U10M','V10M']
 atmVars = ['HGTS','TEMP','UWND','VWND','WWND','RELH']
 
 ncDict = {"x":"hello"}
-#inFold = cfg['NARCCAPFold']
-inFold = 'C:/Users/Siddarta.Jairam/Documents/NARCCAP/2066'
+groundVars = []
+atmVars = []
+levels = []
 
-files = os.listdir(inFold)
+files = os.listdir(dirIn)
 for f in filterList('.nc$',files):
-	print f
 	tok = re.split("[_]",f)
 	ncVar = tok[0]
 	lv = re.match('p\d+',tok[3])
 	if lv is None: 
 		lv = 0
+		groundVars += [varDict[ncVar]]
 	else:
 		lv = int(tok[3].strip('p'))
+		if lv not in levels:
+			levels += [lv]
+		if varDict[ncVar] not in atmVars:
+			atmVars += [varDict[ncVar]]
+			
 # 		if hgt < 700:
 # 			lv = 26-(hgt-50)/50
 # 		else:
 # 			lv = 13-(hgt-700)/25
-	ncDict.update({(inFold + '/' + f):\
-		{'arlVar':varDict[ncVar],'ncVar':ncVar,'level':lv}})
+	ncDict.update({(dirIn + '/' + f):\
+		{'arlVar':varDict[ncVar], 'ncVar':ncVar, 'level':lv}})
 junk = ncDict.pop('x')
-
-print ncDict
+levels += [0]
+print levels
+print atmVars
+print groundVars
 
 #start and end index
 #for now just posit that only the first year is wanted
@@ -79,16 +77,7 @@ Met = MeteoDataInfo()
 #---- Set output ARL data info
 ARLDI = ARLDataInfo()
 #RH = 0.263*p(pa)*spH*1/[exp((17.67*(T-273.15))/(T-29.65))]
-#---- Set variable and level list
-ncvars = ['Pressure_surface','Temperature_height_above_ground',\
-	'u-component_of_wind_height_above_ground','v-component_of_wind_height_above_ground',\
-	'Geopotential_height_isobaric','Temperature_isobaric',\
-	'u-component_of_wind_isobaric','v-component_of_wind_isobaric','Vertical_velocity_pressure_isobaric',\
-	'Relative_humidity_isobaric']
 
-levels = [0,1000,975,950,925,900,875,850,825,800,775,750,700,\
-	650,600,550,500,450,400,350,300,250,225,200,175,150,\
-	125,100,70,50,30,20,10,7,5,3,2,1]
 for lv in levels:
 	ARLDI.levels.add(lv)
 	if lv == 0:
@@ -96,9 +85,9 @@ for lv in levels:
 	else:
 		ARLDI.LevelVarList.add(atmVars)
 
-#---- Write ARL data file
+# Write ARL data file
 
-ARLDI.createDataFile(outFile)
+ARLDI.createDataFile(pathOut)
 
 
 modelName = 'NARRCAP'
@@ -112,12 +101,12 @@ for path, ids in ncDict.iteritems():
 	for ti in range(startInd,endInd):
 		Met.setTimeIndex(ti)
 		atime = NCDI.getTimes().get(ti)
-		dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), modelName, 2)
+		dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), 'FNL1', 2)
 		ARLDI.writeIndexRecord(atime, dataHead)
 		Met.setLevelIndex(ids['level'])
 		ncData = Met.getGridData(ids['ncVar'])
 		if ids['arlVar'] == 'PRSS' or ids['arlVar'] == 'WWND':
-			ncData = ncData.divide(100)
+			ncData = ncData/100
 		if ids['arlVar'] == 'RELH':
 			ncData = ncData
 			#ncData = 0.263*p(pa)*ncData.mult(1/(exp((17.67*(T-273.15))/(T-29.65))))
