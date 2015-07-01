@@ -227,6 +227,53 @@ ncdf2trapgrid <- function(dirSim,
 							)
 }
 
+
+calcFirstOcc <- function(matIn, pathOut = ''){
+	if(grepl("Raster", class(rasIn))){
+		matIn <- raster::as.matrix(matIn)
+		
+	}
+	
+	if(!is.matrix(matIn)){
+		stop(paste("calcFirstOcc wants a matrix or a Raster object, you provided a",
+							 class(matIn)))
+	}
+	
+	
+	matFirst <- vapply(1:dim(matIn)[1], function(xi){
+		vapply(1:dim(matIn)[2], function(yi){
+			arrayOcc <- which(matIn[xi, yi, matIn>0])
+			return(ifelse(length(arrayOcc)>0, arrayOcc[1], NA))
+		},1)
+	}, rep(1,dim(matIn)[2]))
+	
+	return(matFirst)
+	
+}
+
+calcMixingRatio <- function(matFL, matTX, timePeriod = 364){
+	if(grepl("Raster", class(rasIn))){
+		matIn <- raster::as.matrix(matIn)
+		
+	}
+	
+	if(!is.matrix(matIn)){
+		stop(paste("calcMixingRatio wants a matrix or a Raster object, you provided a",
+							 class(matIn)))
+	}
+	
+	
+	matMix <- vapply(1:dim(matIn)[1], function(xi){
+		vapply(1:dim(matIn)[2], function(yi){
+			OccArray <- which(matIn[xi, yi, matIn>0])
+			return(ifelse(length(OccArray)>0, OccArray[1], NA))
+		},1)
+	}, rep(1,dim(matIn)[2]))
+	
+	return(matMix)
+	
+}
+
 openSimNC <- function(dirSim){
 	pathNc <- paste(dirSim, "Final.nc", sep="/")
 	if(!file.exists(pathNc)){

@@ -26,6 +26,13 @@ getDate<- function(month, day, yr){
 	tPos <- strptime(paste(month, day, yr),"%b %d %y")
 	return(strftime(tPos, "%j"))
 }
+
+date2Jul <- function(strIn, format){
+	posTime <- strptime(strIn, format)
+	return(as.integer(strftime(posTime, "%j")))
+}
+
+
 file2year <- function(path){
 	as.numeric(regmatches(path,regexpr("\\d{4}", path)))
 }
