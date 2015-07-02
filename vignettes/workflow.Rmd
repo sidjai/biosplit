@@ -111,6 +111,16 @@ runRscript("iterateHysplit.R")
 
 #Post-processing
 
+```{r}
+pathTrapXlsx <- "C:/Users/Siddarta.Jairam/Documents/Documentation/PestWatchDump.xlsx"
+pathHapXlsx <- "C:/Users/Siddarta.Jairam/Documents/Documentation/hapDat.xlsx"
+pathTrapDict <- "C:/Users/Siddarta.Jairam/Documents/Documentation/County2TrapLoc.csv"
+csvTab <- scrubTrap(pathTrapXlsx, cfg$year)
+
+csvTab <- scrubHaplo(pathHapXlsx, pathTrapdict)
+
+```
+
 Make the tables
 ```{r}
 ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc, shDoSum = TRUE)

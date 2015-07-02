@@ -96,16 +96,6 @@ scrubHaplo <- function(pathXlsx, pathTrapDict,
 			jdSecond[rightInd == 5] <- date2Jul(paste(1,secondHalf[rightInd==5]), "%d -%b")
 			
 			endDay[splitSet] <- jdSecond
-	# 		endDay[splitSet] <- ifelse(rightInd == 1,
-	# 			date2Jul(inDates[splitSet], "%b %M-%d %Y"),
-	# 			ifelse(rightInd == 2,
-	# 						 date2Jul(secondHalf, "-%b%d"),
-	# 						 ifelse(rightInd == 3,
-	# 						 			  date2Jul(inDates[splitSet], "%m/%M-%d"),
-	# 						 			  date2Jul(secondHalf, "-%b")
-	# 						 )
-	# 			)
-	# 		)
 		}
 		
 		id <- cbind(locName, latLon)
@@ -116,7 +106,7 @@ scrubHaplo <- function(pathXlsx, pathTrapDict,
 	}
 	names(outTab) <- NULL
 	
-	if(!nzchar(pathCsvOut)){
+	if(nzchar(pathCsvOut)){
 		write.csv(outTab, file = pathCsvOut)
 	}
 	return(invisible(outTab))
@@ -130,7 +120,19 @@ convDaysAfter1900 <- function(days){
 	return(jd)
 }
 
-scrubTrap <- function(pathXlsx, year, pestType = "faw", minTotCatch = 10){
+#' Scrub the trap data from PestWatch
+#'
+#' @param pathXlsx The path to the xlsx pestwatch dump
+#' @param year The year you want to select
+#' @param pathCsvOut The path for the indivdual horizontal report file that you 
+#' want printed out
+#' @param pestType The insect 3 letter identifier that you want
+#' @param minTotCatch The minimum total catch for the year to be counted
+#'
+#' @return A list of the records that are filtered (in a named list) and the 
+#' csv document written if you have pathCsv supplied
+#' @export
+scrubTrap <- function(pathXlsx, year, pathCsvOut = '', pestType = "faw", minTotCatch = 10){
 	trapColType <- rep("numeric",10)
 	trapColType[4:5] <- "text"
 	trapColType[6] <- "date"
@@ -139,15 +141,9 @@ scrubTrap <- function(pathXlsx, year, pestType = "faw", minTotCatch = 10){
 	
 	sheet <- readxl::read_excel(pathXlsx, sheet = 1, col_types = trapColType)
 	
-	#basic data cutoff
+	usefulEle <- basicTrapCutoff(sheet, year, pestType)[ , -10]
 	
-	inYr <- as.integer(strftime(sheet[,6], "%Y"))
 	
-	badYearSet <- (inYr != year)
-	badPestSet <- !grepl(pestType, sheet[,7])
-	noCountySet <- is.na(sheet[,4])
-	
-	usefulEle <- sheet[!(badYearSet | badPestSet | noCountySet), -10]
 	usefulEle[,6] <- as.integer(strftime(usefulEle[,6], "%j"))
 	
 	usefulEle <- usefulEle[order(usefulEle[,1], usefulEle[,6]),]
@@ -156,7 +152,7 @@ scrubTrap <- function(pathXlsx, year, pestType = "faw", minTotCatch = 10){
 	nextEle <- usefulEle$farmid[-1]
 	
 	farmEndInd <- which(current != nextEle)
-	farmStaInd <- c(as.integer(1), rev(rev(farmInd)[-1]))
+	farmStaInd <- c(as.integer(1), rev(rev(farmEndInd)[-1]))
 	
 	statDat <- t(mapply(function(beg, last){
 		catches <- usefulEle[beg:last, 8]
@@ -178,11 +174,13 @@ scrubTrap <- function(pathXlsx, year, pestType = "faw", minTotCatch = 10){
 	
 	records <- list()
 	for (rind in 1:length(farmEndInd)){
+		notes <- c()
 		rseq <- farmStaInd[rind]:farmEndInd[rind]
 		
 		temp <- getTrapTimeSeries(usefulEle[rseq, 8],
 															usefulEle[rseq, 6], 
 															usefulEle[rseq, 9])
+		
 		
 		
 		newRec <- list(ID = statID[rind],
@@ -193,8 +191,7 @@ scrubTrap <- function(pathXlsx, year, pestType = "faw", minTotCatch = 10){
 									 capTSer = temp[[1]],
 									 notes = temp[[2]]
 		)
-									 
-									 
+		
 		sameCountySet <- grepl(statID[rind], vapply(records,function(x) {x$ID},"e"))
 		if(any(sameCountySet)){
 			oldRecInd <- which(sameCountySet)[1]
@@ -207,16 +204,24 @@ scrubTrap <- function(pathXlsx, year, pestType = "faw", minTotCatch = 10){
 		}
 	}
 	
-	
+	if(nzchar(pathCsvOut)){
+		write.csv(outTab, file = pathCsvOut)
+	}
 	return(invisible(records))
 }
 
 getTrapTimeSeries <- function(catches, jds, periods){
 	days <- seq(8,365,7)
-	notes <- "None"
-	
+	notes <- c()
 	#get rid of articifically low catch periods because of pestWatch limit of 14
-	
+	realPeriods <- (jds[-1] - rev(rev(jds)[-1]))
+	if(all(realPeriods > 14)){
+		notes <- c(notes, sprintf("Old catchperiod: %f, New catchperiod: %f", 
+															mean(periods), 
+															mean(realPeriods)))
+		periods <- realPeriods
+		
+	}
 	#normalize to weekly captures
 	catches <- round(catches * 7 / periods, 1)
 	
@@ -232,6 +237,25 @@ getTrapTimeSeries <- function(catches, jds, periods){
 	tSer <- rep(0, 52)
 	tSer[catInd] <- catches
 	
+	nonZ <- which(tSer!=0)
+	if (any(rev(rev(nonZ)[-1]) + 3 < nonZ[-1])){
+		notes <- c(notes, "Gap of a month or more in FAW Catches")
+	}
+	
 	return(list(tSer, notes))
 	
+}
+
+basicTrapCutoff <- function(sheet, year, pest){
+	inYr <- as.integer(strftime(sheet[,6], "%Y"))
+	
+	badYearSet <- (inYr != year)
+	badPestSet <- !grepl(pest, sheet[,7])
+	noCountySet <- is.na(sheet[,4])
+	tooCanadaSet <- grepl("QC", sheet[,5]) & (sheet[,2] > 44 | sheet[,3] < 78)
+	
+	return(sheet[!(badYearSet | 
+								 badPestSet |
+								 noCountySet | 
+								 tooCanadaSet), ])
 }
