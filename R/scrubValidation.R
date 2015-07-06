@@ -128,11 +128,16 @@ convDaysAfter1900 <- function(days){
 #' want printed out
 #' @param pestType The insect 3 letter identifier that you want
 #' @param minTotCatch The minimum total catch for the year to be counted
+#' @param verboseRawTrap Should the raw captures for each valid record be outputed?
 #'
 #' @return A list of the records that are filtered (in a named list) and the 
 #' csv document written if you have pathCsv supplied
 #' @export
-scrubTrap <- function(pathXlsx, year, pathCsvOut = '', pestType = "faw", minTotCatch = 10){
+scrubTrap <- function(pathXlsx, year,
+											pathCsvOut = '',
+											pestType = "faw",
+											minTotCatch = 10,
+											verboseRawTrap = FALSE){
 	trapColType <- rep("numeric",10)
 	trapColType[4:5] <- "text"
 	trapColType[6] <- "date"
@@ -174,13 +179,12 @@ scrubTrap <- function(pathXlsx, year, pathCsvOut = '', pestType = "faw", minTotC
 	
 	records <- list()
 	for (rind in 1:length(farmEndInd)){
-		notes <- c()
 		rseq <- farmStaInd[rind]:farmEndInd[rind]
 		
 		temp <- getTrapTimeSeries(usefulEle[rseq, 8],
 															usefulEle[rseq, 6], 
 															usefulEle[rseq, 9])
-		
+		notes <- ifelse(length(temp[[2]])>0, paste(temp[[2]], collapse =" ! "), "Good")
 		
 		
 		newRec <- list(ID = statID[rind],
@@ -189,8 +193,16 @@ scrubTrap <- function(pathXlsx, year, pathCsvOut = '', pestType = "faw", minTotC
 									 totCatch = statDat[rind, 1],
 									 firstOcc = statDat[rind, 2],
 									 capTSer = temp[[1]],
-									 notes = temp[[2]]
+									 notes = notes
 		)
+		if (verboseRawTrap){
+			rawMat <- cbind(usefulEle[rseq, 8],
+											usefulEle[rseq, 6], 
+											usefulEle[rseq, 9])
+			colnames(rawMat) <- c("catches", "jds", "periods")
+			rawMat <- rawMat[order(usefulEle[rseq, 6]),]
+			newRec$rawTrap = rawMat
+		}
 		
 		sameCountySet <- grepl(statID[rind], vapply(records,function(x) {x$ID},"e"))
 		if(any(sameCountySet)){
@@ -205,13 +217,21 @@ scrubTrap <- function(pathXlsx, year, pathCsvOut = '', pestType = "faw", minTotC
 	}
 	
 	if(nzchar(pathCsvOut)){
-		write.csv(outTab, file = pathCsvOut)
+		header <- rbind(names(c(records[[1]][1:6], recursive = TRUE)))
+		header[1, 6:57] <- getDayStamp(seq(8,365,7), year)
+		dat <- vapply(records, function(rec){
+			rbind(c(rec[1:6], recursive = TRUE))
+		}, header)
+		dat <- t(dat[1,,])
+		colnames(dat) <- NULL
+		write.table(rbind(header,dat), file = pathCsvOut,
+								sep = ',', col.names = FALSE, row.names = FALSE)
 	}
 	return(invisible(records))
 }
 
 getTrapTimeSeries <- function(catches, jds, periods){
-	days <- seq(8,365,7)
+	
 	notes <- c()
 	#get rid of articifically low catch periods because of pestWatch limit of 14
 	realPeriods <- (jds[-1] - rev(rev(jds)[-1]))
@@ -223,19 +243,20 @@ getTrapTimeSeries <- function(catches, jds, periods){
 		
 	}
 	#normalize to weekly captures
-	catches <- round(catches * 7 / periods, 1)
-	
-	numWeeks <- ceiling(periods / 7)
-	moreWeekSet <- (numWeeks > 1)
-	catches <- c(catches, rep(catches[moreWeekSet], numWeeks[moreWeekSet]))
-	jds <- c(jds, rep(jds[moreWeekSet], numWeeks[moreWeekSet]))
-	
-	catInd <- vapply(jds, function(x){
-		which(days > x)[1]
-	}, 1)
+	normMat <- normalizeWk(catches, jds, periods)
 	
 	tSer <- rep(0, 52)
-	tSer[catInd] <- catches
+	niceMat <- sumDups(normMat)
+	
+	catInd <- niceMat[,1]
+	amtPerWeek <- (niceMat[,"catches"] / niceMat[,"periods"]) * 7
+	
+	tSer[catInd] <- round(amtPerWeek, 1)
+	
+	if( amtPerWeek[order(catInd)][1] > 0 ){
+		notes <- c(notes, "Capture on first week")
+	}
+	
 	
 	nonZ <- which(tSer!=0)
 	if (any(rev(rev(nonZ)[-1]) + 3 < nonZ[-1])){
@@ -258,4 +279,50 @@ basicTrapCutoff <- function(sheet, year, pest){
 								 badPestSet |
 								 noCountySet | 
 								 tooCanadaSet), ])
+}
+sumDups <- function(vin){
+	combineCols <- (2:dim(vin)[2])
+	dupSet <- duplicated(vin[,1])
+	while (any(dupSet)) {
+		dupEle <- vin[which(dupSet)[1],1]
+		dupInds <- (vin[,1] == dupEle)
+		for(co in combineCols){
+			vin[which(dupInds)[1],co] <- sum(vin[dupInds, co])
+		}
+		vin <- vin[-which(dupInds)[-1], ,drop = FALSE]
+		
+		dupSet <- duplicated(vin[,1])
+	}
+	return(vin)
+	
+}
+
+normalizeWk <- function(catches, jds, periods){
+	days <- seq(1,365,7)
+	
+	collectWk <- findInterval(jds, days)
+	begWk <- findInterval(jds-periods, days)
+	
+	resMat <- cbind(collectWk, catches, periods)
+	
+	splitSet <- (collectWk != begWk)
+	
+	for (spl in which(splitSet)){
+		trapSeq <- (jds[spl] - periods[spl] +1) : jds[spl]
+		bins <- findInterval(trapSeq, days)
+		
+		newSplit <- unique(bins)
+		newPeriods <- vapply(newSplit, function(x){
+			sum(bins==x)
+			
+		},1)
+		newCatch <- (catches[spl]/periods[spl]) * newPeriods
+		
+		newRec <- cbind(newSplit, newCatch, newPeriods)
+		
+		resMat[spl,] <- newRec[1,,drop = FALSE]
+		resMat <- rbind(resMat, newRec[-1,,drop = FALSE])
+	}
+	
+	return(resMat)
 }

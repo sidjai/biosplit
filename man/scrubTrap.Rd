@@ -5,7 +5,7 @@
 \title{Scrub the trap data from PestWatch}
 \usage{
 scrubTrap(pathXlsx, year, pathCsvOut = "", pestType = "faw",
-  minTotCatch = 10)
+  minTotCatch = 10, verboseRawTrap = FALSE)
 }
 \arguments{
 \item{pathXlsx}{The path to the xlsx pestwatch dump}
@@ -18,6 +18,8 @@ want printed out}
 \item{pestType}{The insect 3 letter identifier that you want}
 
 \item{minTotCatch}{The minimum total catch for the year to be counted}
+
+\item{verboseRawTrap}{Should the raw captures for each valid record be outputed?}
 }
 \value{
 A list of the records that are filtered (in a named list) and the
