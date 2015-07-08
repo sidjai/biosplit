@@ -5,7 +5,7 @@
 \title{Make the haplotype data easier to look at}
 \usage{
 scrubHaplo(pathXlsx, pathTrapDict, pathCsvOut = "", maskBefore2011 = TRUE,
-  maskYr = c(), maskNumMoth = 15)
+  onlyYr = c(2011, 2012, 2013, 2014), maskNumMoth = 15)
 }
 \arguments{
 \item{pathXlsx}{The path to the xlsx with the Haplotype data}
@@ -16,7 +16,7 @@ scrubHaplo(pathXlsx, pathTrapDict, pathCsvOut = "", maskBefore2011 = TRUE,
 
 \item{maskBefore2011}{should values before 2011 be used?}
 
-\item{maskYr}{An array of the years after 2010 that you want to mask}
+\item{onlyYr}{an array of the years you want to be kept}
 
 \item{maskNumMoth}{The minimum number of moths that are required for a proper Haplotype experiment}
 }

@@ -119,7 +119,7 @@ pathScrubTrap <- "C:/Users/Siddarta.Jairam/Documents/Documentation/scrubTrap.csv
 trapRec <- scrubTrap(pathTrapXlsx, cfg$year)
 
 csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict)
-
+csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict, pathCsvOut = gsub("[.]xlsx", paste0(cfg$year, ".csv"), pathHapXlsx), onlyYr = cfg$year)
 ```
 
 Make the tables
