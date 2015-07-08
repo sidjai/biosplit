@@ -5,7 +5,8 @@
 #'
 #'@param dirSim The simulation output folder 
 #'@param pathTrap The path to the trap location csv file with the 
-#'	lat/lon of all trap locations
+#'	lat/lon of all trap locations or the combined records list with all the data
+#'@param pathHap The path to the haplotype data in a nice csv output of scrubHap
 #'@param useCombined Should the program use the combined Final.nc file 
 #'	or the nc slices in the nc folder to use do the snap shot calculation
 #'@param shWrite Should the function write the horizontal and 
@@ -25,7 +26,7 @@
 #'@export
 ncdf2trapdata <- function(dirSim, 
 													pathTrap,
-													hapDat = NULL,
+													pathHap = NULL,
 													useCombined = TRUE,
 													shDoSum = FALSE,
 													shWrite = TRUE,
@@ -75,9 +76,8 @@ ncdf2trapdata <- function(dirSim,
 	}
 	
 	#Do haplotype data 
-	if (length(hapDat)>0){
-		
-		hapDat <- hapDat[-1, ]
+	if (length(pathHap)>0){
+		hapDat <- as.matrix(read.csv(pathHap))
 		hapDict <- mapply(function(lat, lon){
 			which.min(abs(trapLat - lat) + abs(trapLon - lon))
 		},as.numeric(hapDat[, 2]), as.numeric(hapDat[, 3]))

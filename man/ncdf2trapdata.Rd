@@ -4,14 +4,16 @@
 \alias{ncdf2trapdata}
 \title{Post-processing: Extract model output at trap locations for comparison}
 \usage{
-ncdf2trapdata(dirSim, pathTrap, hapDat = NULL, useCombined = TRUE,
+ncdf2trapdata(dirSim, pathTrap, pathHap = NULL, useCombined = TRUE,
   shDoSum = FALSE, shWrite = TRUE, notes = "")
 }
 \arguments{
 \item{dirSim}{The simulation output folder}
 
 \item{pathTrap}{The path to the trap location csv file with the
-lat/lon of all trap locations}
+lat/lon of all trap locations or the combined records list with all the data}
+
+\item{pathHap}{The path to the haplotype data in a nice csv output of scrubHap}
 
 \item{useCombined}{Should the program use the combined Final.nc file
 or the nc slices in the nc folder to use do the snap shot calculation}
