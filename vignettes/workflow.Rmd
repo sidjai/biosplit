@@ -118,7 +118,7 @@ pathTrapDict <- "C:/Users/Siddarta.Jairam/Documents/Documentation/County2TrapLoc
 pathScrubTrap <- "C:/Users/Siddarta.Jairam/Documents/Documentation/scrubTrap.csv"
 trapRec <- scrubTrap(pathTrapXlsx, cfg$year)
 
-csvTab <- scrubHaplo(pathHapXlsx, pathTrapdict)
+csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict)
 
 ```
 

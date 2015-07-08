@@ -25,7 +25,7 @@
 #'@export
 ncdf2trapdata <- function(dirSim, 
 													pathTrap,
-													hapDat=NULL,
+													hapDat = NULL,
 													useCombined = TRUE,
 													shDoSum = FALSE,
 													shWrite = TRUE,
@@ -64,18 +64,35 @@ ncdf2trapdata <- function(dirSim,
 		trapDat <- pathTrap
 		pathTrap <- "data"
 		trapID <- t(vapply(trapDat, function(x) { c(x[1:2], recursive = TRUE) }, rep("e",3)))
-		xb <- vapply(trapID[, 3], function(x) { trap2block(as.numeric(x),dat$lon) }, 1)
-		yb <- vapply(trapID[, 2], function(y) { trap2block(as.numeric(y),dat$lat) }, 1)
+		trapLat <- as.numeric(trapID[, 2])
+		trapLon <- as.numeric(trapID[, 3])
+		xb <- vapply(trapLon, function(x) { trap2block(x,dat$lon) }, 1)
+		yb <- vapply(trapLat, function(y) { trap2block(y,dat$lat) }, 1)
 		
 		identifiers <- trapID[, 1]
 		
 		trapTSer <- t(vapply(trapDat, function(x){ x$capTSer }, rep(0.5,52)))
 	}
 	
+	#Do haplotype data 
 	if (length(hapDat)>0){
-		#put hapDat in a <dim(trapID)[1],52> grid like everything else
 		
+		hapDat <- hapDat[-1, ]
+		hapDict <- mapply(function(lat, lon){
+			which.min(abs(trapLat - lat) + abs(trapLon - lon))
+		},as.numeric(hapDat[, 2]), as.numeric(hapDat[, 3]))
 		
+		hapRatio <- matrix(data = NA, nrow = length(trapDat), ncol = 52)
+		for (tele in 1:dim(hapDat)[1]){
+			days <- seq(1,365,7)
+			beg <- findInterval(as.numeric(hapDat[tele, "startDay"]), days)
+			last <- findInterval(as.numeric(hapDat[tele, "endDay"]), days)
+			if(is.na(last)) { last <- beg }
+			hapRatio[hapDict[tele], beg:last] <- substr(hapDat[tele, dim(hapDat)[2]], 1,4)
+		}
+		
+		mixRatio <- calcMixingRatio(mod$FLMoth, mod$TXMoth)
+		mixRatio <- t(mapply(function(x,y){ mixRatio[x,y,] }, xb, yb))
 	}
 	
 	#intiatialize the out table
@@ -148,7 +165,7 @@ ncdf2trapdata <- function(dirSim,
 	outh <- addAppendix(outh, dat$assump, dat$simData, nnSet, pathTrap, notFullweekSet, notes)
 	
 	#Now do the vertical output
-	outv <- matrix(nrow = 1, ncol = inSize[2]+7)
+	outv <- matrix(nrow = 1, ncol = inSize[2] + 9)
 	vertNeed <- seq(1, dim(tab)[2]-1)
 	r <- 1
 	blank <- vapply(1:(inSize[2]+1),function(x) "","")
@@ -163,7 +180,9 @@ ncdf2trapdata <- function(dirSim,
 										tSer[r,1],
 										tSer[r+1,1],
 										trapTSer[locInd, 1],
-										"New station"))
+										mixRatio[locInd, 1],
+										hapRatio[locInd, 1],
+										trapDat[[locInd]]$notes))
 		
 		for (ti in 2:52){
 			#outv <- rbind(outv,c(blank,colnames(tSer)[ti],tSer[st,ti]))
@@ -175,7 +194,9 @@ ncdf2trapdata <- function(dirSim,
 											tSer[r,ti],
 											tSer[r+1,ti],
 											trapTSer[locInd, ti],
-											""))
+											mixRatio[locInd, ti],
+											hapRatio[locInd, ti],
+											trapDat[[locInd]]$notes))
 		}
 		r <- r+2
 		
@@ -188,7 +209,9 @@ ncdf2trapdata <- function(dirSim,
 											"FL Moths", 
 											"TX Moths",
 											"Trap Moths",
-											"New")
+											"Sim Mix Ratio",
+											"Trap Hap Ratio",
+											"Trap Notes")
 	
 	outv <- addAppendix(outv, dat$assump, dat$simData, nnSet, pathTrap, notFullweekSet, notes)
 	
@@ -277,24 +300,24 @@ calcFirstOcc <- function(matIn, pathOut = ''){
 	
 }
 
-calcMixingRatio <- function(matFL, matTX, timePeriod = 364){
-	if(grepl("Raster", class(rasIn))){
-		matIn <- raster::as.matrix(matIn)
+calcMixingRatio <- function(matFL, matTX, timePeriod = "week"){
+	if(grepl("Raster", class(matFL))){
+		matIn <- raster::as.matrix(matFL)
 		
 	}
 	
-	if(!is.matrix(matIn)){
-		stop(paste("calcMixingRatio wants a matrix or a Raster object, you provided a",
-							 class(matIn)))
+	if(!is.matrix(matFL) && !is.array(matFL)){
+		stop(paste("calcMixingRatio wants a matrix or array or Raster object, you provided a",
+							 class(matFL)))
 	}
 	
+	interMix <- switch(timePeriod, 
+									 	 week = list(log10(matFL +1), log10(matTX + 1)),
+									   year = list(log10(rowSums(matFL, na.rm = TRUE, dims = 2) +1),
+									   						 log10(rowSums(matTX, na.rm = TRUE, dims = 2) +1))
+	)
+	matMix <- (interMix[[1]] - interMix[[2]]) /(interMix[[1]] + interMix[[2]])
 	
-	matMix <- vapply(1:dim(matIn)[1], function(xi){
-		vapply(1:dim(matIn)[2], function(yi){
-			OccArray <- which(matIn[xi, yi, matIn>0])
-			return(ifelse(length(OccArray)>0, OccArray[1], NA))
-		},1)
-	}, rep(1,dim(matIn)[2]))
 	
 	return(matMix)
 	
