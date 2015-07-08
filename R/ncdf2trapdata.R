@@ -25,6 +25,7 @@
 #'@export
 ncdf2trapdata <- function(dirSim, 
 													pathTrap,
+													hapDat=NULL,
 													useCombined = TRUE,
 													shDoSum = FALSE,
 													shWrite = TRUE,
@@ -46,28 +47,48 @@ ncdf2trapdata <- function(dirSim,
 	}
 	
 	#parse the trap input for the x,y grid points
-	traps <- read.csv(pathTrap, stringsAsFactors=FALSE)
-	lonInd <- grep("on", colnames(traps))
-	lons <- traps[, lonInd]
-	lons[which(lons>0)] <- (-lons[which(lons>0)])
-	xb <- vapply(lons, function(x) trap2block(x,dat$lon),1)
-	yb <- vapply(traps[, grep("ati", colnames(traps))],
-							 function(y) trap2block(y,dat$lat),1)
+	if(is.character(pathTrap)){
+		trapID <- read.csv(pathTrap, stringsAsFactors=FALSE)
+		lonInd <- grep("on", colnames(trapID))
+		lons <- trapID[, lonInd]
+		lons[which(lons>0)] <- (-lons[which(lons>0)])
+		xb <- vapply(lons, function(x) trap2block(x,dat$lon),1)
+		yb <- vapply(trapID[, grep("ati", colnames(trapID))],
+								 function(y) trap2block(y,dat$lat),1)
+		idenInd <- vapply(c("ounty","tate"),function(x) grep(x, names(trapID)), 1 , USE.NAMES = FALSE)
+		identifiers <- paste(trapID[ , idenInd[1]], trapID[ , idenInd[2]], sep = ', ')
+		
+		trapTSer <- NULL
+		
+	} else {
+		trapDat <- pathTrap
+		pathTrap <- "data"
+		trapID <- t(vapply(trapDat, function(x) { c(x[1:2], recursive = TRUE) }, rep("e",3)))
+		xb <- vapply(trapID[, 3], function(x) { trap2block(as.numeric(x),dat$lon) }, 1)
+		yb <- vapply(trapID[, 2], function(y) { trap2block(as.numeric(y),dat$lat) }, 1)
+		
+		identifiers <- trapID[, 1]
+		
+		trapTSer <- t(vapply(trapDat, function(x){ x$capTSer }, rep(0.5,52)))
+	}
 	
+	if (length(hapDat)>0){
+		#put hapDat in a <dim(trapID)[1],52> grid like everything else
+		
+		
+	}
 	
 	#intiatialize the out table
-	inSize <- dim(traps)
+	inSize <- dim(trapID)
 	tab <- matrix(nrow = 2*inSize[1], ncol = inSize[2]+1)
 	tSer <- matrix(nrow = 2*inSize[1], ncol = 52)
 	
 	fi <- 1
 	nnSet <- ""
-	idenInd <- vapply(c("ounty","tate"),function(x) grep(x, names(traps)), 1 , USE.NAMES = FALSE)
 	
 	for (el in seq(1, inSize[1])){
 		for(co in seq(1, inSize[2])){
-			tab[fi,co] <- traps[[co]][[el]]
-			tab[fi+1,co] <- traps[[co]][[el]]
+			tab[fi+1,co] <- tab[fi,co] <- trapID[el, co]
 		}
 		
 		tab[fi, inSize[2]+1] <-"FL"
@@ -82,16 +103,17 @@ ncdf2trapdata <- function(dirSim,
 		#Reasons: Beach area, near national park, dead spot in corn
 		totMoth <- sum(tSer[fi,],tSer[fi+1,])
 		if (totMoth == 0){
-			identifier <- paste(tab[fi , idenInd[1]], tab[fi , idenInd[2]], sep = ', ')
 			nnind <- matrix(data = 0, nrow = 1, ncol = 2)
 			#load up inds
-			dist <- ifelse(grepl("Miami", identifier), 3, 1)
+			dist <- ifelse(grepl("Miami", identifiers[el]), 3, 1)
 			for(xp in seq(xb[el] - dist, xb[el] + dist)){
 				for(yp in seq(yb[el] - dist, yb[el] + dist)){
-					nnind <- rbind(nnind, cbind(xp, yp))
+					if( xp > 0 && xp < length(dat$lon) && yp > 0 && yp < length(dat$lat)){
+						nnind <- rbind(nnind, cbind(xp, yp))
+					}
 				}
 			}
-			nnind <- nnind[-1,]
+			nnind <- nnind[-1, ,drop = FALSE]
 			
 			nnk <- 1
 			while(totMoth==0 && nnk <= dim(nnind)[1]){
@@ -103,7 +125,7 @@ ncdf2trapdata <- function(dirSim,
 			if (nnk <= dim(nnind)[1]){
 				tSer[fi, ] <- nns[1, ]
 				tSer[fi+1, ] <- nns[2, ]
-				nnSet <- c(nnSet, identifier)
+				nnSet <- c(nnSet, identifiers[el])
 			}
 		}
 		
@@ -112,7 +134,7 @@ ncdf2trapdata <- function(dirSim,
 	nnSet <- nnSet[-1]
 	
 	tSer <- tSer[ ,1:52]
-	colnames(tab) <- c(names(traps), "Origin")
+	colnames(tab) <- c(colnames(trapID), "Origin")
 	#write the dates as the column name
 	days <- seq(8,365,7)
 	colnames(tSer) <- getDayStamp(days,year)
@@ -126,19 +148,21 @@ ncdf2trapdata <- function(dirSim,
 	outh <- addAppendix(outh, dat$assump, dat$simData, nnSet, pathTrap, notFullweekSet, notes)
 	
 	#Now do the vertical output
-	outv <- matrix(nrow = 1, ncol = inSize[2]+6)
+	outv <- matrix(nrow = 1, ncol = inSize[2]+7)
 	vertNeed <- seq(1, dim(tab)[2]-1)
 	r <- 1
 	blank <- vapply(1:(inSize[2]+1),function(x) "","")
 	
 	while (r<=dim(tab)[1]){
+		locInd <- (r+1)/2
 		outv <- rbind(outv, 
 									c(tab[r,vertNeed],
 										colnames(tSer)[1], 
 										days[1],
 										1,
-										tSer[r,1], 
-										tSer[r+1,1], 
+										tSer[r,1],
+										tSer[r+1,1],
+										trapTSer[locInd, 1],
 										"New station"))
 		
 		for (ti in 2:52){
@@ -150,6 +174,7 @@ ncdf2trapdata <- function(dirSim,
 											ti,
 											tSer[r,ti],
 											tSer[r+1,ti],
+											trapTSer[locInd, ti],
 											""))
 		}
 		r <- r+2
@@ -161,7 +186,8 @@ ncdf2trapdata <- function(dirSim,
 											"Day",
 											"Week",
 											"FL Moths", 
-											"TX Moths", 
+											"TX Moths",
+											"Trap Moths",
 											"New")
 	
 	outv <- addAppendix(outv, dat$assump, dat$simData, nnSet, pathTrap, notFullweekSet, notes)

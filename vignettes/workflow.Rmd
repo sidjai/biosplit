@@ -116,7 +116,7 @@ pathTrapXlsx <- "C:/Users/Siddarta.Jairam/Documents/Documentation/PestWatchDump.
 pathHapXlsx <- "C:/Users/Siddarta.Jairam/Documents/Documentation/hapDat.xlsx"
 pathTrapDict <- "C:/Users/Siddarta.Jairam/Documents/Documentation/County2TrapLoc.csv"
 pathScrubTrap <- "C:/Users/Siddarta.Jairam/Documents/Documentation/scrubTrap.csv"
-csvTab <- scrubTrap(pathTrapXlsx, cfg$year)
+trapRec <- scrubTrap(pathTrapXlsx, cfg$year)
 
 csvTab <- scrubHaplo(pathHapXlsx, pathTrapdict)
 

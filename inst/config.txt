@@ -24,7 +24,7 @@ HyWorking = C:/hysplit4/working
 ######
 
 year = 2013
-runName = testEggCh
+runName = runWithCanada
 
 #Cropscape m 
 xmin = -1005735

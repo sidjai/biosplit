@@ -4,8 +4,8 @@
 \alias{ncdf2trapdata}
 \title{Post-processing: Extract model output at trap locations for comparison}
 \usage{
-ncdf2trapdata(dirSim, pathTrap, useCombined = TRUE, shDoSum = FALSE,
-  shWrite = TRUE, notes = "")
+ncdf2trapdata(dirSim, pathTrap, hapDat = NULL, useCombined = TRUE,
+  shDoSum = FALSE, shWrite = TRUE, notes = "")
 }
 \arguments{
 \item{dirSim}{The simulation output folder}
