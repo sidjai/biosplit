@@ -61,12 +61,22 @@ scrubHaplo <- function(pathXlsx, pathTrapDict,
 			endDay[daysAfter1900Set] <- convDaysAfter1900(inDates[daysAfter1900Set])
 			startDay[daysAfter1900Set] <- endDay[daysAfter1900Set] - 1
 			
+			justMonthTry <-date2Jul(paste0("1 / ",inDates), "%d / %Y %b")
+			justMonthSet <- !is.na(justMonthTry)
+			startDay[justMonthSet] <- justMonthTry[justMonthSet]
+			endDay[justMonthSet] <- justMonthTry[justMonthSet] + 30
+			
 			splitSet <- grepl("[-]", inDates)
 			
 			if(length(which(splitSet))>0){
 				hyphenLoc <- regexpr("[-]", inDates[splitSet])
 				
-				formatPos <- c("%b %d-%M %Y", "%b%d-", "%m/%d-%M ", "%m/%d-%M/%S","%b-")
+				formatPos <- c("%b %d-%M %Y",
+											 "%b%d-",
+											 "%m/%d-%M ",
+											 "%m/%d-%M/%S",
+											 "%m/%d - %M/%S",
+											 "%b-")
 				
 				guessForm <- vapply(formatPos, function(x){
 					if(grepl("%b-", x)){
@@ -84,6 +94,11 @@ scrubHaplo <- function(pathXlsx, pathTrapDict,
 					which(!is.na(guessForm[x, ]))[1]
 				},1)
 				
+				if( any(is.na(rightInd)) ){
+					stop(paste(paste(inDates[splitSet][is.na(rightInd)], collapse ="\n"),
+										 "were indecipherable add new date string"))
+				}
+					
 				
 				startDay[splitSet] <- guessForm[cbind(splitSeq, rightInd)]
 				
@@ -94,8 +109,8 @@ scrubHaplo <- function(pathXlsx, pathTrapDict,
 				jdSecond[rightInd == 2] <- date2Jul(secondHalf[rightInd==2], "-%b%d")
 				jdSecond[rightInd == 3] <- date2Jul(inDates[splitSet][rightInd==3], "%m/%M-%d ")
 				jdSecond[rightInd == 4] <- date2Jul(inDates[splitSet][rightInd==4], "%S/%M-%m/%d")
-				jdSecond[rightInd == 5] <- date2Jul(paste(1,secondHalf[rightInd==5]), "%d -%b")
-				
+				jdSecond[rightInd == 5] <- date2Jul(inDates[splitSet][rightInd==5], "%S/%M - %m/%d")
+				jdSecond[rightInd == 6] <- date2Jul(paste(1,secondHalf[rightInd==5]), "%d -%b")
 				endDay[splitSet] <- jdSecond
 			}
 			
