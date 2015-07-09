@@ -124,7 +124,7 @@ csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict, pathCsvOut = gsub("[.]xlsx", pas
 
 Make the tables
 ```{r}
-ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc, shDoSum = TRUE)
+ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = TRUE)
 
 runs <- c("runInterYear","runAbsFlightLimit","runFlightAndNight","runNightDurDel")
 pushLoc <- paste('X:/2 WESTBROOK/Sid/Hysplit Out Moth table',cfg$year, sep='/')

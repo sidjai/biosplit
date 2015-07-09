@@ -199,7 +199,7 @@ scrubTrap <- function(pathXlsx, year,
 		rseq <- farmStaInd[rind]:farmEndInd[rind]
 		
 		temp <- getTrapTimeSeries(usefulEle[rseq, 8],
-															usefulEle[rseq, 6], 
+															usefulEle[rseq, 6],
 															usefulEle[rseq, 9])
 		notes <- ifelse(length(temp[[2]])>0, paste(temp[[2]], collapse =" ! "), "Good")
 		
@@ -252,7 +252,8 @@ getTrapTimeSeries <- function(catches, jds, periods){
 	notes <- c()
 	#get rid of articifically low catch periods because of pestWatch limit of 14
 	realPeriods <- (jds[-1] - rev(rev(jds)[-1]))
-	if(all(realPeriods > 14)){
+	realPeriods <- c(realPeriods[1], realPeriods)
+	if(all(periods == 14 & realPeriods > 14)){
 		notes <- c(notes, sprintf("Old catchperiod: %f, New catchperiod: %f", 
 															mean(periods), 
 															mean(realPeriods)))
@@ -315,7 +316,7 @@ sumDups <- function(vin){
 }
 
 normalizeWk <- function(catches, jds, periods){
-	days <- seq(1,365,7)
+	days <- seq(1,364,7)
 	
 	collectWk <- findInterval(jds, days)
 	begWk <- findInterval(jds-periods, days)

@@ -82,11 +82,14 @@ ncdf2trapdata <- function(dirSim,
 			which.min(abs(trapLat - lat) + abs(trapLon - lon))
 		},as.numeric(hapDat[, 2]), as.numeric(hapDat[, 3]))
 		
+		startInd <- grep("Start", colnames(hapDat))
+		endInd <- grep("End", colnames(hapDat))
+		
 		hapRatio <- matrix(data = NA, nrow = length(trapDat), ncol = 52)
 		for (tele in 1:dim(hapDat)[1]){
 			days <- seq(1,365,7)
-			beg <- findInterval(as.numeric(hapDat[tele, "startDay"]), days)
-			last <- findInterval(as.numeric(hapDat[tele, "endDay"]), days)
+			beg <- findInterval(as.numeric(hapDat[tele, startInd]), days)
+			last <- findInterval(as.numeric(hapDat[tele, endInd]), days)
 			if(is.na(last)) { last <- beg }
 			hapRatio[hapDict[tele], beg:last] <- substr(hapDat[tele, dim(hapDat)[2]], 1,4)
 		}
