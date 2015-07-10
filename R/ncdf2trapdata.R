@@ -253,6 +253,7 @@ ncdf2trapgrid <- function(dirSim,
 	
 	dat <- openSimNC(dirSim)
 	mod <- dat$sim
+	year <- file2year(dirSim)
 	
 	if(shUseSum){
 		mod <- rebuildNc(dirSim, dim(mod$TXMoth), year, TRUE)
@@ -267,13 +268,13 @@ ncdf2trapgrid <- function(dirSim,
 	
 	
 	predMat <- if(shDoMix){
-		calcMixingRatio(mod$FLMoth, mod$TXMoth)
 		varName <- "Mixing Ratio"
 		unitName <- "unitless"
+		calcMixingRatio(mod$FLMoth, mod$TXMoth, timePeriod = "year")
 	} else {
-		calcFirstOcc(mod$FLMoth, mod$TXMoth)
 		varName <- "First week of Arrival"
 		unitName <- "wk"
+		calcFirstOcc(mod$FLMoth, mod$TXMoth)
 	}
 	
 	
@@ -311,10 +312,10 @@ calcFirstOcc <- function(matFL, matTX){
 	
 	
 	matFirst <- vapply(1:dim(matFL)[1], function(xi){
-		vapply(1:dim(matIn)[2], function(yi){
-			firstObv <- min(which(matFL[xi,yi,] > 0)[1],
-											which(matTX[xi,yi,] > 0)[1],
-											na.rm = TRUE)
+		vapply(1:dim(matFL)[2], function(yi){
+			firstObv <- pmin.int(which(matFL[xi,yi,] > 0)[1],
+													 which(matTX[xi,yi,] > 0)[1],
+													 na.rm = TRUE)
 			return(ifelse(is.infinite(firstObv),NA,firstObv))
 		},1)
 	}, rep(1,dim(matTX)[2]))
@@ -387,9 +388,9 @@ checkInMat <- function(input){
 		input <- raster::as.matrix(input)
 	}
 	
-	if(!is.matrix(input)){
-		stop(sprintf("%s wants a matrix or a Raster object, you provided a %s",
-								 callingFun,
+	if(!is.array(input)){
+		stop(sprintf("%s wants an array or a Raster object, you provided a %s",
+								 paste0(callingFun),
 								 class(input)))
 	}
 	return(input)

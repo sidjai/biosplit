@@ -154,6 +154,18 @@ mean(abs(predObv[,,]),na.rm=TRUE)
 
 ```
 
+Do some stats on the final output
+
+```{r}
+ncdf2trapgrid(cfg$SimOutFold,
+							pathOut = paste(cfg$SimOutFold, "SimFirstOcc.nc",sep='/'),
+							shUseSum = TRUE)
+ncdf2trapgrid(cfg$SimOutFold,
+							pathOut = paste(cfg$SimOutFold, "SimMixRatio.nc",sep='/'),
+							shDoMix = TRUE,
+							shUseSum = TRUE)
+
+```
 
 Make the maps
 require scripter
