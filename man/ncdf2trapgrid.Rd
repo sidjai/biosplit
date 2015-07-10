@@ -2,10 +2,11 @@
 % Please edit documentation in R/ncdf2trapdata.R
 \name{ncdf2trapgrid}
 \alias{ncdf2trapgrid}
-\title{Post-processing: Compare the output with the gridded trap data}
+\title{Post-processing: Summarize the simulation details in a nicely mapped format}
 \usage{
-ncdf2trapgrid(dirSim, pathTrapGrid, pathOut,
-  goodProj = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+ncdf2trapgrid(dirSim, pathTrapGrid = "", pathOut = "",
+  goodProj = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs",
+  shDoMix = FALSE, shUseSum = FALSE)
 }
 \arguments{
 \item{dirSim}{The simulation output folder}
@@ -15,12 +16,19 @@ ncdf2trapgrid(dirSim, pathTrapGrid, pathOut,
 \item{pathOut}{The path where the nc file should be saved}
 
 \item{goodProj}{The projection of the target raster}
+
+\item{shDoMix}{Should the mixing ratio be calculated or the First occurance?}
+
+\item{shUseSum}{Should the procedure use the summation of the week or the snapshot?}
 }
 \value{
-A raster of the difference between the simulation and the trap data
-which is also saved in the path specified as an nc file
+A raster of the selected analysis method. If the pathOut is specified,
+Then the raster is outputed as an netCDF file with proper variable names and units
 }
 \description{
-Compares the grided first occurance of the traps with the output first occurance
+Either do the time of first Occurance, or the Mixing Ratio for either the
+simulation or the difference between the simulation and the trap data.
+Also can be used with either the snapshot view or the summation for the whole
+week.
 }
 

@@ -5,7 +5,7 @@
 \title{Post-processing: Extract model output at trap locations for comparison}
 \usage{
 ncdf2trapdata(dirSim, pathTrap, pathHap = NULL, useCombined = TRUE,
-  shDoSum = FALSE, shWrite = TRUE, notes = "")
+  shUseSum = FALSE, shWrite = TRUE, notes = "")
 }
 \arguments{
 \item{dirSim}{The simulation output folder}
@@ -18,7 +18,7 @@ lat/lon of all trap locations or the combined records list with all the data}
 \item{useCombined}{Should the program use the combined Final.nc file
 or the nc slices in the nc folder to use do the snap shot calculation}
 
-\item{shDoSum}{Go through the individual slices and sum up for the week
+\item{shUseSum}{Go through the individual slices and sum up for the week
 instead of using the combined file}
 
 \item{shWrite}{Should the function write the horizontal and

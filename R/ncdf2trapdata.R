@@ -11,7 +11,7 @@
 #'	or the nc slices in the nc folder to use do the snap shot calculation
 #'@param shWrite Should the function write the horizontal and 
 #'	vertical csv files or just return the horizontal matrix
-#'@param shDoSum Go through the individual slices and sum up for the week 
+#'@param shUseSum Go through the individual slices and sum up for the week 
 #'	instead of using the combined file
 #'@param notes A vector or string of any notes that should be included in the
 #'	appendix
@@ -28,7 +28,7 @@ ncdf2trapdata <- function(dirSim,
 													pathTrap,
 													pathHap = NULL,
 													useCombined = TRUE,
-													shDoSum = FALSE,
+													shUseSum = FALSE,
 													shWrite = TRUE,
 													notes = ""){
 	
@@ -42,7 +42,7 @@ ncdf2trapdata <- function(dirSim,
 	
 	if (!useCombined) mod <- rebuildNc(dirSim, dim(mod$TXMoth), year)
 	
-	if(shDoSum){
+	if(shUseSum){
 		mod <- rebuildNc(dirSim, dim(mod$TXMoth), year, TRUE)
 		names(mod)[3] <- 'fullWeek'
 	}
@@ -158,7 +158,7 @@ ncdf2trapdata <- function(dirSim,
 	#write the dates as the column name
 	days <- seq(8,365,7)
 	colnames(tSer) <- getDayStamp(days,year)
-	notFullweekSet <- if(shDoSum){
+	notFullweekSet <- if(shUseSum){
 		getDayStamp(days[!mod$fullWeek],year)
 	} else {
 		FALSE
@@ -219,7 +219,7 @@ ncdf2trapdata <- function(dirSim,
 	outv <- addAppendix(outv, dat$assump, dat$simData, nnSet, pathTrap, notFullweekSet, notes)
 	
 	if(shWrite){
-		prepend <- ifelse(shDoSum,'Sum','Snap')
+		prepend <- ifelse(shUseSum,'Sum','Snap')
 		write.csv(outh, paste0(pathOut, prepend, "H.csv"), row.names=FALSE)
 		write.csv(outv, paste0(pathOut, prepend, "V.csv"), row.names=FALSE)
 	} else {
@@ -227,27 +227,37 @@ ncdf2trapdata <- function(dirSim,
 	}
 }
 
-#'Post-processing: Compare the output with the gridded trap data
+#'Post-processing: Summarize the simulation details in a nicely mapped format
 #'
-#'Compares the grided first occurance of the traps with the output first occurance
+#'Either do the time of first Occurance, or the Mixing Ratio for either the 
+#'simulation or the difference between the simulation and the trap data.
+#'Also can be used with either the snapshot view or the summation for the whole
+#'week.
 #'
 #'@param dirSim The simulation output folder 
 #'@param pathTrapGrid The path to the trap grd location
 #'@param pathOut The path where the nc file should be saved
 #'@param goodProj The projection of the target raster
-#'@return A raster of the difference between the simulation and the trap data 
-#'which is also saved in the path specified as an nc file
+#'@param shDoMix Should the mixing ratio be calculated or the First occurance?
+#'@param shUseSum Should the procedure use the summation of the week or the snapshot?
+#'@return A raster of the selected analysis method. If the pathOut is specified,
+#'Then the raster is outputed as an netCDF file with proper variable names and units
 #'@import raster
 #'@export
 ncdf2trapgrid <- function(dirSim, 
-													pathTrapGrid,
-													pathOut,
-													goodProj = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'){
-	
-	trapRas <- raster(pathTrapGrid)
-	projection(trapRas) <- goodProj
+													pathTrapGrid = '',
+													pathOut ='',
+													goodProj = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs',
+													shDoMix = FALSE,
+													shUseSum = FALSE){
 	
 	dat <- openSimNC(dirSim)
+	mod <- dat$sim
+	
+	if(shUseSum){
+		mod <- rebuildNc(dirSim, dim(mod$TXMoth), year, TRUE)
+		names(mod)[3] <- 'fullWeek'
+	}
 	
 	boBox <- extent(dat$lon[1], rev(dat$lon)[1], rev(dat$lat)[1], dat$lat[1])
 	niceGrid <- raster(boBox,
@@ -255,64 +265,67 @@ ncdf2trapgrid <- function(dirSim,
 										 ncols = dim(dat$lon)[1],
 										 crs = goodProj)
 	
-	trapMat <- as.matrix(resample(trapRas, niceGrid))
 	
-	extDim <- dim(dat$sim$TXMoth)
-	predMat <- vapply(1:extDim[1], function(xi){
-		vapply(1:extDim[2], function(yi){
-			firstObv <- min(which(dat$sim$TXMoth[xi,yi,] > 0)[1],
-											which(dat$sim$FLMoth[xi,yi,] > 0)[1],
-											na.rm = TRUE)
-			return(ifelse(is.infinite(firstObv),NA,firstObv))
-		},1)
-	},rep(1,extDim[2]))
+	predMat <- if(shDoMix){
+		calcMixingRatio(mod$FLMoth, mod$TXMoth)
+		varName <- "Mixing Ratio"
+		unitName <- "unitless"
+	} else {
+		calcFirstOcc(mod$FLMoth, mod$TXMoth)
+		varName <- "First week of Arrival"
+		unitName <- "wk"
+	}
 	
-	resMat <- predMat - trapMat
-	resRas <- raster(resMat, template = niceGrid)
 	
-	writeRaster(resRas,
-							filename = pathOut,
-							format="CDF",
-							varname = "Pred-obv",
-							varunit = "wk",
-							overwrite=TRUE
-							)
+	if(nzchar(pathTrapGrid)){
+		trapRas <- raster(pathTrapGrid)
+		projection(trapRas) <- goodProj
+		trapMat <- as.matrix(resample(trapRas, niceGrid))
+		
+		resMat <- predMat - trapMat
+		resRas <- raster(resMat, template = niceGrid)
+		varName <- paste(varName, "(Pred-obv)")
+		
+	} else {
+		resRas <- raster(predMat, template = niceGrid)
+		varName <- paste(varName, "(Pred)")
+	}
+	
+	if(nzchar(pathOut)){
+		writeRaster(resRas,
+								filename = pathOut,
+								format="CDF",
+								varname = varName,
+								varunit = unitName,
+								overwrite=TRUE
+		)
+		
+	}
+	return(invisible(resRas))
 }
 
 
-calcFirstOcc <- function(matIn, pathOut = ''){
-	if(grepl("Raster", class(rasIn))){
-		matIn <- raster::as.matrix(matIn)
-		
-	}
-	
-	if(!is.matrix(matIn)){
-		stop(paste("calcFirstOcc wants a matrix or a Raster object, you provided a",
-							 class(matIn)))
-	}
+calcFirstOcc <- function(matFL, matTX){
+	matFL <- checkInMat(matFL)
+	matTX <- checkInMat(matTX)
 	
 	
-	matFirst <- vapply(1:dim(matIn)[1], function(xi){
+	matFirst <- vapply(1:dim(matFL)[1], function(xi){
 		vapply(1:dim(matIn)[2], function(yi){
-			arrayOcc <- which(matIn[xi, yi, matIn>0])
-			return(ifelse(length(arrayOcc)>0, arrayOcc[1], NA))
+			firstObv <- min(which(matFL[xi,yi,] > 0)[1],
+											which(matTX[xi,yi,] > 0)[1],
+											na.rm = TRUE)
+			return(ifelse(is.infinite(firstObv),NA,firstObv))
 		},1)
-	}, rep(1,dim(matIn)[2]))
+	}, rep(1,dim(matTX)[2]))
 	
 	return(matFirst)
 	
 }
 
 calcMixingRatio <- function(matFL, matTX, timePeriod = "week"){
-	if(grepl("Raster", class(matFL))){
-		matIn <- raster::as.matrix(matFL)
-		
-	}
-	
-	if(!is.matrix(matFL) && !is.array(matFL)){
-		stop(paste("calcMixingRatio wants a matrix or array or Raster object, you provided a",
-							 class(matFL)))
-	}
+	matFL <- checkInMat(matFL)
+	matTX <- checkInMat(matTX)
 	
 	interMix <- switch(timePeriod, 
 									 	 week = list(log10(matFL +1), log10(matTX + 1)),
@@ -366,6 +379,22 @@ getDayStamp <- function(jd, yr, outPat = ' %m/%d/%y'){
 		outPat)
 }
 
+checkInMat <- function(input){
+	
+	callingFun <- as.list(sys.call(-1))[[1]]
+	
+	if(grepl("Raster", class(input))){
+		input <- raster::as.matrix(input)
+	}
+	
+	if(!is.matrix(input)){
+		stop(sprintf("%s wants a matrix or a Raster object, you provided a %s",
+								 callingFun,
+								 class(input)))
+	}
+	return(input)
+	
+}
 
 addAppendix <- function(res,
 												assump,
