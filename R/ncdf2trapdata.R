@@ -277,6 +277,7 @@ ncdf2trapgrid <- function(dirSim,
 		calcFirstOcc(mod$FLMoth, mod$TXMoth)
 	}
 	
+	if(shDoMix) predMat[is.nan(predMat)] <- NA
 	
 	if(nzchar(pathTrapGrid)){
 		trapRas <- raster(pathTrapGrid)
@@ -288,7 +289,7 @@ ncdf2trapgrid <- function(dirSim,
 		varName <- paste(varName, "(Pred-obv)")
 		
 	} else {
-		resRas <- raster(predMat, template = niceGrid)
+		resRas <- raster(t(predMat), template = niceGrid)
 		varName <- paste(varName, "(Pred)")
 	}
 	
@@ -311,14 +312,14 @@ calcFirstOcc <- function(matFL, matTX){
 	matTX <- checkInMat(matTX)
 	
 	
-	matFirst <- vapply(1:dim(matFL)[1], function(xi){
+	matFirst <- t(vapply(1:dim(matFL)[1], function(xi){
 		vapply(1:dim(matFL)[2], function(yi){
 			firstObv <- pmin.int(which(matFL[xi,yi,] > 0)[1],
 													 which(matTX[xi,yi,] > 0)[1],
 													 na.rm = TRUE)
 			return(ifelse(is.infinite(firstObv),NA,firstObv))
 		},1)
-	}, rep(1,dim(matTX)[2]))
+	}, rep(1,dim(matTX)[2])))
 	
 	return(matFirst)
 	
