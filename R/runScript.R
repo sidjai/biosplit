@@ -26,11 +26,11 @@ makeRunFun <- function(driver, ext){
 	
 	driver <- if(langFlag == 1){
 		#R scripts
-		 quoteSt(paste(driver, "bin", "Rscript.exe", sep='/'))
+		 quoteIt(paste(driver, "bin", "Rscript.exe", sep='/'))
 	} else if(langFlag ==2){
-		paste(quoteSt(paste(driver, "Scripter", "Scripter.exe", sep="/")), "-x")
+		paste(quoteIt(paste(driver, "Scripter", "Scripter.exe", sep="/")), "-x")
 	} else {
-		quoteSt(paste(driver, "meteoinfo.bat", sep="/"))
+		quoteIt(paste(driver, "meteoinfo.bat", sep="/"))
 	}
 	
 	return(function(scrName, args="",
@@ -46,7 +46,7 @@ makeRunFun <- function(driver, ext){
 		
 		command <- paste("CD", scrDir)
 		
-		command[2] <- paste(driver, scrName, paste(quoteSt(args, ext), collapse = " "))
+		command[2] <- paste(driver, scrName, paste(quoteIt(args), collapse = " "))
 		
 		input <- paste(command,collapse=" && ")
 		if(verbose > 0){
@@ -60,6 +60,6 @@ makeRunFun <- function(driver, ext){
 		
 	})
 }
-quoteSt <- function(instr, tok){
+quoteIt <- function(instr){
 	paste0("\"", instr, "\"")
 }

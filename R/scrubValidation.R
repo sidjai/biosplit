@@ -124,7 +124,8 @@ scrubHaplo <- function(pathXlsx, pathTrapDict,
 	names(outTab) <- NULL
 	
 	if(nzchar(pathCsvOut)){
-		write.table(outTab, file = pathCsvOut, sep = ',', row.names = FALSE, col.names = FALSE)
+		outTab[,1] <- quoteIt(outTab[,1])
+		write.table(outTab, file = pathCsvOut, sep = ',', row.names = FALSE, col.names = FALSE, quote = FALSE)
 	}
 	return(invisible(outTab))
 }
@@ -240,9 +241,10 @@ scrubTrap <- function(pathXlsx, year,
 			rbind(c(rec[1:6], recursive = TRUE))
 		}, header)
 		dat <- t(dat[1,,])
+		dat[,1] <- quoteIt(dat[,1])
 		colnames(dat) <- NULL
-		write.table(rbind(header,dat), file = pathCsvOut,
-								sep = ',', col.names = FALSE, row.names = FALSE)
+		write.table(rbind(header, dat), file = pathCsvOut,
+								sep = ',', row.names = FALSE, col.names = FALSE, quote = FALSE)
 	}
 	return(invisible(records))
 }
