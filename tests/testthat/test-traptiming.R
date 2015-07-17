@@ -12,16 +12,23 @@ test_that("Time series gets rid of duplicates", {
 	expect_equal(dim(thing)[1] -2 , dim(res)[1])
 	expect_equal(4, res[1, 3 ])
 	
-	
 })
-
 
 test_that("Time series spliting up into weekly captures",{
 	normMat <- normalizeWk(catches, jds, periods)
 	expect_equal(sum(normMat[,2]), sum(catches))
 	expect_equal(sum(normMat[,3]), sum(periods))
 
+})
 
+test_that("Time series does not include early stuff", {
+	normMat <- normalizeWk(10, 1, 20)
+	expect_equal(sum(normMat[,2]), 0)
+	
+})
 
-
+test_that("Time series does extend past the year", {
+	normMat <- normalizeWk(10, 999, 5)
+	expect_equal(any(normMat[,1]>52), FALSE)
+	
 })

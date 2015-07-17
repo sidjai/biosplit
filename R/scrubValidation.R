@@ -54,7 +54,7 @@ scrubHaplo <- function(pathXlsx, pathTrapDict,
 				}, rep('e',2), USE.NAMES = FALSE))
 			
 			startDay <- endDay <- rep(1,dim(latLon)[1])
-			inDates <- usefulEle$`collection date`
+		inDates <- usefulEle$`collection date`
 			
 			daysAfter1900Set <- grepl("^[0-9]+$",inDates)
 			
@@ -69,49 +69,9 @@ scrubHaplo <- function(pathXlsx, pathTrapDict,
 			splitSet <- grepl("[-]", inDates)
 			
 			if(length(which(splitSet))>0){
-				hyphenLoc <- regexpr("[-]", inDates[splitSet])
-				
-				formatPos <- c("%b %d-%M %Y",
-											 "%b%d-",
-											 "%m/%d-%M ",
-											 "%m/%d-%M/%S",
-											 "%m/%d - %M/%S",
-											 "%b-")
-				
-				guessForm <- vapply(formatPos, function(x){
-					if(grepl("%b-", x)){
-						date2Jul(paste(1, inDates[splitSet]), paste("%d", x))
-					} else {
-						date2Jul(inDates[splitSet], x)
-					}
-					
-				},which(splitSet))
-				
-				guessForm <- makeRowVec(guessForm)
-				splitSeq <- 1:dim(guessForm)[1]
-				
-				rightInd <- vapply(splitSeq, function(x){
-					which(!is.na(guessForm[x, ]))[1]
-				},1)
-				
-				if( any(is.na(rightInd)) ){
-					stop(paste(paste(inDates[splitSet][is.na(rightInd)], collapse ="\n"),
-										 "were indecipherable add new date string"))
-				}
-					
-				
-				startDay[splitSet] <- guessForm[cbind(splitSeq, rightInd)]
-				
-				secondHalf <- substr(inDates[splitSet], hyphenLoc, nchar(inDates[splitSet]))
-				
-				jdSecond <- rightInd
-				jdSecond[rightInd == 1] <- date2Jul(inDates[splitSet][rightInd==1], "%b %M-%d %Y")
-				jdSecond[rightInd == 2] <- date2Jul(secondHalf[rightInd==2], "-%b%d")
-				jdSecond[rightInd == 3] <- date2Jul(inDates[splitSet][rightInd==3], "%m/%M-%d ")
-				jdSecond[rightInd == 4] <- date2Jul(inDates[splitSet][rightInd==4], "%S/%M-%m/%d")
-				jdSecond[rightInd == 5] <- date2Jul(inDates[splitSet][rightInd==5], "%S/%M - %m/%d")
-				jdSecond[rightInd == 6] <- date2Jul(paste(1,secondHalf[rightInd==5]), "%d -%b")
-				endDay[splitSet] <- jdSecond
+				lout <- parseSplitDate(inDates[splitSet])
+				startDay[splitSet] <- lout[[1]]
+				endDay[splitSet] <- lout[[2]]
 			}
 			
 			id <- cbind(locName, latLon)
@@ -136,6 +96,55 @@ convDaysAfter1900 <- function(days){
 	dayOff <-  realYr * 365 + floor(realYr/4)
 	jd <- (days - dayOff)
 	return(jd)
+}
+parseSplitDate <- function(sDates){
+	
+	hyphenLoc <- regexpr("[-]", sDates)
+	
+	formatPos <- c("%b %d-%M %Y",
+								 "%b%d-",
+								 "%m/%d-%M ",
+								 "%m/%d-%M/%S",
+								 "%m/%d - %M/%S",
+								 "%b-")
+	
+	guessForm <- vapply(formatPos, function(x){
+		if(grepl("%b-", x)){
+			date2Jul(paste(1, sDates), paste("%d", x))
+		} else {
+			date2Jul(sDates, x)
+		}
+		
+	}, rep(1,length(sDates)))
+	
+	guessForm <- makeRowVec(guessForm)
+	splitSeq <- 1:dim(guessForm)[1]
+	
+	rightInd <- vapply(splitSeq, function(x){
+		which(!is.na(guessForm[x, ]))[1]
+	},1)
+	
+	if( any(is.na(rightInd)) ){
+		stop(paste(paste(sDates[is.na(rightInd)], collapse ="\n"),
+							 "were indecipherable add new date string"))
+	}
+	
+	
+	startDay <- guessForm[cbind(splitSeq, rightInd)]
+	
+	secondHalf <- substr(sDates, hyphenLoc, nchar(sDates))
+	
+	jdSecond <- rightInd
+	jdSecond[rightInd == 1] <- date2Jul(sDates[rightInd==1], "%b %M-%d %Y")
+	jdSecond[rightInd == 2] <- date2Jul(secondHalf[rightInd==2], "-%b%d")
+	jdSecond[rightInd == 3] <- date2Jul(sDates[rightInd==3], "%m/%M-%d ")
+	jdSecond[rightInd == 4] <- date2Jul(sDates[rightInd==4], "%S/%M-%m/%d")
+	jdSecond[rightInd == 5] <- date2Jul(sDates[rightInd==5], "%S/%M - %m/%d")
+	jdSecond[rightInd == 6] <- date2Jul(paste(secondHalf[rightInd==6], 1), "-%b %d")
+	endDay <- jdSecond
+	
+	return(list(startDay, endDay))
+	
 }
 
 #' Scrub the trap data from PestWatch
@@ -322,6 +331,13 @@ normalizeWk <- function(catches, jds, periods){
 	
 	collectWk <- findInterval(jds, days)
 	begWk <- findInterval(jds-periods, days)
+	tooEarlySet <- (begWk == 0) | (collectWk ==0)
+	
+	collectWk <- collectWk[!tooEarlySet]
+	jds <- jds[!tooEarlySet]
+	begWk <- begWk[!tooEarlySet]
+	periods <- periods[!tooEarlySet]
+	catches <- catches[!tooEarlySet]
 	
 	resMat <- cbind(collectWk, catches, periods)
 	
