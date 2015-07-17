@@ -7,11 +7,13 @@ Sub Main
 
 	Dim yr As Double
 	Dim addMap As Object
+	Dim valid As Object
 	Dim fillType As String
 	Dim popDes(3) As String
 	Dim myLevels() As Double
-	Dim colorsRed() As Integer
-	Dim colorsBlue() As Integer
+	Dim colArr() As Integer
+	Dim bLimits() As Double
+	Dim symTypes(4) As Integer
 	Dim args(3) As String
 
 
@@ -34,8 +36,8 @@ Wend
 Debug.Print (args(0))
 Debug.Print (args(1))
 
-numLevels = CInt(args(1))
-shUseColor = CBool(InStr(args(2), "color"))
+numLevels = CInt(args(1)) +1
+shUseColor = CInt(CBool(InStr(args(2), "color")))
 shDoClassPost = CBool(InStr(args(3), "/"))
 
 lastSlashInd = InStrRev(args(0), "/")
@@ -53,10 +55,9 @@ pathOutSrf = mainFol & "/" & ncDes & ".srf"
 pathOutJpeg =  mainFol & "/jpeg/Contours/"  & ncDes & ".jpg"
 fillType = "Solid"
 
-ReDim colorsRed(0 To numLevels) As Integer
-ReDim colorsBlue(0 To numLevels) As Integer
+ReDim colArr(0 To numLevels, 0 To 2) As Integer
 ReDim myLevels(0 To numLevels) As Double
-
+ReDim bLimits(0 To numLevels*2 - 2) As Double
 templateName = "C:\Users\Siddarta.Jairam\Documents\Documentation\tempOutL.srf"
 colorMapName = "C:\Users\Siddarta.Jairam\Documents\Documentation\Result Files\out.clr"
 'Open template
@@ -68,7 +69,7 @@ Set States = myPlot.Shapes.Item(frameIndex)
 beg=1
 
 
-legy = States.Top-.68*States.Height
+legy = States.Top-.6*States.Height
 legx = States.Left+(32.9/45)*States.Width
 texy = States.Top-.85*States.Height
 texx = States.Left+(5/45)*States.Width
@@ -83,38 +84,73 @@ If (IsObject(frame)) Then
 	Set addMap = OverlayStuff(frameIndex,frame)
 	zmax = addMap.Grid.zMax
 	zmin = addMap.Grid.zMin
-	slope = (zmax - zmin)/ numLevels
-	slopeRGB = 500 / numLevels
+	slope = (zmax - zmin)/ (numLevels - 2)
+	slopeRGB = 500 / (numLevels - 1)
+	slopeBW = 200 / (numLevels - 1)
+	eps = .0001
 
 	myLevels(0) = zmin
-	colorsRed(0) = 250
-	colorsBlue(0) = 0
+	myLevels(1) = zmin + eps
+
+
 	For i = 1 To numLevels
-		myLevels(i) = myLevels(i-1) + slope
-		If (i/numLevels <= 0.5) Then
-			colorsRed(i) = colorsRed(i-1)  - slopeRGB
-			colorsBlue(i) = 0
-		Else
-			colorsRed(i) = 0
-			colorsBlue(i) = colorsRed(i-1)  +  slopeRGB
+		If (i > 1) Then
+			myLevels(i) = myLevels(i-1) + slope
+		End If
+
+		If (i = 2) Then
+			myLevels(i) = myLevels(i) - eps
 		End If
 	Next
+	myLevels(numLevels-1) = zmax - eps
 	myLevels(numLevels) = zmax
-	colorsRed(numLevels) = 0
-	colorsBlue(numLevels) = 250
+
+	If (CBool(shUseColor)) Then
+
+		colArr(0,0) = 250 :	colArr(0,1) = 0 : colArr(0,2) = 0
+		For i = 1 To numLevels
+			If (i/numLevels < 0.5) Then
+				colArr(i,0) = colArr(i-1,0)  - slopeRGB
+				colArr(i,1) = 0 : colArr(i,2) = 0
+			ElseIf (i/numLevels = 0.5) Then
+				colArr(i,1) = 50
+				colArr(i,0) = 0 : colArr(i,2) = 0
+			Else
+				colArr(i,2) = colArr(i-1,2)  + slopeRGB
+				colArr(i,0) = 0 : colArr(i,1) = 0
+			End If
+		Next
+		colArr(numLevels, 0 ) = 0 : colArr(numLevels,1) = 0 : colArr(numLevels,2) = 250
+
+	Else
+
+		colArr(0,0) = 0 :	colArr(0,1) = 0 : colArr(0,2) = 0
+		For i = 1 To numLevels
+
+			colArr(i,0) = colArr(i-1,0)  + slopeBW
+			colArr(i,1) = colArr(i-1,1)  + slopeBW
+			colArr(i,2) = colArr(i-1,2)  + slopeBW
+		Next
+
+		colArr(numLevels, 0 ) = 200 : colArr(numLevels,1) = 200 : colArr(numLevels,2) = 200
+
+
+	End If
 
 	With addMap
 
 
 		.Levels.Set(Levels:=myLevels)
 
-		.LabelFont.Size = 10
+		.LabelFont.Size = 9
 		.LabelFont.Bold = True
 		.LabelFont.BackColorRGBA.Opacity = 100
+		.LabelLabelDist = 0.7
+		.LabelEdgeDist = 0.3
 
 		'.LabelFormat.Type = srfLabFixed
-		'.LabelFormat.TrimExponent = True
-		'.LabelFormat.NumDigits = 0
+		.LabelFormat.TrimExponent = True
+		.LabelFormat.NumDigits = 2
 
 		.Levels.SetLabelFrequency( FirstIndex:=1, NumberToSet:=1, NumberToSkip:=0 )
 
@@ -124,28 +160,111 @@ If (IsObject(frame)) Then
 
 		'.FillForegroundColorMap.Reverse()
 		'.FillForegroundColorMap.SetDataLimits(5,1*10^15)
-		.SmoothContours = srfConSmoothLow
+		.SmoothContours = srfConSmoothHigh
 		.ApplyFillToLevels(FirstIndex:=1, NumberToSet:=1, NumberToSkip:=0)
 
 		For eInd= 1 To addMap.Levels.Count
 			With .Levels.Item(eInd)
-				.Fill.ForeColorRGBA.Red = colorsRed(eInd -1)
-				.Fill.ForeColorRGBA.Blue = colorsBlue(eInd -1)
-				.Fill.ForeColorRGBA.Green = 0
-				.Fill.ForeColorRGBA.Opacity = 50
+				dat = addMap.Levels.Item(eInd).Value
+				With .Fill.ForeColorRGBA
+
+					.Red = colArr(eInd - 1, 0)
+					.Green = colArr(eInd - 1, 1)
+					.Blue = colArr(eInd - 1, 2)
+
+					If (dat = -1 Or dat = (1- eps)) Then
+						.Opacity = 50
+					Else
+						.Opacity = 50
+					End If
+				End With
+
 
 				.Line.Width = 0.015
+
+				If ( Abs(Abs(dat)-.5) < 0.4 ) Then
+					.Line.ForeColor = srfColorBlack30
+					.Line.Width = 0.01
+				End If
+
 				.ShowLabel = 1
 			End With
 		Next
 
 	End With
 
+	If (shDoClassPost) Then
+		Set valid = myPlot.Shapes.AddClassedPostMap2(args(3), xCol:= 3, yCol:= 2, zCol:= 8)
+
+
+		Set addMap = OverlayStuff(1, valid)
+		numBins = CLng(numLevels - 1)
+		addMap.NumClasses = numBins
+
+		symTypes(0) = 12 'Circle
+		symTypes(1) = 33 'Star
+		symTypes(2) = 6 'Diamond
+		symTypes(3) = 10 'Square
+		symTypes(4) = 18 'Triangle
+
+
+		bLimits(0) = 0
+		bLimits(1) = .5
+
+		For sym = 2 To numBins
+			bLimits(sym*2-2) = bLimits(sym*2-3)
+			bLimits(sym*2-1) = bLimits(sym*2-2)  + 0.5
+		Next
+
+		bLimits(numBins*2 -1) = 20
+
+		With addMap
+			.SetBinLimits(Limits:=bLimits)
+			.ShowLegend = True
+
+
+			'.LabelFont.Size = 10
+			'.LabelFont.Bold = True
+			'.LabelFormat.Type = srfLabFixed
+			'.LabelFormat.TrimExponent = True
+			'.LabelFormat.NumDigits = 2
+
+		End With
+
+		Debug.Print addMap.NumClasses
+		For sym= 1 To numBins
+			With addMap.BinSymbol(sym)
+				.Set = "GSI Default Symbols"
+				.Index = symTypes(CInt((sym Mod 5)))
+				.Size =0.1
+				.Color = RGB(colArr(sym+1, 0), colArr(sym+1, 1) , colArr(sym+1, 2))
+				.LineColor = srfColorBlack
+			End With
+		Next
+		With addMap.Legend
+			.Title = "Haplotype Ratio (h2/h4)"
+			.SetZOrder(srfZOToBack)
+			.SetZOrder(srfZOForward)
+			.Top =legy
+			.Left = legx
+			.FrameStyle = srfLegFrameNone
+
+			With .LabelFormat
+				.NumDigits = 2
+				.Thousands = True
+				.TrimExponent = True
+			End With
+		End With
+
+
+
+	End If
+
 	If (IsObject(addMap)) Then
 
 		myPlot.Shapes.AddText(texx,texy, finalDes).Font.Size = 14
 		outfile = outFol + ncDes + ".jpg"
-		myPlot.Export2(pathOutJpeg,Options:="HDPI=160,VDPI=160, Quality=100", FilterId:="jpg")
+		myPlot.Export2(pathOutJpeg,Options:="HDPI=300,VDPI=300, Quality=100", FilterId:="jpg")
 	End If
 End If
 'Save result
