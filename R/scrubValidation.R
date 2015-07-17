@@ -99,52 +99,57 @@ convDaysAfter1900 <- function(days){
 }
 parseSplitDate <- function(sDates){
 	
+	startDay <- endDay <- rep(-9999, length(sDates))
+	
 	hyphenLoc <- regexpr("[-]", sDates)
+	firstHalf <- substr(sDates, 1, hyphenLoc -1)
+	secondHalf <- substr(sDates, hyphenLoc + 1, nchar(sDates))
 	
-	formatPos <- c("%b %d-%M %Y",
-								 "%b%d-",
-								 "%m/%d-%M ",
-								 "%m/%d-%M/%S",
-								 "%m/%d - %M/%S",
-								 "%b-")
+	cmpYear <- grepl("\\d{5}",sDates)
+	sDates[cmpYear] <- substr(sDates[cmpYear],
+	                              1, nchar(sDates[cmpYear]) - 4)
+	numSlashes <- getNumSymbol(sDates, "[/]")
+	numMonths <- getNumSymbol(sDates, "[a-zA-Z]")/3
 	
-	guessForm <- vapply(formatPos, function(x){
-		if(grepl("%b-", x)){
-			date2Jul(paste(1, sDates), paste("%d", x))
-		} else {
-			date2Jul(sDates, x)
-		}
+	
+	form <- (numSlashes == 0 & numMonths == 2)
+	if(any(form)){
+		stTok <- ifelse(0 < getNumSymbol(firstHalf[form], "[0-9]"),
+		                firstHalf[form],
+		                paste0(firstHalf[form], 1))
+		endTok <- gsub("\\d{4}","", secondHalf[form])
+		endTok <- ifelse(0 < getNumSymbol(endTok, "[0-9]"),
+		                 endTok,
+			               paste0(endTok, 1))
 		
-	}, rep(1,length(sDates)))
-	
-	guessForm <- makeRowVec(guessForm)
-	splitSeq <- 1:dim(guessForm)[1]
-	
-	rightInd <- vapply(splitSeq, function(x){
-		which(!is.na(guessForm[x, ]))[1]
-	},1)
-	
-	if( any(is.na(rightInd)) ){
-		stop(paste(paste(sDates[is.na(rightInd)], collapse ="\n"),
-							 "were indecipherable add new date string"))
+		startDay[form] <- date2Jul(stTok, "%b%d")
+		endDay[form] <- date2Jul(endTok, "%b%d")
 	}
 	
+	form <- (numSlashes == 0 & numMonths == 1)
+	startDay[form] <- date2Jul(sDates[form], "%b %d-%M")
+	endDay[form] <- date2Jul(sDates[form], "%b %M-%d")
 	
-	startDay <- guessForm[cbind(splitSeq, rightInd)]
+	form <- (numSlashes == 1)
+	startDay[form] <- date2Jul(sDates[form], "%m/%d-%M")
+	endDay[form] <- date2Jul(sDates[form], "%m/%M-%d")
 	
-	secondHalf <- substr(sDates, hyphenLoc, nchar(sDates))
+	form <- (numSlashes >= 2)
+	startDay[form] <- date2Jul(sDates[form], "%m/%d - %M/%S")
+	endDay[form] <- date2Jul(sDates[form], "%S/%M - %m/%d")
 	
-	jdSecond <- rightInd
-	jdSecond[rightInd == 1] <- date2Jul(sDates[rightInd==1], "%b %M-%d %Y")
-	jdSecond[rightInd == 2] <- date2Jul(secondHalf[rightInd==2], "-%b%d")
-	jdSecond[rightInd == 3] <- date2Jul(sDates[rightInd==3], "%m/%M-%d ")
-	jdSecond[rightInd == 4] <- date2Jul(sDates[rightInd==4], "%S/%M-%m/%d")
-	jdSecond[rightInd == 5] <- date2Jul(sDates[rightInd==5], "%S/%M - %m/%d")
-	jdSecond[rightInd == 6] <- date2Jul(paste(secondHalf[rightInd==6], 1), "-%b %d")
-	endDay <- jdSecond
-	
+	badSet <- (is.na(startDay) | is.na(endDay))
+	if(any(badSet)){
+		stop(paste("indecipherable dates:", paste(sDates[badSet], collapse = '\n')))
+	}
 	return(list(startDay, endDay))
 	
+}
+getNumSymbol <- function(sin, format){
+	
+	vapply(gregexpr(format, sin), function(x){
+		length(which(x>0))
+	},1)
 }
 
 #' Scrub the trap data from PestWatch
