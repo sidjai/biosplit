@@ -307,7 +307,7 @@ ncdf2trapgrid <- function(dirSim,
 }
 
 
-calcFirstOcc <- function(matFL, matTX){
+calcFirstOcc <- function(matFL, matTX = array(0, dim = dim(matFL))){
 	matFL <- checkInMat(matFL)
 	matTX <- checkInMat(matTX)
 	

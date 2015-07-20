@@ -25,28 +25,7 @@ addCropArea <- function(pathIn, shapeAdd, cropAmt, pathOut = ''){
 		pathIn
 	}
 	
-	addLatLon <- switch(class(shapeAdd),
-											character = if(!grepl("kml", shapeAdd)){
-												"not a supported extension"
-											} else {
-												if(!file.exists(shapeAdd)){
-													"not in existence"
-												} else {
-													layer <- gsub("[.]kml", '', basename(shapeAdd))
-													raster::rasterToPoints(
-														raster::raster(
-															rgdal::readOGR(shapeAdd, layer, verbose=FALSE),
-															resolution = raster::res(orgDat)
-														)
-													)
-												}
-											},
-											matrix = shapeAdd,
-											"not a defined class")
-	
-	if(length(addLatLon) == 0 ) stop("Input grid is empty")
-	
-	if(is.character(addLatLon)) stop(paste("Input was", addLatLon))
+	addLatLon <- readKML(shapeAdd, raster::res(orgDat))
 	
 	desLen <- length(addLatLon[,1])
 	inLen <- length(cropAmt)
@@ -78,4 +57,66 @@ addCropArea <- function(pathIn, shapeAdd, cropAmt, pathOut = ''){
 	}
 	
 	return(invisible(newDat))
+}
+
+#' simAreaStats: Interrogate the final simulation on specific areas
+#' 
+#' This post processing process allows the user to analyze regions instead of
+#' the entire US. A number of statistics are outputted as elements in a list.
+#'
+#' @param pathShape The path to a kml polygon to define the extent
+#' @inheritParams ncdf2trapdata
+#' 
+#' @return a list of the first occurance for both the populations and the
+#' mixing area for the entire area and the entire year
+#' @export
+simAreaStats <- function(dirSim, pathShape){
+	
+	simTX <- raster::stack(paste0(dirSim, "/Final.nc"), varname = "TXMoth")
+	simFL <- raster::stack(paste0(dirSim, "/Final.nc"), varname = "FLMoth")
+	
+	
+	areaMask <- readKML(pathShape, res(simTX))
+	
+	resMask <- raster::rasterize(areaMask, simTX,
+		field = 1,
+		fun = sum,
+		background = NA)
+	
+	
+	sliceTX <- as.array(mask(simTX, resMask))
+	sliceFL <- as.array(mask(simFL, resMask))
+	
+	firstOccFL <- min(calcFirstOcc(sliceFL), na.rm = TRUE)
+	firstOccTX <- min(calcFirstOcc(sliceTX), na.rm = TRUE)
+	totMix <- round(mean(calcMixingRatio(sliceFL, sliceTX), na.rm = TRUE), 2)
+	
+	return(list(firstOccFL = firstOccFL, firstOccTX = firstOccTX, totMix = totMix))
+}
+
+readKML <- function(shapeIn, outRes){
+	latLon <- switch(class(shapeIn),
+		character = if(!grepl("kml", shapeIn)){
+			"not a supported extension"
+		} else {
+			if(!file.exists(shapeIn)){
+				"not in existence"
+			} else {
+				layer <- gsub("[.]kml", '', basename(shapeIn))
+				raster::rasterToPoints(
+					raster::raster(
+						suppressWarnings(rgdal::readOGR(shapeIn, layer, verbose=FALSE)),
+						resolution = outRes
+					)
+				)
+			}
+		},
+		matrix = shapeIn,
+		"not a defined class")
+	
+	if(length(latLon) == 0) stop("Input grid is empty")
+	if(is.character(latLon)) stop(paste("Input was", latLon))
+	
+	return(latLon)
+	
 }

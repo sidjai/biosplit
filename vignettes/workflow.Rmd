@@ -167,6 +167,13 @@ ncdf2trapgrid(cfg$SimOutFold,
 
 ```
 
+Interogate specific areas in the output
+
+```{r}
+simAreaStats(cfg$SimOutFold, "C:/Users/Siddarta.Jairam/Documents/Documentation/Central PA.kml")
+
+```
+
 Make the maps
 require scripter
 ```{r}
