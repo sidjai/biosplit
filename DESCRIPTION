@@ -2,12 +2,11 @@ Package: biosplit
 Title: Model for continental seasonal migration of insects
 Version: 0.2.0.9000
 Authors@R: c(
-    person('Siddarta', 'Jairam', email = 'sidjsb@gmail.com', role = c("aut","cre"))
-    person('John', 'Westbrook', email = 'john.westbrook@ars.usda.gov', role = "cre")
-    person('Shelby', 'Fleischer', email = 'sjf4@psu.edu', role = "sad")
-    person('Rob', 'Meagher', email = 'rob.meagher@ars.usda.gov', role = "sad")
-    person('Rodney', 'Nagoshi', email = 'rodney.nagoshi@ars.usda.gov', role = "sad")
-)
+    person('Siddarta', 'Jairam', email = 'sidjsb@gmail.com', role = c("aut","cre")),
+    person('John', 'Westbrook', email = 'john.westbrook@ars.usda.gov', role = "ctb"),
+    person('Shelby', 'Fleischer', email = 'sjf4@psu.edu', role = "sad"),
+    person('Rob', 'Meagher', email = 'rob.meagher@ars.usda.gov', role = "sad"),
+    person('Rodney', 'Nagoshi', email = 'rodney.nagoshi@ars.usda.gov', role = "sad"))
 Description: A combination of a biological model for growth and the physical model of migration. The biological model comes from the growth cycles of a migratory moth (Fall Armyworm) using growing degree days and corn production measurements. The migration model is for passive 	dispersion of particles coming from the HYSPLIT model created by US NOAA. To get these 	programs to talk to one another, a network of pre processing and post processing has been developed and included. The result is a model that can account for the biological and atmospheric parts of national moth migration. This program was supported by USDA project number 6036-22000-025-06. 
 Depends: R (>= 3.1.1)
 BugReports: https://github.com/sidjai/biosplit/issues
