@@ -2,6 +2,9 @@ updateCntList <- function(lst,name){
 	lst[[name]] <- length(lst)+1
 	return(lst)
 }
+file2year <- function(path){
+	as.numeric(regmatches(path,regexpr("\\d{4}", path)))
+}
 dispVar <- function(var){
 	cat(paste(deparse(substitute(var)),var,sep=' = '),'\n')
 }
@@ -127,11 +130,23 @@ findDiff <- function(vecvars, labelCol, compareInd=1:length(vecvars)){
 	return(diff)
 }
 
-cleanLabel <- function(x){
-	x <- gsub('/', ' ', x)
-	x <- gsub(".grd", '', x)
-	x <- gsub("run", '', x)
-	return(x)
+cleanAllLabels <- function(mtin){
+	for (d in 1:length(dim(mtin))){
+		dimnames(mtin)[[d]] <- cleanLabel(dimnames(mtin)[[d]])
+	}
+	return(mtin)
 }
+
+cleanLabel <- function(sin){
+	numSlashes <- length(which(gregexpr("[/]", sin)[[1]]>0))
+	if(numSlashes>2){
+		sin <- file2year(sin)
+	} else {
+		sin <- gsub('/', ' ', sin)
+		sin <- gsub(".grd", '', sin)
+		sin <- gsub(".kml", '', sin)
+		sin <- gsub("run", '', sin)
+	}
 	
-	
+	return(sin)
+}

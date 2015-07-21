@@ -72,7 +72,7 @@ kable(as.data.frame(simDiff),align='c')
 figList <- updateCntList(figList,"jpgTable")
 ```
 
-Here is the output:
+Here is the contour plots of the different runs at different times of the year:
 
 ####Table `r figList$jpgTable`. Contour plots of instaneous snapshots of the Moth population in the different runs at specific times throughout the migration time for FAW throughout late spring to fall.
 ```{r fig.height=(20/length(rwyear)), fig.width=(6.5), message=FALSE, fig.show='hold'}
@@ -95,7 +95,40 @@ contours <- vapply(conPaths,function(pth){
 mosaicImage(contours,labelx=rwyear,labely=dates,offsetx=.08,marb=.2,marl=.11)
 ```
 
+There are 5 main areas of mixing that are of interest to this project; Southern Missippi and Alabama along the gulf (Southern MSAL), Northern Missippi and Alabama near the tail end of the applachian mountains (Northern MSAL), Eastern PA near the eastern seaboard (Eastern PA), Central Pennsylvania in the plains region (Central PA), and Western Pennsylvania near Lake Erie (Western PA). One of the analysis that will be used in this project is the first occurance of a population in that area (firstOcc). For this use the defined area is the area of interest where most other times it will be done per grid cell. The other tool will be the mixing ratio of the two populations in the area of interest. This is defined as follows:
+
+$$Mix_{ratio} =\frac{\log_{10} (FLMoth + 1) - \log_{10} (TXMoth + 1)}{\log_{10} (FLMoth + 1) + \log_{10} (TXMoth + 1)}$$
+
+This is done to normalize the output on a range of -1 (All TX moths) to 1 (all FL moths). Also this puts it on a similar scale as the Haplotype ratio h2/h4 which goes from 0 (All TX) to > 2 (mostly FL) with the mixing region between 0.5 to 1.5. For this example the Moth populations in question will be all moths in the region summed over the entire year. The basic use is to do the calculation for every grid cell for every week of the year. Below is the summary for each of the regions and these values.
+
+```{r}
+bareas <- "C:/Users/Siddarta.Jairam/Documents/Documentation/"
+areas <- c("Southern MSAL.kml", "Northern MSAL.kml", "Western PA.kml", "Central PA.kml", "Eastern PA.kml")
+regStats <- vapply(fullDir,function(f){
+	vapply(areas, function(area){
+		return(c(simAreaStats(f, paste0(bareas, area)),recursive=TRUE))
+	},rep(1,3))
+	
+},matrix(0,nrow=3,ncol=length(areas)))
+mixTable <- cleanAllLabels(t(regStats[3,,]))
+arrFLTable <- cleanAllLabels(t(regStats[1,,]))
+arrTXTable <- cleanAllLabels(t(regStats[2,,]))
+arrFinal <- matrix(paste(arrFLTable, arrTXTable, sep=', '),
+	nrow=nrow(arrFLTable),
+	dimnames=dimnames(arrFLTable))
+figList <- updateCntList(figList,"mixTable")
+figList <- updateCntList(figList,"arrTable")
+```
+
+####Table `r figList$mixTable`. The mixing ratio of the simulation in specific regions. The spatial range is the region and the temporal range is a summation of the whole year. The result is the average of this range.
+`r kable(mixTable)`
+
+####Table `r figList$arrTable`. The first arrival for both populations in the specific regions. The spatial range is the region. The week of first occurance in any location in the spatial range is reported as the pair (FL first occurance, TX first occurance)
+`r kable(arrFinal)`
+
+
 #Validation
+
 
 A simple measure that can be used to assess the accuracy of the model is to compare it to observed trap captures. These values were collected via PestWatch for 66 locations East of the Rockies. These were then turned into a regular grid of first occurrence values using krieging spatial averaging. This was compared with the first occurrences of the simulation and shown in the table below. 
 
@@ -111,24 +144,22 @@ trapGrid <- "2013firstOccTrap.grd"
 trapGridTypes <- c(trapGrid, 
 									 gsub("Trap", "TrapSoft", trapGrid),
 									 gsub("Trap", "TrapStrict", trapGrid))
-valTab <- vapply(rwyear, function(x){
-	direc <- paste(params$dirSim, x, sep='/')
-	
-	vapply(trapGridTypes, function(trapPath){
-		predObv <- ncdf2trapgrid(direc,
-														 paste0(trapGridFold,trapPath),
-														 paste(direc, "Sim-TrapFirstOcc.nc",sep='/')
-		)
-		#The spatial average distance between the weeks
-		mean(abs(predObv[,]),na.rm=TRUE)
-	},1)
-	
-},rep(1,3))
-
-colnames(valTab) <- cleanLabel(colnames(valTab))
-rownames(valTab) <- cleanLabel(rownames(valTab))
-
-kable(valTab)
+# valTab <- vapply(rwyear, function(x){
+# 	direc <- paste(params$dirSim, x, sep='/')
+# 	
+# 	vapply(trapGridTypes, function(trapPath){
+# 		predObv <- ncdf2trapgrid(direc,
+# 														 paste0(trapGridFold,trapPath),
+# 														 paste(direc, "Sim-TrapFirstOcc.nc",sep='/')
+# 		)
+# 		#The spatial average distance between the weeks
+# 		mean(abs(predObv[,]),na.rm=TRUE)
+# 	},1)
+# 	
+# },rep(1,3))
+# 
+# valTab <- cleanAllLabels(valTab)
+# kable(valTab)
 ```
 
 The strict blanking is taking out all the traps that had moths in their traps on the first week which does not prove that it is the first week of occurrence. The soft blanking is blanking the values that are outliers. Right now the clear outliers are at the beginning of the simulation in North Florida and central TX. This could be because of the overwintering population definition may be different than reality due to effects of other crops or warmer areas near the coast. Another reason could be because of having year round crops in certain areas that is not accounted for. There could also be a safe haven region in central TX and Florida where moths could survive and live through the winter without overwintering.
@@ -142,13 +173,13 @@ figList <- updateCntList(figList,"firstOccMap")
 ####Table `r figList$firstOccMap`. The spatial distribution of the differences between the predicted simulation values and the gridded trap capture values. Negative (red) represents and early simulation while positive (blue) values represent a late simulation
 
 ```{r fig.height=(32/4), fig.width=(6.5) , message=FALSE, fig.show='hold'}
-runScripter <- makeRunFun(goldLoc, "BAS")
-valid <- vapply(rwyear, function(des){
-		direc <- paste(params$dirSim, des, sep='/')
-		runScripter("ncdf2contour.BAS", direc, verbose = 0)
-		return(paste(direc, "jpeg", "Contours", "Sim-TrapFirstOcc.jpg", sep='/'))
-	},'e')
-
-mosaicImage(valid,labelx=rep("Strict",4), labely=rwyear,
-						offsetx=0, marb=.05, marl=.35, leftAlignYaxis = TRUE)
+# runScripter <- makeRunFun(goldLoc, "BAS")
+# valid <- vapply(rwyear, function(des){
+# 		direc <- paste(params$dirSim, des, sep='/')
+# 		runScripter("ncdf2contour.BAS", direc, verbose = 0)
+# 		return(paste(direc, "jpeg", "Contours", "Sim-TrapFirstOcc.jpg", sep='/'))
+# 	},'e')
+# 
+# mosaicImage(valid,labelx=rep("Strict",4), labely=rwyear,
+# 						offsetx=0, marb=.05, marl=.35, leftAlignYaxis = TRUE)
 ```
