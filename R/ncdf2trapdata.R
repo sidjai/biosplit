@@ -25,11 +25,11 @@
 #'	outputs the summation of less than 7 files anyway.
 #'@export
 ncdf2trapdata <- function(dirSim, 
-													pathTrap,
-													pathHap = NULL,
-													useCombined = TRUE,
-													shUseSum = FALSE,
-													shWrite = TRUE,
+                          pathTrap,
+                          pathHap = NULL,
+                          useCombined = TRUE,
+                          shUseSum = FALSE,
+                          shWrite = TRUE,
 													notes = ""){
 	
 	pathNc <- paste(dirSim, "Final.nc", sep="/")
@@ -77,22 +77,7 @@ ncdf2trapdata <- function(dirSim,
 	
 	#Do haplotype data 
 	if (length(pathHap)>0){
-		hapDat <- as.matrix(read.csv(pathHap))
-		hapDict <- mapply(function(lat, lon){
-			which.min(abs(trapLat - lat) + abs(trapLon - lon))
-		},as.numeric(hapDat[, 2]), as.numeric(hapDat[, 3]))
-		
-		startInd <- grep("Start", colnames(hapDat))
-		endInd <- grep("End", colnames(hapDat))
-		
-		hapRatio <- matrix(data = NA, nrow = length(trapDat), ncol = 52)
-		for (tele in 1:dim(hapDat)[1]){
-			days <- seq(1,365,7)
-			beg <- findInterval(as.numeric(hapDat[tele, startInd]), days)
-			last <- findInterval(as.numeric(hapDat[tele, endInd]), days)
-			if(is.na(last)) { last <- beg }
-			hapRatio[hapDict[tele], beg:last] <- substr(hapDat[tele, dim(hapDat)[2]], 1,4)
-		}
+		hapRatio <- parseHapData(pathHap, trapLat, trapLon)
 		
 		mixRatio <- calcMixingRatio(mod$FLMoth, mod$TXMoth)
 		mixRatio <- t(mapply(function(x,y){ mixRatio[x,y,] }, xb, yb))
@@ -340,6 +325,39 @@ calcMixingRatio <- function(matFL, matTX, timePeriod = "week"){
 	return(matMix)
 	
 }
+
+parseHapData <- function(pathHap, trapLat, trapLon, shAvgYear = FALSE){
+	hapDat <- switch(class(pathHap),
+		character = as.matrix(read.csv(pathHap)),
+		matrix = pathHap[-1,],
+		stop(sprintf("ParseHapData requires a path or the matrix of the data. You provided a %c",
+			character(pathHap)))
+	)
+		
+	hapDict <- mapply(function(lat, lon){
+		which.min(abs(trapLat - lat) + abs(trapLon - lon))
+	},as.numeric(hapDat[, 2]), as.numeric(hapDat[, 3]))
+	
+	startInd <- grep("Start", colnames(hapDat), ignore.case = TRUE)
+	endInd <- grep("End", colnames(hapDat), ignore.case = TRUE)
+	
+	hapRatio <- matrix(data = NA, nrow = length(trapLat), ncol = 52)
+	for (tele in 1:dim(hapDat)[1]){
+		days <- seq(1,365,7)
+		beg <- findInterval(as.numeric(hapDat[tele, startInd]), days)
+		last <- findInterval(as.numeric(hapDat[tele, endInd]), days)
+		if(is.na(last)) { last <- beg }
+		hapRatio[hapDict[tele], beg:last] <- as.numeric(substr(hapDat[tele, dim(hapDat)[2]], 1,4))
+	}
+	
+	if(shAvgYear){
+	  return(round(rowMeans(hapRatio, na.rm = TRUE), 2))
+	} else {
+		return(hapRatio)
+	}
+}
+
+
 
 openSimNC <- function(dirSim){
 	pathNc <- paste(dirSim, "Final.nc", sep="/")

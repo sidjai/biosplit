@@ -263,6 +263,112 @@ scrubTrap <- function(pathXlsx, year,
 	return(invisible(records))
 }
 
+#' Summarize the validation data
+#'
+#' @param trapIn Either the path to the pest watch dump,
+#'  the csv of the scrubing result,
+#'  or the list of trap records
+#' @param year numerical year where the data should be extracted
+#' @param hapDat The haplotype data as the path to the csv output of the scrubbing
+#'  or the matrix of the csv data.
+#' @param addDat additional data that you want to be included that must have the
+#'  same row numbers as the original trap data. Either a vector or
+#'  a list of vectors of the multiple pieces of data that you want to combine.
+#' @param pathCsvOut the path of the csv that will be outputted
+#' @param firstMethod How should the first Occurance be calculated? Either
+#'  using the "real" method that takes the first time moths were actually captured,
+#'  or the "pred" method that gets the first time the trap record could have traps in 
+#'  in that grid cell as determined by the length of the catch period.
+#'
+#' @return outputs a matrix of the csv output or if pathCsvOut is specified, 
+#'  works as a byproduct by writing a csvFile
+#' @export
+summarizeValid <- function(trapIn, year,
+	hapIn = NULL,
+	addDat = NULL,
+	pathCsvOut = "",
+	firstMethod = c("real", "pred")[1]) {
+	
+	days <- seq(1, 365, 7)
+	
+	trapDat <- switch(class(trapIn),
+		character = if(grepl("[.]xlsx", trapIn)){
+			scrubTrap(trapIn, year)
+			
+		} else {
+			read.csv(trapIn, stringsAsFactors = FALSE)
+		},
+		trapIn)
+	if(!(grepl("real", firstMethod) || grepl("pred", firstMethod))){
+		stop(paste("summarizeValid requires a first Occurance method of either",
+			"the first time a capture was reported (real) or",
+			"the first time where moths could reside in the location",
+			"based on the trap record and period of capture (pred),",
+			"you provided", firstMethod)
+		)
+	}
+	
+	notes <- switch(class(trapDat),
+		list = t(vapply(trapDat, function(rec){ cbind(rec$ID, rec$notes) }, rep("",2))),
+		matrix = cbind(trapDat[,1], trapDat[,dim(trapDat)[2]])
+	)
+	
+	trapXYZ <- switch(class(trapDat),
+		list = t(vapply(trapDat, function(rec){
+			switch(firstMethod,
+				real = c(rec$latlon, findInterval(rec$firstOcc, days)),
+				pred = c(rec$latlon, which(rec$capTSer > 0)[1])
+			)
+		},rep(.5, 3))),
+		matrix = {
+			realInd <- grep("firstOcc", colnames(trapDat))
+			firstOcc <- switch(firstMethod,
+				real = findInterval(trapDat[,realInd], days),
+				pred = {
+					dat <- trapDat[, (realInd + 1):(dim(trapDat)[2]-1)]
+					vapply(1:dim(dat)[1], function(row){
+						which(dat[row,] > 0)[1] 
+					}, 1)
+				}
+			)
+			cbind(trapDat[,2], trapDat[,3], firstOcc)
+		}
+	)
+	sumDat <- trapXYZ
+	
+	#Haplotype data
+	if(!is.null(hapIn)){
+		hapRatio <- parseHapData(hapIn, 
+			trapXYZ[,1],
+			trapXYZ[,2],
+			shAvgYear = TRUE)
+		sumDat <- cbind(trapXYZ, hapRatio)
+	}
+	
+	
+	if(!is.null(addDat)){
+		if(!is.list(addDat)) addDat <- list(addDat)
+		
+		for(dInd in 1:length(addDat)){
+			numRec <- dim(sumDat)[1]
+			numRecIn <- dim(addDat)[1]
+			if(numRec != numRecIn){
+				stop(paste("addDat number",
+					dInd, "had", numRecIn, "records when it needed", numRec))
+			}
+			
+			sumDat <- cbind(sumDat, addDat[[dInd]])
+		}
+	}
+	
+	sumDat <- cbind(notes[,1], sumDat, notes[,2])
+	
+	if(nzchar(pathCsvOut)){
+		write.csv(sumDat, pathCsvOut, row.names=FALSE)
+	}
+	return(sumDat)
+}
+
 getTrapTimeSeries <- function(catches, jds, periods){
 	
 	notes <- c()

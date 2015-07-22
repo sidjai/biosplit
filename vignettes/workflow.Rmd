@@ -122,6 +122,15 @@ csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict)
 csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict, pathCsvOut = gsub("[.]xlsx", paste0(cfg$year, ".csv"), pathHapXlsx), onlyYr = cfg$year)
 ```
 
+Summarze the validation
+
+```{r}
+sumTab <- summarizeValid(trapRec, cfg$year, hapIn = csvTab)
+
+
+```
+
+
 Make the tables
 ```{r}
 ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = TRUE)
