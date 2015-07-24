@@ -351,7 +351,9 @@ parseHapData <- function(pathHap, trapLat, trapLon, shAvgYear = FALSE){
 	}
 	
 	if(shAvgYear){
-	  return(round(rowMeans(hapRatio, na.rm = TRUE), 2))
+		fullYear <- round(rowMeans(hapRatio, na.rm = TRUE), 2)
+		fullYear[is.nan(fullYear)] <- NA
+	  return(fullYear)
 	} else {
 		return(hapRatio)
 	}
