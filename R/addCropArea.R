@@ -94,6 +94,40 @@ simAreaStats <- function(dirSim, pathShape){
 	return(list(firstOccFL = firstOccFL, firstOccTX = firstOccTX, totMix = totMix))
 }
 
+#' Interrogate the validation data on specific areas
+#'
+#' @param csvIn Either the path or the matrix from the summarized validation data,
+#' or the output of "summarizeValid()"
+#' @param niceGrid a raster or a raster extent of the final entire grid 
+#' that the data is on
+#' @inheritParams simAreaStats
+#' @return a list of the summary stats
+#' @export
+valAreaStats <- function(csvIn, pathShape, niceGrid){
+	valDat <- switch(class(csvIn),
+		character = read.csv(csvIn, stringsAsFactors = FALSE)
+	)
+	
+	areaMask <- readKML(pathShape, res(niceGrid))
+	resMask <- raster::rasterize(areaMask, niceGrid,
+		field = 1,
+		fun = sum,
+		background = NA)
+	
+	withinSet <- !is.na(raster::extract(resMask, valDat[,3:2]))
+	
+	firstOcc <- min(valDat[withinSet, 4], na.rm = TRUE)
+	addDat <- colMeans(
+		valDat[withinSet, 5:(dim(valDat)[2] - 1), drop = FALSE], na.rm = TRUE)
+	names(addDat) <- NULL
+	addDat[is.nan(addDat)] <- NA
+	
+	return(list(
+		firstOccTrap = firstOcc,
+		avgHapRatio = addDat[1],
+		addDat = addDat[-1]))
+}
+
 readKML <- function(shapeIn, outRes){
 	latLon <- switch(class(shapeIn),
 		character = if(!grepl("kml", shapeIn)){
