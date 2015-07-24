@@ -362,11 +362,17 @@ summarizeValid <- function(trapIn, year,
 	}
 	
 	sumDat <- cbind(notes[,1], sumDat, notes[,2])
-	
+	colnames(sumDat)[1:4] <- c(
+		"ID",
+		"Lat",
+		"Lon",
+		sprintf("First Week of capture (%s)", firstMethod))
+	colnames(sumDat)[6] <- "notes"
 	if(nzchar(pathCsvOut)){
 		write.csv(sumDat, pathCsvOut, row.names=FALSE)
+	} else {
+		return(sumDat)
 	}
-	return(sumDat)
 }
 
 getTrapTimeSeries <- function(catches, jds, periods){
