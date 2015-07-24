@@ -104,9 +104,19 @@ simAreaStats <- function(dirSim, pathShape){
 #' @return a list of the summary stats
 #' @export
 valAreaStats <- function(csvIn, pathShape, niceGrid){
+	
 	valDat <- switch(class(csvIn),
-		character = read.csv(csvIn, stringsAsFactors = FALSE)
+		character = read.csv(csvIn, stringsAsFactors = FALSE),
+		matrix = {
+			temp <- as.data.frame(csvIn, stringsAsFactors = FALSE)
+			for(col in 2:(dim(temp)[2] - 1)){
+				temp[,col] <- as.numeric(temp[,col])
+			}
+			temp
+		},
+		stop("valAreaStats wants a path to the scrubbed data or the matrix output")
 	)
+	
 	
 	areaMask <- readKML(pathShape, res(niceGrid))
 	resMask <- raster::rasterize(areaMask, niceGrid,

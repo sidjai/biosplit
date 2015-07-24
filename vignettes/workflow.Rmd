@@ -122,11 +122,12 @@ csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict)
 csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict, pathCsvOut = gsub("[.]xlsx", paste0(cfg$year, ".csv"), pathHapXlsx), onlyYr = cfg$year)
 ```
 
-Summarze the validation
+Summarize the validation
 
 ```{r}
+pathHapSum <- "C:/Users/Siddarta.Jairam/Documents/Documentation/sumHapTrap.csv"
 sumTab <- summarizeValid(trapRec, cfg$year, hapIn = csvTab)
-
+valAreaStats(pathHapSum,"C:/Users/Siddarta.Jairam/Documents/Documentation/Central PA.kml", niceGrid)
 
 ```
 

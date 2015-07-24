@@ -10,6 +10,9 @@ params:
   runs: c("runFDHighLatThres", "runMultYearDv020")
   years: c(2013, 2011)
   dirSim: "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
+  trapDump: "C:/Users/Siddarta.Jairam/Documents/Documentation/PestWatchDump.xlsx"
+  scrubbedHap: "C:/Users/Siddarta.Jairam/Documents/Documentation/hapDat%d.csv"
+  niceGrid: "None"
 ---
 
 ```{r setup, include=FALSE}
@@ -75,7 +78,7 @@ figList <- updateCntList(figList,"jpgTable")
 Here is the contour plots of the different runs at different times of the year:
 
 ####Table `r figList$jpgTable`. Contour plots of instaneous snapshots of the Moth population in the different runs at specific times throughout the migration time for FAW throughout late spring to fall.
-```{r fig.height=(20/length(rwyear)), fig.width=(6.5), message=FALSE, fig.show='hold'}
+```{r contours, fig.height=(20/length(rwyear)), fig.width=(6.5), message=FALSE, fig.show='hold'}
 #define jpeg table
 times <- c('051','053','063','073','091')
 dates <- strftime(strptime(paste0(times,'0'),'%m%d'),'%b\n%d')
@@ -101,21 +104,25 @@ $$Mix_{ratio} =\frac{\log_{10} (FLMoth + 1) - \log_{10} (TXMoth + 1)}{\log_{10} 
 
 This is done to normalize the output on a range of -1 (All TX moths) to 1 (all FL moths). Also this puts it on a similar scale as the Haplotype ratio h2/h4 which goes from 0 (All TX) to > 2 (mostly FL) with the mixing region between 0.5 to 1.5. For this example the Moth populations in question will be all moths in the region summed over the entire year. The basic use is to do the calculation for every grid cell for every week of the year. Below is the summary for each of the regions and these values.
 
-```{r}
-bareas <- "C:/Users/Siddarta.Jairam/Documents/Documentation/"
+```{r simStats}
+baseArea <- "C:/Users/Siddarta.Jairam/Documents/Documentation/"
 areas <- c("Southern MSAL.kml", "Northern MSAL.kml", "Western PA.kml", "Central PA.kml", "Eastern PA.kml")
+
 regStats <- vapply(fullDir,function(f){
 	vapply(areas, function(area){
-		return(c(simAreaStats(f, paste0(bareas, area)),recursive=TRUE))
-	},rep(1,3))
+		return(c(simAreaStats(f, paste0(baseArea, area)),recursive=TRUE))
+	}, rep(1,3))
 	
-},matrix(0,nrow=3,ncol=length(areas)))
+}, matrix(0, nrow = 3, ncol = length(areas)))
+
 mixTable <- cleanAllLabels(t(regStats[3,,]))
 arrFLTable <- cleanAllLabels(t(regStats[1,,]))
 arrTXTable <- cleanAllLabels(t(regStats[2,,]))
+
 arrFinal <- matrix(paste(arrFLTable, arrTXTable, sep=', '),
 	nrow=nrow(arrFLTable),
 	dimnames=dimnames(arrFLTable))
+
 figList <- updateCntList(figList,"mixTable")
 figList <- updateCntList(figList,"arrTable")
 ```
@@ -123,7 +130,7 @@ figList <- updateCntList(figList,"arrTable")
 ####Table `r figList$mixTable`. The mixing ratio of the simulation in specific regions. The spatial range is the region and the temporal range is a summation of the whole year. The result is the average of this range.
 `r kable(mixTable)`
 
-####Table `r figList$arrTable`. The first arrival for both populations in the specific regions. The spatial range is the region. The week of first occurance in any location in the spatial range is reported as the pair (FL first occurance, TX first occurance)
+####Table `r figList$arrTable`. The simulation first arrival for both populations in the specific regions. The first arrival is reported as a pair of the different populations (FL first occurance, TX first occurance) in weeks in the year.
 `r kable(arrFinal)`
 
 
@@ -132,11 +139,31 @@ figList <- updateCntList(figList,"arrTable")
 
 A simple measure that can be used to assess the accuracy of the model is to compare it to observed trap captures. These values were collected via PestWatch for 66 locations East of the Rockies. These were then turned into a regular grid of first occurrence values using krieging spatial averaging. This was compared with the first occurrences of the simulation and shown in the table below. 
 
-```{r}
-figList <- updateCntList(figList,"firstOccTable")
+```{r valStats}
+
+valStats <- vapply(params$years, function(yr){
+	trapRec <- scrubTrap(params$trapDump, yr)
+	csvVal <- summarizeValid(trapRec, yr, hapIn = sprintf(params$scrubbedHap, yr))
+	vapply(areas, function(area){
+		c(valAreaStats(csvVal, paste0(baseArea, area), params$niceGrid), recursive = TRUE)
+	}, rep(1, 2))
+	
+}, matrix(0, nrow = 2, ncol = length(areas)))
+
+dimnames(valStats)[[3]] <- params$years
+valArrTable <- cleanAllLabels(t(valStats[1,,]))
+valMixTable <- cleanAllLabels(t(valStats[2,,]))
+
+figList <- updateCntList(figList,"valFirstOcc")
+figList <- updateCntList(figList,"valMix")
 ```
 
-####Table `r figList$firstOccTable`. The average of the absolute value of the difference between the simulation first Occurance and the trap first occurance
+####Table `r figList$valMix`. The mixing ratio of the simulation in specific regions. The spatial range is the region and the temporal range is a summation of the whole year. The result is the average of this range.
+`r kable(valMixTable)`
+
+####Table `r figList$valFirstOcc`. The PestWatch data for first arrival for both populations in the specific regions. The first arrival is reported as weeks in the year.
+`r kable(valArrTable)`
+
 
 ```{r, results = 'asis'}
 pathTrapXlsx <- "C:/Users/Siddarta.Jairam/Documents/Documentation/PestWatchDump.xlsx"
