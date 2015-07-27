@@ -196,6 +196,13 @@ scrubTrap <- function(pathXlsx, year,
 		totCatch <- sum(catches)
 		firstOccInd <- which(catches>0)[1]
 		firstOcc <- usefulEle[(beg:last)[firstOccInd], 6]
+		
+		if(!all(usefulEle[beg:last, 1] == usefulEle[beg, 1])){
+			stop(paste(
+				"The subseting for",
+				usefulEle[beg, 4],
+				"messed up as they have different farmIDs"))
+		}
 		return(c(totCatch, firstOcc))
 	}, farmStaInd, farmEndInd))
 	
@@ -380,7 +387,7 @@ getTrapTimeSeries <- function(catches, jds, periods){
 	notes <- c()
 	#get rid of articifically low catch periods because of pestWatch limit of 14
 	realPeriods <- (jds[-1] - rev(rev(jds)[-1]))
-	realPeriods <- c(realPeriods[1], realPeriods)
+	realPeriods <- c(periods[1], realPeriods)
 	if(all(periods == 14 & realPeriods > 14)){
 		notes <- c(notes, sprintf("Old catchperiod: %f, New catchperiod: %f", 
 															mean(periods), 
