@@ -29,9 +29,14 @@ source(paste(realWd,"rmdUtils.R",sep='/'))
 This report will compare these runs:
 
 ```{r context}
+if(is.character(niceGrid)){
+	stop(paste("Supply a raster with the final projection in 'niceGrid'"))
+}
+	
 #runs <- c('runDataRedo','runHelloWorld','runInterYear','runFLwinter')
 #years <- c('2011','2012','2013','2014')
 goldLoc <- "C:/Program Files/Golden Software/Surfer 12"
+runScripter <- makeRunFun(goldLoc, "BAS")
 # params <- list()
 #params$runs <- c('runInterYear','runAbsFlightLimit','runNightDurDel','runFlightAndNight')
 # params$runs <- c("runBaseFullNight", "runBFNTOcueTemp", "runBFNTOcuePrec")
@@ -104,7 +109,7 @@ $$Mix_{ratio} =\frac{\log_{10} (FLMoth + 1) - \log_{10} (TXMoth + 1)}{\log_{10} 
 
 This is done to normalize the output on a range of -1 (All TX moths) to 1 (all FL moths). Also this puts it on a similar scale as the Haplotype ratio h2/h4 which goes from 0 (All TX) to > 2 (mostly FL) with the mixing region between 0.5 to 1.5. For this example the Moth populations in question will be all moths in the region summed over the entire year. The basic use is to do the calculation for every grid cell for every week of the year. Below is the summary for each of the regions and these values.
 
-```{r simStats}
+```{r simStats, warning = FALSE}
 baseArea <- "C:/Users/Siddarta.Jairam/Documents/Documentation/"
 areas <- c("Southern MSAL.kml", "Northern MSAL.kml", "Western PA.kml", "Central PA.kml", "Eastern PA.kml")
 
@@ -136,10 +141,31 @@ figList <- updateCntList(figList,"arrTable")
 
 #Validation
 
+For this project we have two main validation sets:
 
-A simple measure that can be used to assess the accuracy of the model is to compare it to observed trap captures. These values were collected via PestWatch for 66 locations East of the Rockies. These were then turned into a regular grid of first occurrence values using krieging spatial averaging. This was compared with the first occurrences of the simulation and shown in the table below. 
+1. PestWatch data on trap captures across the U.S.
+2. Haplotype analysis on a smaller subset of 1.
 
-```{r valStats}
+From this data we can compare the same output variables as that was looked at in the simulation output. The week of first occurance will be the same in the validation set. The difference is in the temporal resolution. The simulation has daily values which can easily be converted into their weekly forms. The trap captures are not so regular and often have odd temporal resolution. Farms with less than 10 captures for the entire year were thought to be untracable amount on the fringes of the moth population's extent. There is also a distinction with what first occurance means in this case. Should first date that the moths were found be the first occurance date (real method) or should it be the earilest that moths could have entered the traps and recorded the same record into the system (pred method)? The real method is more conservative as it will always at least have moths at that point, but the moths probably came earlier. The pred method shows when the lower bound to the value but could very well be a week where nothing was in the traps. The solution was to allow both methods to be caluculated but report the real method.
+
+```{r qual}
+qualTable <- rbind(
+	c("-1 - -0.5", "0 - 0.5", "Mostly Texas"),
+	c("0.5 - 0","0.5 - 1", "Mixed - Majority Texas"),
+	c("0 - 0.5","1 - 1.5", "Mixed - Majority Florida"),
+	c("0.5 - 1", "1.5 - inf", "Mostly Florida")
+)
+colnames(qualTable) <- c("Sim Mixing ratio", "h2/h4 ratio", "Qualitative meaning")
+figList <- updateCntList(figList,"qualTable")
+```
+
+The genetic information is on a much smaller scale than the entire pestwatch system. Moths have to be pooled, transported and analyzed which takes time, effort and a sufficient number of moths (>15 moths). An effort was made in having samples spread out over the U.S. but southern US does not have many samples while the north-east has a rich genetic map. The genetic marker used to distinguish the Texas and Florida populations is the ratio of the h2 and h4 haplotypes. This range of possible numbers are all non-negative real numbers. To compare this to the simulation, the mixing ratio was introduced previously. These values are compared in `r figList$qualTable` along with their qualitative meaning of each range.
+
+####Table `r figList$qualTable`. The qualitative meaning of the genetic information.
+`r kable(qualTable)`
+
+
+```{r valStats, warning = FALSE}
 
 valStats <- vapply(params$years, function(yr){
 	trapRec <- scrubTrap(params$trapDump, yr)
@@ -158,47 +184,53 @@ figList <- updateCntList(figList,"valFirstOcc")
 figList <- updateCntList(figList,"valMix")
 ```
 
+The validation results for the defined areas of interest is shown below.
+
 ####Table `r figList$valMix`. The mixing ratio of the simulation in specific regions. The spatial range is the region and the temporal range is a summation of the whole year. The result is the average of this range.
 `r kable(valMixTable)`
 
 ####Table `r figList$valFirstOcc`. The PestWatch data for first arrival for both populations in the specific regions. The first arrival is reported as weeks in the year.
 `r kable(valArrTable)`
 
+To show the differences between the mix ratio, the full map extent is shown below. Here the values of the contour is the simulation data and points are genetic data. The shade of gray represents the the mixing amount from white (pure TX population) to black (pure FL population).
 
-```{r, results = 'asis'}
-pathTrapXlsx <- "C:/Users/Siddarta.Jairam/Documents/Documentation/PestWatchDump.xlsx"
-trapGridFold <- "C:/Users/Siddarta.Jairam/Documents/Documentation/Result Files/"
-trapGrid <- "2013firstOccTrap.grd"
-trapGridTypes <- c(trapGrid, 
-									 gsub("Trap", "TrapSoft", trapGrid),
-									 gsub("Trap", "TrapStrict", trapGrid))
-# valTab <- vapply(rwyear, function(x){
-# 	direc <- paste(params$dirSim, x, sep='/')
-# 	
-# 	vapply(trapGridTypes, function(trapPath){
-# 		predObv <- ncdf2trapgrid(direc,
-# 														 paste0(trapGridFold,trapPath),
-# 														 paste(direc, "Sim-TrapFirstOcc.nc",sep='/')
-# 		)
-# 		#The spatial average distance between the weeks
-# 		mean(abs(predObv[,]),na.rm=TRUE)
-# 	},1)
-# 	
-# },rep(1,3))
-# 
-# valTab <- cleanAllLabels(valTab)
-# kable(valTab)
+```{r mapPaths}
+
+mixMapPaths <- vapply(fullDir, function(f){
+	pathMap <- paste(f, "SimMixRatio.nc",sep='/')
+	ncdf2trapgrid(f, pathOut = pathMap, shDoMix = TRUE)
+	pathHap <- sprintf(params$scrubbedHap, file2year(f))
+	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathHap))
+	paste(f, "jpeg", "Contours", "SimMixRatio.jpg", sep = '/')
+}, "e")
+
+occMapPaths <- vapply(fullDir, function(f){
+	pathMap <- paste(f, "SimFirstOcc.nc",sep='/')
+	ncdf2trapgrid(f, pathOut = pathMap, shDoMix = TRUE)
+# 	pathHap <- sprintf(scrubbedHap, file2year(f))
+# 	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathHap))
+	paste(f, "jpeg", "Contours", "SimFirstOcc.jpg", sep = '/')
+},'e')
+
+figList <- updateCntList(figList,"mapMix")
+figList <- updateCntList(figList,"mapFirstOcc")
 ```
 
-The strict blanking is taking out all the traps that had moths in their traps on the first week which does not prove that it is the first week of occurrence. The soft blanking is blanking the values that are outliers. Right now the clear outliers are at the beginning of the simulation in North Florida and central TX. This could be because of the overwintering population definition may be different than reality due to effects of other crops or warmer areas near the coast. Another reason could be because of having year round crops in certain areas that is not accounted for. There could also be a safe haven region in central TX and Florida where moths could survive and live through the winter without overwintering.
+####Table `r figList$mapMix`. The spatial distribution of the simulation and validation results for the relative amounts of FL and TX strains. The contours represent the simulation output and the points represent the haplotype data. On both data sets, black represents a pure TX strain and white represent a pure FL strain.
 
-In any case, the "no blanking" case has 54 values, the soft blanking case has 50 values and the strict blanking has 33 values. These by location first ocurance values are then grided the same way to produce a comparison on the same spatial extent. However, the significance of the numbers should be changed with these number of values. The final graphs are shown below. The plotted variable is the simulation value subtracted from the gridded trap value. This means negative numbers (red) are areas where the simulation moths arrived earlier than in reality, and positive numbers (blue) are areas where the simulation moths arrived later than in reality.
-
-```{r}
-figList <- updateCntList(figList,"firstOccMap")
+```{r finMix, fig.height=(32/4), fig.width=(6.5), message=FALSE, fig.show='hold'}
+mosaicImage(mixMapPaths,labelx=rep("SimMixRatio",4), labely=rwyear,
+ 						offsetx=0, marb=.05, marl=.35, leftAlignYaxis = TRUE)
 ```
 
-####Table `r figList$firstOccMap`. The spatial distribution of the differences between the predicted simulation values and the gridded trap capture values. Negative (red) represents and early simulation while positive (blue) values represent a late simulation
+####Table `r figList$mapFirstOcc`. The spatial distribution of the simulation and validation results for the first arrival of moths. The contours represent the simulation output and the points represent the PestWatch data. On both data sets, black represents an arrival after September and white represents an arrival before May. 
+
+```{r finOcc, fig.height=(32/4), fig.width=(6.5), message=FALSE, fig.show='hold'}
+# mosaicImage(occMapPaths,labelx=rep("SimFirstOcc",4), labely=rwyear,
+#  						offsetx=0, marb=.05, marl=.35, leftAlignYaxis = TRUE)
+```
+
+
 
 ```{r fig.height=(32/4), fig.width=(6.5) , message=FALSE, fig.show='hold'}
 # runScripter <- makeRunFun(goldLoc, "BAS")
