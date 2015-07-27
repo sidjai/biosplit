@@ -189,7 +189,7 @@ scrubTrap <- function(pathXlsx, year,
 	nextEle <- usefulEle$farmid[-1]
 	
 	farmEndInd <- which(current != nextEle)
-	farmStaInd <- c(as.integer(1), rev(rev(farmEndInd)[-1]))
+	farmStaInd <- c(as.integer(1), rev(rev(farmEndInd)[-1]) + 1)
 	
 	statDat <- t(mapply(function(beg, last){
 		catches <- usefulEle[beg:last, 8]
