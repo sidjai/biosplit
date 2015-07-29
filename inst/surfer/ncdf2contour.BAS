@@ -12,9 +12,9 @@ Sub Main
 	Dim popDes(3) As String
 	Dim myLevels() As Double
 	Dim colArr() As Integer
-	Dim bLimits() As Double
+	Dim postLimits() As Double
 	Dim symTypes(4) As Integer
-	Dim args(3) As String
+	Dim args(8) As String
 
 
 	Set doc = Surf.Documents
@@ -23,9 +23,14 @@ inp = CStr(Command$)
 
 'Defaults
 args(0) = "no File"
-args(1) = "22"
+args(1) = "5"
 args(2) = "color"
 args(3) = "no classPost overlay"
+args(4) = "1"
+args(5) = "2"
+args(6) = "3"
+args(7) = "0"
+args(8) =  "Haplotype Ratio (h2/h4)"
 
 argSpl = Split(inp,Chr(34))
 argInd = 1
@@ -39,6 +44,11 @@ Debug.Print (args(1))
 numLevels = CInt(args(1)) +1
 shUseColor = CInt(CBool(InStr(args(2), "color")))
 shDoClassPost = CBool(InStr(args(3), "/"))
+postLongInd = CInt(args(4))
+postLatInd = CInt(args(5))
+postZInd = CInt(args(6))
+postOff = CBool(args(7))
+postTitle = args(8)
 
 lastSlashInd = InStrRev(args(0), "/")
 runInd = InStr(args(0), "run")
@@ -57,9 +67,9 @@ fillType = "Solid"
 
 ReDim colArr(0 To numLevels, 0 To 2) As Integer
 ReDim myLevels(0 To numLevels) As Double
-ReDim bLimits(0 To numLevels*2 - 2) As Double
+ReDim postLimits(0 To numLevels*2 - 2) As Double
 templateName = "C:\Users\Siddarta.Jairam\Documents\Documentation\tempOutL.srf"
-colorMapName = "C:\Users\Siddarta.Jairam\Documents\Documentation\Result Files\out.clr"
+
 'Open template
 Set myPlot = Surf.Documents.Open(FileName:=templateName)
 
@@ -143,7 +153,6 @@ If (IsObject(frame)) Then
 		.Levels.Set(Levels:=myLevels)
 
 		.LabelFont.Size = 9
-		.LabelFont.Bold = True
 		.LabelFont.BackColorRGBA.Opacity = 100
 		.LabelLabelDist = 0.7
 		.LabelEdgeDist = 0.3
@@ -182,7 +191,7 @@ If (IsObject(frame)) Then
 
 				.Line.Width = 0.015
 
-				If ( Abs(Abs(dat)-.5) < 0.4 ) Then
+				If (postOff And Abs(Abs(dat)/zmax-.5) < 0.4 ) Then
 					.Line.ForeColor = srfColorBlack30
 					.Line.Width = 0.01
 				End If
@@ -194,7 +203,7 @@ If (IsObject(frame)) Then
 	End With
 
 	If (shDoClassPost) Then
-		Set valid = myPlot.Shapes.AddClassedPostMap2(args(3), xCol:= 3, yCol:= 2, zCol:= 8)
+		Set valid = myPlot.Shapes.AddClassedPostMap2(args(3), xCol:= postLongInd, yCol:= postLatInd, zCol:= postZInd)
 
 
 		Set addMap = OverlayStuff(1, valid)
@@ -207,19 +216,28 @@ If (IsObject(frame)) Then
 		symTypes(3) = 10 'Square
 		symTypes(4) = 18 'Triangle
 
+		If (postOff) Then
+			postMin = 0
+			postSlope = 0.5
+			postLast = 20
 
-		bLimits(0) = 0
-		bLimits(1) = .5
+		Else
+			postMin = zmin
+			postSlope = slope
+			postLast = zmax
+		End If
+		postLimits(0) = postMin
+		postLimits(1) = postMin + postSlope
 
 		For sym = 2 To numBins
-			bLimits(sym*2-2) = bLimits(sym*2-3)
-			bLimits(sym*2-1) = bLimits(sym*2-2)  + 0.5
+			postLimits(sym*2-2) = postLimits(sym*2-3)
+			postLimits(sym*2-1) = postLimits(sym*2-2)  + postSlope
 		Next
 
-		bLimits(numBins*2 -1) = 20
+		postLimits(numBins*2 -1) = postLast
 
 		With addMap
-			.SetBinLimits(Limits:=bLimits)
+			.SetBinLimits(Limits:=postLimits)
 			.ShowLegend = True
 
 
@@ -231,18 +249,18 @@ If (IsObject(frame)) Then
 
 		End With
 
-		Debug.Print addMap.NumClasses
 		For sym= 1 To numBins
 			With addMap.BinSymbol(sym)
+				cInd = sym + CInt(postOff)
 				.Set = "GSI Default Symbols"
 				.Index = symTypes(CInt((sym Mod 5)))
 				.Size =0.1
-				.Color = RGB(colArr(sym+1, 0), colArr(sym+1, 1) , colArr(sym+1, 2))
+				.Color = RGB(colArr(cInd, 0), colArr(cInd, 1) , colArr(cInd, 2))
 				.LineColor = srfColorBlack
 			End With
 		Next
 		With addMap.Legend
-			.Title = "Haplotype Ratio (h2/h4)"
+			.Title = postTitle
 			.SetZOrder(srfZOToBack)
 			.SetZOrder(srfZOForward)
 			.Top =legy
@@ -263,7 +281,6 @@ If (IsObject(frame)) Then
 	If (IsObject(addMap)) Then
 
 		myPlot.Shapes.AddText(texx,texy, finalDes).Font.Size = 14
-		outfile = outFol + ncDes + ".jpg"
 		myPlot.Export2(pathOutJpeg,Options:="HDPI=300,VDPI=300, Quality=100", FilterId:="jpg")
 	End If
 End If

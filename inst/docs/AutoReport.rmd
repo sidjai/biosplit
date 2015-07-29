@@ -12,6 +12,7 @@ params:
   dirSim: "C:/Users/Siddarta.Jairam/Documents/Hysplit Out Moth table"
   trapDump: "C:/Users/Siddarta.Jairam/Documents/Documentation/PestWatchDump.xlsx"
   scrubbedHap: "C:/Users/Siddarta.Jairam/Documents/Documentation/hapDat%d.csv"
+  summarizedVal: "C:/Users/Siddarta.Jairam/Documents/Documentation/sumTrapHap%d.csv"
   niceGrid: "None"
 ---
 
@@ -169,7 +170,9 @@ The genetic information is on a much smaller scale than the entire pestwatch sys
 
 valStats <- vapply(params$years, function(yr){
 	trapRec <- scrubTrap(params$trapDump, yr)
-	csvVal <- summarizeValid(trapRec, yr, hapIn = sprintf(params$scrubbedHap, yr))
+	csvVal <- summarizeValid(trapRec, yr,
+		hapIn = sprintf(params$scrubbedHap, yr),
+		pathCsvOut = sprintf(params$summarizedVal, yr))
 	vapply(areas, function(area){
 		c(valAreaStats(csvVal, paste0(baseArea, area), params$niceGrid), recursive = TRUE)
 	}, rep(1, 2))
@@ -200,15 +203,15 @@ mixMapPaths <- vapply(fullDir, function(f){
 	pathMap <- paste(f, "SimMixRatio.nc",sep='/')
 	ncdf2trapgrid(f, pathOut = pathMap, shDoMix = TRUE)
 	pathHap <- sprintf(params$scrubbedHap, file2year(f))
-	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathHap))
+	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathHap, 3, 2, 8, 1))
 	paste(f, "jpeg", "Contours", "SimMixRatio.jpg", sep = '/')
 }, "e")
 
 occMapPaths <- vapply(fullDir, function(f){
 	pathMap <- paste(f, "SimFirstOcc.nc",sep='/')
 	ncdf2trapgrid(f, pathOut = pathMap)
-# 	pathHap <- sprintf(scrubbedHap, file2year(f))
-# 	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathHap))
+ 	pathSum <- sprintf(params$summarizedVal, file2year(f))
+ 	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathSum, 3, 2, 4, 0, "First Occ (PestWatch weeks)"))
 	paste(f, "jpeg", "Contours", "SimFirstOcc.jpg", sep = '/')
 },'e')
 
@@ -226,21 +229,7 @@ mosaicImage(mixMapPaths,labelx=rep("SimMixRatio",4), labely=rwyear,
 
 ####Table `r figList$mapFirstOcc`. The spatial distribution of the simulation and validation results for the first arrival of moths. The contours represent the simulation output and the points represent the PestWatch data. On both data sets, black represents an arrival after September and white represents an arrival before May. 
 
-```{r finOcc, fig.height=compHeight, fig.width=2, message=FALSE, fig.show='hold'}
-# mosaicImage(occMapPaths,labelx=rep("SimFirstOcc",4), labely=rwyear,
-#  						offsetx=0, marb=.05, marl=.35, leftAlignYaxis = TRUE)
-```
-
-
-
-```{r fig.height=(32/4), fig.width=((2*1920/1252)) , message=FALSE, fig.show='hold'}
-# runScripter <- makeRunFun(goldLoc, "BAS")
-# valid <- vapply(rwyear, function(des){
-# 		direc <- paste(params$dirSim, des, sep='/')
-# 		runScripter("ncdf2contour.BAS", direc, verbose = 0)
-# 		return(paste(direc, "jpeg", "Contours", "Sim-TrapFirstOcc.jpg", sep='/'))
-# 	},'e')
-# 
-# mosaicImage(valid,labelx=rep("Strict",4), labely=rwyear,
-# 						offsetx=0, marb=.05, marl=.35, leftAlignYaxis = TRUE)
+```{r finOcc, fig.height=7, fig.width=compWidth, message=FALSE, fig.show='hold'}
+mosaicImage(occMapPaths,labelx=rep("SimFirstOcc",4), labely=rwyear,
+  					offsetx=0, marb=.05, marl=.75, leftAlignYaxis = TRUE)
 ```

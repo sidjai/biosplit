@@ -375,11 +375,15 @@ summarizeValid <- function(trapIn, year,
 		"Lon",
 		sprintf("First Week of capture (%s)", firstMethod))
 	colnames(sumDat)[6] <- "notes"
+	
 	if(nzchar(pathCsvOut)){
-		write.csv(sumDat, pathCsvOut, row.names=FALSE)
-	} else {
-		return(sumDat)
+		sumDat[,1] <- quoteIt(sumDat[,1])
+		write.table(sumDat, file = pathCsvOut,
+			sep = ',', row.names = FALSE, col.names = FALSE, quote = FALSE)
 	}
+	
+	return(sumDat)
+	
 }
 
 getTrapTimeSeries <- function(catches, jds, periods){
