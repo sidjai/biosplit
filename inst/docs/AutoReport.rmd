@@ -19,7 +19,7 @@ params:
 library(knitr)
 library(jpeg)
 library(biosplit)
-knitr::opts_chunk$set(fig.width=7, fig.height=3, fig.pos='center', echo=FALSE, comment='>', dpi=800)
+knitr::opts_chunk$set(echo=FALSE, comment='>', dpi=600)
 realWd <- system.file(package = "biosplit", "docs")
 figList <- list()
 source(paste(realWd,"rmdUtils.R",sep='/'))
@@ -78,16 +78,16 @@ figList <- updateCntList(figList,"simDiff")
 ```{r,results = 'asis'}
 kable(as.data.frame(simDiff),align='c')
 figList <- updateCntList(figList,"jpgTable")
+times <- c('051','053','063','073','091')
+dates <- strftime(strptime(paste0(times,'0'),'%m%d'),'%b\n%d')
+numTimes <- length(times)
+contHeight <- numTimes * (6*1252/1920)/length(rwyear)
 ```
 
 Here is the contour plots of the different runs at different times of the year:
 
 ####Table `r figList$jpgTable`. Contour plots of instaneous snapshots of the Moth population in the different runs at specific times throughout the migration time for FAW throughout late spring to fall.
-```{r contours, fig.height=(20/length(rwyear)), fig.width=(6.5), message=FALSE, fig.show='hold'}
-#define jpeg table
-times <- c('051','053','063','073','091')
-dates <- strftime(strptime(paste0(times,'0'),'%m%d'),'%b\n%d')
-numTimes <- length(times)
+```{r contours, fig.height=contHeight, fig.width=(6), message=FALSE, fig.show='hold'}
 
 #fill the table with markdown paths to jpegs
 conPaths <- paste(fullDir,'jpeg','Contours',sep='/')
@@ -100,7 +100,7 @@ contours <- vapply(conPaths,function(pth){
 		},'hi')
 	},rep('hi',numTimes))
 
-mosaicImage(contours,labelx=rwyear,labely=dates,offsetx=.08,marb=.2,marl=.11)
+mosaicImage(contours,labelx=rwyear,labely=dates,offsetx=.08,marb=.2,marl=.15)
 ```
 
 There are 5 main areas of mixing that are of interest to this project; Southern Missippi and Alabama along the gulf (Southern MSAL), Northern Missippi and Alabama near the tail end of the applachian mountains (Northern MSAL), Eastern PA near the eastern seaboard (Eastern PA), Central Pennsylvania in the plains region (Central PA), and Western Pennsylvania near Lake Erie (Western PA). One of the analysis that will be used in this project is the first occurance of a population in that area (firstOcc). For this use the defined area is the area of interest where most other times it will be done per grid cell. The other tool will be the mixing ratio of the two populations in the area of interest. This is defined as follows:
@@ -194,7 +194,7 @@ The validation results for the defined areas of interest is shown below.
 
 To show the differences between the mix ratio, the full map extent is shown below. Here the values of the contour is the simulation data and points are genetic data. The shade of gray represents the the mixing amount from white (pure TX population) to black (pure FL population).
 
-```{r mapPaths}
+```{r mapPaths, include = FALSE}
 
 mixMapPaths <- vapply(fullDir, function(f){
 	pathMap <- paste(f, "SimMixRatio.nc",sep='/')
@@ -206,7 +206,7 @@ mixMapPaths <- vapply(fullDir, function(f){
 
 occMapPaths <- vapply(fullDir, function(f){
 	pathMap <- paste(f, "SimFirstOcc.nc",sep='/')
-	ncdf2trapgrid(f, pathOut = pathMap, shDoMix = TRUE)
+	ncdf2trapgrid(f, pathOut = pathMap)
 # 	pathHap <- sprintf(scrubbedHap, file2year(f))
 # 	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathHap))
 	paste(f, "jpeg", "Contours", "SimFirstOcc.jpg", sep = '/')
@@ -214,25 +214,26 @@ occMapPaths <- vapply(fullDir, function(f){
 
 figList <- updateCntList(figList,"mapMix")
 figList <- updateCntList(figList,"mapFirstOcc")
+compWidth <- (7*1920/1252)/length(rwyear) + .75 * 3
 ```
 
 ####Table `r figList$mapMix`. The spatial distribution of the simulation and validation results for the relative amounts of FL and TX strains. The contours represent the simulation output and the points represent the haplotype data. On both data sets, black represents a pure TX strain and white represent a pure FL strain.
 
-```{r finMix, fig.height=(32/4), fig.width=(6.5), message=FALSE, fig.show='hold'}
+```{r finMix, fig.height=7, fig.width=compWidth, message=FALSE, fig.show='hold'}
 mosaicImage(mixMapPaths,labelx=rep("SimMixRatio",4), labely=rwyear,
- 						offsetx=0, marb=.05, marl=.35, leftAlignYaxis = TRUE)
+ 						offsetx=0, marb=.05, marl=.75, leftAlignYaxis = TRUE)
 ```
 
 ####Table `r figList$mapFirstOcc`. The spatial distribution of the simulation and validation results for the first arrival of moths. The contours represent the simulation output and the points represent the PestWatch data. On both data sets, black represents an arrival after September and white represents an arrival before May. 
 
-```{r finOcc, fig.height=(32/4), fig.width=(6.5), message=FALSE, fig.show='hold'}
+```{r finOcc, fig.height=compHeight, fig.width=2, message=FALSE, fig.show='hold'}
 # mosaicImage(occMapPaths,labelx=rep("SimFirstOcc",4), labely=rwyear,
 #  						offsetx=0, marb=.05, marl=.35, leftAlignYaxis = TRUE)
 ```
 
 
 
-```{r fig.height=(32/4), fig.width=(6.5) , message=FALSE, fig.show='hold'}
+```{r fig.height=(32/4), fig.width=((2*1920/1252)) , message=FALSE, fig.show='hold'}
 # runScripter <- makeRunFun(goldLoc, "BAS")
 # valid <- vapply(rwyear, function(des){
 # 		direc <- paste(params$dirSim, des, sep='/')

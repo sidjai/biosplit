@@ -14,31 +14,40 @@ mosaicImage <- function(pathMat,
 												offsetx = .1, offsety = .1,
 												marl = .1, marb = .1,
 												leftAlignYaxis = FALSE){
-	labelx <- gsub("/", "\n", labelx)
-	labely <- gsub("/", "\n", labely)
+	
+	labelx <- cleanLabel(gsub("/", "\n", labelx))
+	labely <- cleanLabel(gsub("/", "\n", labely))
 	pathMat <- as.matrix(pathMat)
 	
 	xlen <- dim(pathMat)[2]
 	ylen <- dim(pathMat)[1]
+	
+	testJpg <- jpeg::readJPEG(pathMat[1,1])
+	xscale <- dim(testJpg)[2] / dim(testJpg)[1]
+	yscale <- 1
+	
 	#Empty plot
 	par(mar=c(0,0,0,0))
-	plot(1,xlim=c(0,xlen+offsetx+marl),ylim=c(0,ylen+offsety+marb),
-			 type="n",bty="n",axes=FALSE)
+	plot(1,
+		xlim=c(0, (xscale * xlen) + offsetx + marl),
+		ylim=c(0, (yscale * ylen) + offsety + marb),
+		type="n", bty="n", axes=FALSE
+	)
 	
 	#Get bounding box for every grid cell
 	
-	xmins <- (1:xlen)-1+marl
-	xmaxs <- (1:xlen)+offsetx+marl
-	ymins <- (ylen-(1:ylen))+marb
-	ymaxs <- (ylen-(1:ylen))+1+marb+offsety
+	xmins <- xscale * (1:xlen - 1) + marl
+	xmaxs <- xscale * (1:xlen) + offsetx + marl
+	ymins <- yscale * (ylen-(1:ylen)) + marb
+	ymaxs <- yscale * (ylen-(1:ylen) + 1) + marb + offsety
 	
 	
 	for(yi in 1:ylen){
 		#Y axis labels
 		if( leftAlignYaxis){
-			text(x=0,y=ylen-yi+.55,labels=labely[yi], pos = 4)
+			text(x = 0, y = mean(c(ymins[yi], ymaxs[yi])), labels = labely[yi], pos = 4)
 		} else {
-			text(x=0,y=ylen-yi+.55,labels=labely[yi])
+			text(x = 0, y = mean(c(ymins[yi], ymaxs[yi])), labels = labely[yi])
 		}
 		
 		for(xi in 1:xlen){
@@ -55,7 +64,7 @@ mosaicImage <- function(pathMat,
 			
 			if (yi==ylen){
 				#X axis labels
-				text(x=xi-.35,y=0.01,labels=labelx[xi])
+				text(x = mean(c(xmins[xi], xmaxs[xi])), y = 0.01, labels=labelx[xi])
 			}
 		}
 		
