@@ -40,7 +40,7 @@ While argInd < UBound(argSpl)
 Wend
 Debug.Print (args(0))
 
-numLevels = CInt(args(1)) +1
+numLevels = CInt(args(1))
 shUseColor = CInt(CBool(InStr(args(2), "color")))
 shDoClassPost = CBool(InStr(args(3), "/"))
 postLongInd = CInt(args(4))
@@ -48,7 +48,13 @@ postLatInd = CInt(args(5))
 postZInd = CInt(args(6))
 postOff = CBool(args(7))
 postTitle = args(8)
-numBins = CLng(numLevels - 1) + CInt(Not postOff)
+
+If(postOff) Then
+	numBins = 3
+Else
+	numBins = CLng(numLevels)
+End If
+
 
 lastSlashInd = InStrRev(args(0), "/")
 runInd = InStr(args(0), "run")
@@ -94,25 +100,14 @@ If (IsObject(frame)) Then
 	Set addMap = OverlayStuff(frameIndex,frame)
 	zmax = addMap.Grid.zMax
 	zmin = addMap.Grid.zMin
-	slope = (zmax - zmin)/ (numLevels - 2)
-	slopeRGB = 500 / (numLevels - 1)
-	slopeBW = 250 / (numLevels - 1)
-	eps = .0001
+	slope = (zmax - zmin)/ (numLevels )
+	slopeRGB = 500 / (numLevels)
+	slopeBW = 250 / (numLevels)
 
 	myLevels(0) = zmin
-	myLevels(1) = zmin + eps
-
-
 	For i = 1 To numLevels
-		If (i > 1) Then
-			myLevels(i) = myLevels(i-1) + slope
-		End If
-
-		If (i = 2) Then
-			myLevels(i) = myLevels(i) - eps
-		End If
+		myLevels(i) = myLevels(i-1) + slope
 	Next
-	myLevels(numLevels-1) = zmax - eps
 	myLevels(numLevels) = zmax
 
 	If (CBool(shUseColor)) Then
@@ -154,13 +149,13 @@ If (IsObject(frame)) Then
 
 		.LabelFont.Size = 8
 		.LabelFont.BackColorRGBA.Opacity = 100
-		.LabelTolerance = 1.3
-		.LabelLabelDist = 1
+		.LabelTolerance = 1.2
+		.LabelLabelDist = 3
 		.LabelEdgeDist = 0.3
 
-		'.LabelFormat.Type = srfLabFixed
+		.LabelFormat.Type = srfLabFixed
 		.LabelFormat.TrimExponent = True
-		.LabelFormat.NumDigits = 2
+		.LabelFormat.NumDigits = 1
 
 		.Levels.SetLabelFrequency( FirstIndex:=1, NumberToSet:=1, NumberToSkip:=0 )
 
@@ -192,7 +187,7 @@ If (IsObject(frame)) Then
 
 				.Line.Width = 0.015
 
-				If (postOff And Abs(Abs(dat)/zmax-.5) < 0.4 ) Then
+				If (postOff And Abs(Abs(dat)/zmax-.5) < 0.1 ) Then
 					.Line.ForeColor = srfColorBlack30
 					.Line.Width = 0.01
 				End If
@@ -217,24 +212,27 @@ If (IsObject(frame)) Then
 		symTypes(4) = 18 'Triangle
 
 		If (postOff) Then
-			postMin = 0
-			postSlope = 0.5
-			postLast = 20
+
+			postLimits(0) = 0 : postLimits(1) = 0.5
+			postLimits(2) = 0.5 : postLimits(3) = 1.5
+			postLimits(4) = 1.5 : postLimits(5) = 20
 
 		Else
 			postMin = zmin
 			postSlope = slope
 			postLast = zmax
+
+			postLimits(0) = postMin
+			postLimits(1) = postMin + postSlope
+
+			For sym = 2 To numBins
+				postLimits(sym*2-2) = postLimits(sym*2-3)
+				postLimits(sym*2-1) = postLimits(sym*2-2)  + postSlope
+			Next
+
+			postLimits(numBins*2 -1) = postLast
 		End If
-		postLimits(0) = postMin
-		postLimits(1) = postMin + postSlope
 
-		For sym = 2 To numBins
-			postLimits(sym*2-2) = postLimits(sym*2-3)
-			postLimits(sym*2-1) = postLimits(sym*2-2)  + postSlope
-		Next
-
-		postLimits(numBins*2 -1) = postLast
 
 		With addMap
 			.SetBinLimits(Limits:=postLimits)
@@ -251,14 +249,10 @@ If (IsObject(frame)) Then
 
 		For sym= 1 To numBins
 			With addMap.BinSymbol(sym)
-				cInd = sym + 1
-				If(cInd >numLevels) Then
-					cInd = numLevels
-				End If
 				.Set = "GSI Default Symbols"
 				.Index = symTypes(CInt((sym Mod 5)))
 				.Size =0.1
-				.Color = RGB(colArr(cInd, 0), colArr(cInd, 1) , colArr(cInd, 2))
+				.Color = RGB(colArr(sym, 0), colArr(sym, 1) , colArr(sym, 2))
 				.FillColorRGBA.Opacity = 75
 				.LineColor = srfColorBlack
 			End With

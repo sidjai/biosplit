@@ -212,7 +212,7 @@ occMapPaths <- vapply(fullDir, function(f){
 	pathMap <- paste(f, "SimFirstOcc.nc",sep='/')
 	ncdf2trapgrid(f, pathOut = pathMap)
  	pathSum <- sprintf(params$summarizedVal, file2year(f))
- 	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathSum, 3, 2, 4, 0, "First Occ (PestWatch wk)"))
+ 	runScripter("ncdf2contour.BAS", c(pathMap, 4, "bw", pathSum, 3, 2, 4, 0, "First Occ (PestWatch wk)"))
 	paste(f, "jpeg", "Contours", "SimFirstOcc.jpg", sep = '/')
 },'e')
 
