@@ -39,7 +39,6 @@ While argInd < UBound(argSpl)
 	argInd = argInd + 2
 Wend
 Debug.Print (args(0))
-Debug.Print (args(1))
 
 numLevels = CInt(args(1)) +1
 shUseColor = CInt(CBool(InStr(args(2), "color")))
@@ -49,6 +48,7 @@ postLatInd = CInt(args(5))
 postZInd = CInt(args(6))
 postOff = CBool(args(7))
 postTitle = args(8)
+numBins = CLng(numLevels - 1) + CInt(Not postOff)
 
 lastSlashInd = InStrRev(args(0), "/")
 runInd = InStr(args(0), "run")
@@ -67,7 +67,7 @@ fillType = "Solid"
 
 ReDim colArr(0 To numLevels, 0 To 2) As Integer
 ReDim myLevels(0 To numLevels) As Double
-ReDim postLimits(0 To numLevels*2 - 2) As Double
+ReDim postLimits(0 To (numBins+1)*2 - 2) As Double
 templateName = "C:\Users\Siddarta.Jairam\Documents\Documentation\tempOutL.srf"
 
 'Open template
@@ -96,7 +96,7 @@ If (IsObject(frame)) Then
 	zmin = addMap.Grid.zMin
 	slope = (zmax - zmin)/ (numLevels - 2)
 	slopeRGB = 500 / (numLevels - 1)
-	slopeBW = 200 / (numLevels - 1)
+	slopeBW = 250 / (numLevels - 1)
 	eps = .0001
 
 	myLevels(0) = zmin
@@ -142,7 +142,7 @@ If (IsObject(frame)) Then
 			colArr(i,2) = colArr(i-1,2)  + slopeBW
 		Next
 
-		colArr(numLevels, 0 ) = 200 : colArr(numLevels,1) = 200 : colArr(numLevels,2) = 200
+		colArr(numLevels, 0 ) = 250 : colArr(numLevels,1) = 250 : colArr(numLevels,2) = 250
 
 
 	End If
@@ -152,9 +152,10 @@ If (IsObject(frame)) Then
 
 		.Levels.Set(Levels:=myLevels)
 
-		.LabelFont.Size = 9
+		.LabelFont.Size = 8
 		.LabelFont.BackColorRGBA.Opacity = 100
-		.LabelLabelDist = 0.7
+		.LabelTolerance = 1.3
+		.LabelLabelDist = 1
 		.LabelEdgeDist = 0.3
 
 		'.LabelFormat.Type = srfLabFixed
@@ -182,9 +183,9 @@ If (IsObject(frame)) Then
 					.Blue = colArr(eInd - 1, 2)
 
 					If (dat = -1 Or dat = (1- eps)) Then
-						.Opacity = 50
+						.Opacity = 75
 					Else
-						.Opacity = 50
+						.Opacity = 75
 					End If
 				End With
 
@@ -207,9 +208,8 @@ If (IsObject(frame)) Then
 
 
 		Set addMap = OverlayStuff(1, valid)
-		numBins = CLng(numLevels - 1)
-		addMap.NumClasses = numBins
 
+		addMap.NumClasses = numBins
 		symTypes(0) = 12 'Circle
 		symTypes(1) = 33 'Star
 		symTypes(2) = 6 'Diamond
@@ -251,11 +251,15 @@ If (IsObject(frame)) Then
 
 		For sym= 1 To numBins
 			With addMap.BinSymbol(sym)
-				cInd = sym + CInt(postOff)
+				cInd = sym + 1
+				If(cInd >numLevels) Then
+					cInd = numLevels
+				End If
 				.Set = "GSI Default Symbols"
 				.Index = symTypes(CInt((sym Mod 5)))
 				.Size =0.1
 				.Color = RGB(colArr(cInd, 0), colArr(cInd, 1) , colArr(cInd, 2))
+				.FillColorRGBA.Opacity = 75
 				.LineColor = srfColorBlack
 			End With
 		Next

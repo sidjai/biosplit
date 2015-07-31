@@ -104,7 +104,7 @@ contours <- vapply(conPaths,function(pth){
 mosaicImage(contours,labelx=rwyear,labely=dates,offsetx=.08,marb=.2,marl=.15)
 ```
 
-There are 5 main areas of mixing that are of interest to this project; Southern Missippi and Alabama along the gulf (Southern MSAL), Northern Missippi and Alabama near the tail end of the applachian mountains (Northern MSAL), Eastern PA near the eastern seaboard (Eastern PA), Central Pennsylvania in the plains region (Central PA), and Western Pennsylvania near Lake Erie (Western PA). One of the analysis that will be used in this project is the first occurance of a population in that area (firstOcc). For this use the defined area is the area of interest where most other times it will be done per grid cell. The other tool will be the mixing ratio of the two populations in the area of interest. This is defined as follows:
+There are 5 main areas of mixing that are of interest to this project; Southern Mississippi and Alabama along the gulf (Southern MSAL), Northern Mississippi and Alabama near the tail end of the Appalachian mountains (Northern MSAL), Eastern PA near the eastern seaboard (Eastern PA), Central Pennsylvania in the plains region (Central PA), and Western Pennsylvania near Lake Erie (Western PA). One of the analysis that will be used in this project is the first occurrence of a population in that area (firstOcc). For this use the defined area is the area of interest where most other times it will be done per grid cell. The other tool will be the mixing ratio of the two populations in the area of interest. This is defined as follows:
 
 $$Mix_{ratio} =\frac{\log_{10} (FLMoth + 1) - \log_{10} (TXMoth + 1)}{\log_{10} (FLMoth + 1) + \log_{10} (TXMoth + 1)}$$
 
@@ -147,7 +147,7 @@ For this project we have two main validation sets:
 1. PestWatch data on trap captures across the U.S.
 2. Haplotype analysis on a smaller subset of 1.
 
-From this data we can compare the same output variables as that was looked at in the simulation output. The week of first occurance will be the same in the validation set. The difference is in the temporal resolution. The simulation has daily values which can easily be converted into their weekly forms. The trap captures are not so regular and often have odd temporal resolution. Farms with less than 10 captures for the entire year were thought to be untracable amount on the fringes of the moth population's extent. There is also a distinction with what first occurance means in this case. Should first date that the moths were found be the first occurance date (real method) or should it be the earilest that moths could have entered the traps and recorded the same record into the system (pred method)? The real method is more conservative as it will always at least have moths at that point, but the moths probably came earlier. The pred method shows when the lower bound to the value but could very well be a week where nothing was in the traps. The solution was to allow both methods to be caluculated but report the real method.
+From this data we can compare the same output variables as that was looked at in the simulation output. The week of first occurrence will be the same in the validation set. The difference is in the temporal resolution. The simulation has daily values which can easily be converted into their weekly forms. The trap captures are not so regular and often have odd temporal resolution. Farms with less than 10 captures for the entire year were thought to be untraceable amount on the fringes of the moth population's extent. There is also a distinction with what first occurrence means in this case. Should first date that the moths were found be the first occurrence date (real method) or should it be the earliest that moths could have entered the traps and recorded the same record into the system (pred method)? The real method is more conservative as it will always at least have moths at that point, but the moths probably came earlier. The pred method shows when the lower bound to the value but could very well be a week where nothing was in the traps. The solution was to allow both methods to be calculated but report the real method.
 
 ```{r qual}
 qualTable <- rbind(
@@ -195,7 +195,7 @@ The validation results for the defined areas of interest is shown below.
 ####Table `r figList$valFirstOcc`. The PestWatch data for first arrival for both populations in the specific regions. The first arrival is reported as weeks in the year.
 `r kable(valArrTable)`
 
-To show the differences between the mix ratio, the full map extent is shown below. Here the values of the contour is the simulation data and points are genetic data. The shade of gray represents the the mixing amount from white (pure TX population) to black (pure FL population).
+To show the exact spatial differences, the full map extent is shown below. For both the mixing and first occurrence, the contour plots are the simulation values and the points are the validation data. The shade of gray represents the mixing amount or the progression through the seasons.
 
 ```{r mapPaths, include = FALSE}
 
@@ -211,7 +211,7 @@ occMapPaths <- vapply(fullDir, function(f){
 	pathMap <- paste(f, "SimFirstOcc.nc",sep='/')
 	ncdf2trapgrid(f, pathOut = pathMap)
  	pathSum <- sprintf(params$summarizedVal, file2year(f))
- 	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathSum, 3, 2, 4, 0, "First Occ (PestWatch weeks)"))
+ 	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathSum, 3, 2, 4, 0, "First Occ (PestWatch wk)"))
 	paste(f, "jpeg", "Contours", "SimFirstOcc.jpg", sep = '/')
 },'e')
 
@@ -227,7 +227,7 @@ mosaicImage(mixMapPaths,labelx=rep("SimMixRatio",4), labely=rwyear,
  						offsetx=0, marb=.05, marl=.75, leftAlignYaxis = TRUE)
 ```
 
-####Table `r figList$mapFirstOcc`. The spatial distribution of the simulation and validation results for the first arrival of moths. The contours represent the simulation output and the points represent the PestWatch data. On both data sets, black represents an arrival after September and white represents an arrival before May. 
+####Table `r figList$mapFirstOcc`. The spatial distribution of the simulation and validation results for the first arrival of moths. The contours represent the simulation output and the points represent the PestWatch data. On both data sets, black represents an arrival before April and white represents an arrival in late October. 
 
 ```{r finOcc, fig.height=7, fig.width=compWidth, message=FALSE, fig.show='hold'}
 mosaicImage(occMapPaths,labelx=rep("SimFirstOcc",4), labely=rwyear,
