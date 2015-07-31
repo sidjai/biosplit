@@ -76,21 +76,14 @@ figList <- updateCntList(figList,"simDiff")
 ```
 
 ####Table `r figList$simDiff`. All the differences between the parameters for the HYSPLIT execution between the different runs
-```{r,results = 'asis'}
+```{r,results = 'asis', message=FALSE}
 kable(as.data.frame(simDiff),align='c')
 figList <- updateCntList(figList,"jpgTable")
 times <- c('051','053','063','073','091')
 dates <- strftime(strptime(paste0(times,'0'),'%m%d'),'%b\n%d')
 numTimes <- length(times)
-contHeight <- numTimes * (6*1252/1920)/length(rwyear)
-```
 
-Here is the contour plots of the different runs at different times of the year:
-
-####Table `r figList$jpgTable`. Contour plots of instaneous snapshots of the Moth population in the different runs at specific times throughout the migration time for FAW throughout late spring to fall.
-```{r contours, fig.height=contHeight, fig.width=(6), message=FALSE, fig.show='hold'}
-
-#fill the table with markdown paths to jpegs
+#make a mosaic of all the images specified
 conPaths <- paste(fullDir,'jpeg','Contours',sep='/')
 contours <- vapply(conPaths,function(pth){
 	vapply(times,function(tim){
@@ -101,7 +94,15 @@ contours <- vapply(conPaths,function(pth){
 		},'hi')
 	},rep('hi',numTimes))
 
-mosaicImage(contours,labelx=rwyear,labely=dates,offsetx=.08,marb=.2,marl=.15)
+contHeight <- 6.5 * mosaicImage(contours,offsetx=.08,marb=.2,marl=.18, onlyScale = TRUE)
+```
+
+Here is the contour plots of the different runs at different times of the year:
+
+####Table `r figList$jpgTable`. Contour plots of instaneous snapshots of the Moth population in the different runs at specific times throughout the migration time for FAW throughout late spring to fall.
+```{r contours, fig.height=contHeight, fig.width=(6.5), message=FALSE, fig.show='hold'}
+mosaicImage(contours,labelx=rwyear,labely=dates,offsetx=.08,marb=.2,marl=.18)
+
 ```
 
 There are 5 main areas of mixing that are of interest to this project; Southern Mississippi and Alabama along the gulf (Southern MSAL), Northern Mississippi and Alabama near the tail end of the Appalachian mountains (Northern MSAL), Eastern PA near the eastern seaboard (Eastern PA), Central Pennsylvania in the plains region (Central PA), and Western Pennsylvania near Lake Erie (Western PA). One of the analysis that will be used in this project is the first occurrence of a population in that area (firstOcc). For this use the defined area is the area of interest where most other times it will be done per grid cell. The other tool will be the mixing ratio of the two populations in the area of interest. This is defined as follows:
@@ -203,7 +204,7 @@ mixMapPaths <- vapply(fullDir, function(f){
 	pathMap <- paste(f, "SimMixRatio.nc",sep='/')
 	ncdf2trapgrid(f, pathOut = pathMap, shDoMix = TRUE)
 	pathHap <- sprintf(params$scrubbedHap, file2year(f))
-	runScripter("ncdf2contour.BAS", c(pathMap, 5, "bw", pathHap, 3, 2, 8, 1))
+	runScripter("ncdf2contour.BAS", c(pathMap, 3, "bw", pathHap, 3, 2, 8, 1))
 	paste(f, "jpeg", "Contours", "SimMixRatio.jpg", sep = '/')
 }, "e")
 
@@ -217,7 +218,10 @@ occMapPaths <- vapply(fullDir, function(f){
 
 figList <- updateCntList(figList,"mapMix")
 figList <- updateCntList(figList,"mapFirstOcc")
-compWidth <- (7*1920/1252)/length(rwyear) + .75 * 3
+
+#Add .2 cause word stuff
+compWidth <- .2 + 7 / mosaicImage(mixMapPaths, offsetx=0, marb=.05, marl=.75, onlyScale = TRUE)
+
 ```
 
 ####Table `r figList$mapMix`. The spatial distribution of the simulation and validation results for the relative amounts of FL and TX strains. The contours represent the simulation output and the points represent the haplotype data. On both data sets, black represents a pure TX strain and white represent a pure FL strain.

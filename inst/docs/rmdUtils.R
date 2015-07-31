@@ -9,15 +9,20 @@ dispVar <- function(var){
 	cat(paste(deparse(substitute(var)),var,sep=' = '),'\n')
 }
 mosaicImage <- function(pathMat,
-												labelx = paste0('x',1:dim(pathMat)[2]),
-												labely = paste0('y',1:dim(pathMat)[1]),
+												labelx = '',
+												labely = '',
 												offsetx = .1, offsety = .1,
 												marl = .1, marb = .1,
-												leftAlignYaxis = FALSE){
+												leftAlignYaxis = FALSE,
+                        onlyScale = FALSE){
 	
 	labelx <- cleanLabel(gsub("/", "\n", labelx))
 	labely <- cleanLabel(gsub("/", "\n", labely))
 	pathMat <- as.matrix(pathMat)
+	
+	
+	if(!nzchar(labelx[1])) labelx <- paste0('x',1:dim(pathMat)[2])
+	if(!nzchar(labely[1])) labely <- paste0('y',1:dim(pathMat)[1])
 	
 	xlen <- dim(pathMat)[2]
 	ylen <- dim(pathMat)[1]
@@ -26,14 +31,6 @@ mosaicImage <- function(pathMat,
 	xscale <- dim(testJpg)[2] / dim(testJpg)[1]
 	yscale <- 1
 	
-	#Empty plot
-	par(mar=c(0,0,0,0))
-	plot(1,
-		xlim=c(0, (xscale * xlen) + offsetx + marl),
-		ylim=c(0, (yscale * ylen) + offsety + marb),
-		type="n", bty="n", axes=FALSE
-	)
-	
 	#Get bounding box for every grid cell
 	
 	xmins <- xscale * (1:xlen - 1) + marl
@@ -41,33 +38,48 @@ mosaicImage <- function(pathMat,
 	ymins <- yscale * (ylen-(1:ylen)) + marb
 	ymaxs <- yscale * (ylen-(1:ylen) + 1) + marb + offsety
 	
+	absMaxx <- (xscale * xlen) + offsetx + marl
+	absMaxy <- (yscale * ylen) + offsety + marb
 	
-	for(yi in 1:ylen){
-		#Y axis labels
-		if( leftAlignYaxis){
-			text(x = 0, y = mean(c(ymins[yi], ymaxs[yi])), labels = labely[yi], pos = 4)
-		} else {
-			text(x = 0, y = mean(c(ymins[yi], ymaxs[yi])), labels = labely[yi])
-		}
+	if(onlyScale){
+		return(absMaxy / absMaxx)
+	} else {
 		
-		for(xi in 1:xlen){
-			path <- pathMat[yi,xi]
-			
-			if (length(path)>0 && file.exists(path)){
-				#on non windows need to resize
-				rasterImage(jpeg::readJPEG(path,native=TRUE),
-										xleft=xmins[xi],ybottom=ymins[yi],
-										xright=xmaxs[xi],ytop=ymaxs[yi],
-										interpolate = FALSE)
+		#Empty plot
+		par(mar=c(0,0,0,0))
+		plot(1,
+			xlim=c(0, absMaxx),
+			ylim=c(0, absMaxy),
+			type="n", bty="n", axes=FALSE
+		)
+		
+		for(yi in 1:ylen){
+			#Y axis labels
+			if( leftAlignYaxis){
+				text(x = 0, y = mean(c(ymins[yi], ymaxs[yi])), labels = labely[yi], pos = 4)
+			} else {
+				text(x = 0, y = mean(c(ymins[yi], ymaxs[yi])), labels = labely[yi])
 			}
 			
-			
-			if (yi==ylen){
-				#X axis labels
-				text(x = mean(c(xmins[xi], xmaxs[xi])), y = 0.01, labels=labelx[xi])
+			for(xi in 1:xlen){
+				path <- pathMat[yi,xi]
+				
+				if (length(path)>0 && file.exists(path)){
+					#on non windows need to resize
+					rasterImage(jpeg::readJPEG(path,native=TRUE),
+											xleft=xmins[xi],ybottom=ymins[yi],
+											xright=xmaxs[xi],ytop=ymaxs[yi],
+											interpolate = FALSE)
+				}
+				
+				
+				if (yi==ylen){
+					#X axis labels
+					text(x = mean(c(xmins[xi], xmaxs[xi])), y = 0.01, labels=labelx[xi])
+				}
 			}
+			
 		}
-		
 	}
 }
 
