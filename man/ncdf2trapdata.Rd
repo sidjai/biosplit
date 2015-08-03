@@ -5,7 +5,7 @@
 \title{Post-processing: Extract model output at trap locations for comparison}
 \usage{
 ncdf2trapdata(dirSim, pathTrap, pathHap = NULL, useCombined = TRUE,
-  shUseSum = FALSE, shWrite = TRUE, notes = "")
+  shUseSum = FALSE, shWrite = TRUE, shAvgSimforHap = FALSE, notes = "")
 }
 \arguments{
 \item{dirSim}{The simulation output folder}
@@ -23,6 +23,10 @@ instead of using the combined file}
 
 \item{shWrite}{Should the function write the horizontal and
 vertical csv files or just return the horizontal matrix}
+
+\item{shAvgSimforHap}{Should the program add an extra column with the average
+mixing ratio for those dates where the haplotype record is spread out
+over more than one week?}
 
 \item{notes}{A vector or string of any notes that should be included in the
 appendix}

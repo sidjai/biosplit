@@ -13,6 +13,9 @@
 #'	vertical csv files or just return the horizontal matrix
 #'@param shUseSum Go through the individual slices and sum up for the week 
 #'	instead of using the combined file
+#'@param shAvgSimforHap Should the program add an extra column with the average
+#'  mixing ratio for those dates where the haplotype record is spread out 
+#'  over more than one week?
 #'@param notes A vector or string of any notes that should be included in the
 #'	appendix
 #'@return shWrite = 1: only writes the csv file
@@ -30,6 +33,7 @@ ncdf2trapdata <- function(dirSim,
                           useCombined = TRUE,
                           shUseSum = FALSE,
                           shWrite = TRUE,
+                          shAvgSimforHap = FALSE,
 													notes = ""){
 	
 	pathNc <- paste(dirSim, "Final.nc", sep="/")
@@ -149,17 +153,30 @@ ncdf2trapdata <- function(dirSim,
 		FALSE
 	}
 	
+	
+	
 	outh <- cbind(tab, tSer)
-	outh <- addAppendix(outh, dat$assump, dat$simData, nnSet, pathTrap, notFullweekSet, notes)
+	outh <- addAppendix(outh, dat$assump, dat$simData, nnSet, 
+		pathTrap, notFullweekSet, notes)
 	
 	#Now do the vertical output
 	outv <- matrix(nrow = 1, ncol = inSize[2] + 9)
 	vertNeed <- seq(1, dim(tab)[2]-1)
 	r <- 1
 	blank <- vapply(1:(inSize[2]+1),function(x) "","")
+	mixName <- ifelse(shAvgSimforHap,
+		"Sim Mix Ratio (smoothed to Hap w avg)",
+		"Sim Mix Ratio")
 	
 	while (r<=dim(tab)[1]){
 		locInd <- (r+1)/2
+		if (shAvgSimforHap && r > 1) {
+			if(any(!is.na(hapRatio[locInd,]))){
+				mixRatio[locInd,] <- 
+					smoothSimtoHap(mixRatio[locInd,], hapRatio[locInd,], 'avg')
+			}
+		}
+		
 		outv <- rbind(outv, 
 									c(tab[r,vertNeed],
 										colnames(tSer)[1], 
@@ -197,7 +214,7 @@ ncdf2trapdata <- function(dirSim,
 											"FL Moths", 
 											"TX Moths",
 											"Trap Moths",
-											"Sim Mix Ratio",
+											mixName,
 											"Trap Hap Ratio",
 											"Trap Notes")
 	
@@ -210,6 +227,30 @@ ncdf2trapdata <- function(dirSim,
 	} else {
 		return(outh)
 	}
+}
+
+smoothSimtoHap <- function(mixRatio, hapTable, method){
+	mixAvgTable <- mixRatio
+
+	rstart <- 1
+	while(rstart < length(hapTable)){
+		r <- rstart + 1
+		while(!any(is.na(hapTable[(r-1):r])) &&
+				hapTable[r-1] == hapTable[r]){
+			r <- r+1
+		}
+		if(r != rstart + 1){
+			seqH <- rstart:(r-1)
+			
+			mixAvgTable[seqH] <- 
+				switch(method,
+					avg = mean(mixRatio[seqH], na.rm = TRUE),
+					max = max(mixRatio[seqH], na.rm = TRUE)
+				)
+		}
+		rstart <- r
+	}
+	return(mixAvgTable)
 }
 
 #'Post-processing: Summarize the simulation details in a nicely mapped format
