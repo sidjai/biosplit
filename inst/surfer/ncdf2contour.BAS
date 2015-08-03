@@ -14,7 +14,7 @@ Sub Main
 	Dim colArr() As Integer
 	Dim postLimits() As Double
 	Dim symTypes(4) As Integer
-	Dim args(8) As String
+	Dim args(9) As String
 
 
 	Set doc = Surf.Documents
@@ -31,6 +31,7 @@ args(5) = "2"
 args(6) = "3"
 args(7) = "0"
 args(8) =  "Haplotype Ratio (h2/h4)"
+args(9) = "C:\Users\Siddarta.Jairam\Documents\Documentation\tempOutL.srf"
 
 argSpl = Split(inp,Chr(34))
 argInd = 1
@@ -48,6 +49,7 @@ postLatInd = CInt(args(5))
 postZInd = CInt(args(6))
 postOff = CBool(args(7))
 postTitle = args(8)
+templateName = args(9)
 
 If(postOff) Then
 	numBins = 3
@@ -82,7 +84,6 @@ fillType = "Solid"
 ReDim colArr(0 To numLevels, 0 To 2) As Integer
 ReDim myLevels(0 To numLevels) As Double
 ReDim postLimits(0 To (numBins+1)*2 - 2) As Double
-templateName = "C:\Users\Siddarta.Jairam\Documents\Documentation\tempOutL.srf"
 
 'Open template
 Set myPlot = Surf.Documents.Open(FileName:=templateName)
