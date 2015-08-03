@@ -55,6 +55,14 @@ Else
 	numBins = CLng(numLevels)
 End If
 
+If(CBool(InStr(args(0), "no File"))) Then
+	part1 = "No File given, correct flag order (everything except the first has defaults) :"
+	part2 = "File, number of levels, color or bw,"
+	part3 = "classpost table location, longitude column, latitude column, z column, offset?, Class post title"
+	Debug.Print (part1 & part2 & part3)
+	'Just to stop program
+	Debug.Print (args(-1))
+End If
 
 lastSlashInd = InStrRev(args(0), "/")
 runInd = InStr(args(0), "run")
@@ -147,8 +155,13 @@ If (IsObject(frame)) Then
 
 		.Levels.Set(Levels:=myLevels)
 
-		.LabelFont.Size = 8
-		.LabelFont.BackColorRGBA.Opacity = 100
+		With .LabelFont
+			.Size = 8
+			.Bold = True
+			.BackColorRGBA.Opacity = 0
+			.ForeColorRGBA.Color= srfColorWhite
+		End With
+
 		.LabelTolerance = 1.2
 		.LabelLabelDist = 3
 		.LabelEdgeDist = 0.3
@@ -252,9 +265,14 @@ If (IsObject(frame)) Then
 				.Set = "GSI Default Symbols"
 				.Index = symTypes(CInt((sym Mod 5)))
 				.Size =0.1
-				.Color = RGB(colArr(sym, 0), colArr(sym, 1) , colArr(sym, 2))
+				.Color = RGB(colArr(sym-1, 0), colArr(sym-1, 1) , colArr(sym-1, 2))
 				.FillColorRGBA.Opacity = 75
-				.LineColor = srfColorBlack
+				If(sym = numBins) Then
+					.LineColor = srfColorWhite
+				Else
+					.LineColor = srfColorWhite
+				End If
+
 			End With
 		Next
 		With addMap.Legend
