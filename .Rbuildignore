@@ -4,3 +4,5 @@
 cfg.RData
 cfg.txt
 Rconsole
+^NEWS.md$
+^TODO.txt$
