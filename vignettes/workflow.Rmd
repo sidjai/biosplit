@@ -11,8 +11,6 @@ output:
 knitr::opts_chunk$set(fig.width=6.5, fig.height=3.5,fig.pos='center',echo=TRUE,comment='>',dpi=800)
 library(ggplot2)
 library(biosplit)
-realWd <- 'C:/Users/Siddarta.Jairam/Documents/MothMigrationModel'
-load(paste(realWd,"cfg.Rout",sep="/"))
 
 figList <- list()
 source(paste(realWd,"docs/rmdFunctions.R",sep='/'))
@@ -25,7 +23,7 @@ RLoc <- "C:/Users/Siddarta.Jairam/Documents/R/R-3.2.0"
 
 #Setup
 
-When the package is installed there is a blank "config.txt" file created in the package directory. This holds all the information about the run and the file folders. Ultimately, most of the file folders are optional but the parameters are vital to how the biological side of the program runs. One file folder that is neccesary is the location of the HYSPLIT working directory and the installed "execs" file. *This program assumes that the HYSPLIT is installed.*
+When the package is installed there is a blank "config.txt" file created in the package directory. This holds all the information about the run and the file folders. Ultimately, most of the file folders are optional but the parameters are vital to how the biological side of the program runs. One file folder that is necessary is the location of the HYSPLIT working directory and the installed "execs" file. *This program assumes that the HYSPLIT is installed.*
 
 ```{r}
 cfg <- loadConfig()
@@ -77,7 +75,7 @@ runMeteo("ARL2GRD.py",
 				 c(cfg$MetARLFold, cfg$proARLDir, cfg$wantedMetVars, recursive = TRUE), TRUE)
 ```
 
-Change the extent of the data
+Get all the variables cleaned up unprojected and netCDFs.
 
 ```{r}
 
@@ -98,31 +96,40 @@ vapply(cfg$wantedMetVars, function(var){
 
 #Running the program
 
-Transform this raw data into the derived variables used by the program
+Transform predictive data into the derived variables used by the program
 ```{r}
 collectAprioriVars(cfg)
 ```
 
 Call the model
 ```{r}
-runRscript <- makeRunFun(RLoc,"R")
-runRscript("iterateHysplit.R")
+runBiosplit(cfg)
 ```
 
-#Post-processing
+#Validation
+
+Grab the trap data and get a list of all the trap locations and their captures
 
 ```{r}
 pathTrapXlsx <- "C:/Users/Siddarta.Jairam/Documents/Documentation/PestWatchDump.xlsx"
-pathHapXlsx <- "C:/Users/Siddarta.Jairam/Documents/Documentation/hapDat.xlsx"
-pathTrapDict <- "C:/Users/Siddarta.Jairam/Documents/Documentation/County2TrapLoc.csv"
+
 pathScrubTrap <- "C:/Users/Siddarta.Jairam/Documents/Documentation/scrubTrap.csv"
 trapRec <- scrubTrap(pathTrapXlsx, cfg$year)
 
-csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict)
-csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict, pathCsvOut = gsub("[.]xlsx", paste0(cfg$year, ".csv"), pathHapXlsx), onlyYr = cfg$year)
+
 ```
 
-Summarize the validation
+Go through the haplotype data and relate it back to the trap data for a smaller subset.
+
+```{r}
+pathHapXlsx <- "C:/Users/Siddarta.Jairam/Documents/Documentation/hapDat.xlsx"
+pathTrapDict <- "C:/Users/Siddarta.Jairam/Documents/Documentation/County2TrapLoc.csv"
+csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict)
+csvTab <- scrubHaplo(pathHapXlsx, pathTrapDict, pathCsvOut = gsub("[.]xlsx", paste0(cfg$year, ".csv"), pathHapXlsx), onlyYr = cfg$year)
+
+```
+
+Summarize the validation on a per year basis in the form of a single column csv file. After this, one can further summarize the data using area of interests that either calculate the first occurrence in that area using the minimum date of arrival or the average mixing ratio that takes the sum of all the moths in that entered that area as a population.
 
 ```{r}
 pathHapSum <- "C:/Users/Siddarta.Jairam/Documents/Documentation/sumHapTrap.csv"
@@ -131,8 +138,9 @@ valAreaStats(pathHapSum,"C:/Users/Siddarta.Jairam/Documents/Documentation/Centra
 
 ```
 
+##Post-processing
 
-Make the tables
+Make the final csv tables comparing all the different validation and simulation data.
 ```{r}
 ncdf2trapdata(cfg$SimOutFold, cfg$TrapLoc[paste0(cfg$year)], shDoSum = TRUE)
 
@@ -152,7 +160,14 @@ vapply(runs, function(x){
 
 ```
 
-Compare the rasters
+You can also do the regional statistics on the simulation data using a similar scheme.
+
+```{r}
+simAreaStats(cfg$SimOutFold, "C:/Users/Siddarta.Jairam/Documents/Documentation/Central PA.kml")
+
+```
+
+Spatially average the output over the whole grid. This compares the trap data on the same scale as the simulation data.
 
 ```{r}
 
@@ -164,7 +179,7 @@ mean(abs(predObv[,,]),na.rm=TRUE)
 
 ```
 
-Do some stats on the final output
+Along with the general comparison of the rasters, one can look at the difference with the first occurrence and the mixing ratios in both cases spatially averaged to the base grid size. This now is the third way of calculating these values for three different spatial scales (point and time specific, regional over the year, spatially averaged per point over the year). 
 
 ```{r}
 ncdf2trapgrid(cfg$SimOutFold,
@@ -177,24 +192,73 @@ ncdf2trapgrid(cfg$SimOutFold,
 
 ```
 
-Interogate specific areas in the output
+##Visualization
 
-```{r}
-simAreaStats(cfg$SimOutFold, "C:/Users/Siddarta.Jairam/Documents/Documentation/Central PA.kml")
+There are 3 different maps used in this analysis
 
-```
+1. Contour maps of the simulation weekly output snapshots
+2. Class post maps of the exact location of the simulation output
+3. Contour plots of the result of post-processing with overlays of the validation data
 
-Make the maps
-require scripter
+These are done using a provided script running function to call scripter as follows:
+
 ```{r}
 
 runScripter <- makeRunFun(goldLoc, "BAS")
+```
+
+The contour maps are the first thing to look at with a given simulation. You can see the progress through the year and have a good idea about mixing areas and population densities. Mixing areas are hard to ascertain but first occurrence is mapped precisely. 
+
+```{r}
+runScripter("Mothtxt2Contour.BAS",cfg$SimOutFold)
+```
+
+The contours are made for almost thumbnail- like size for use in the autoreport. This means that areas have been smoothed and complexities have been eliminated. To get a clearer look at what is happening in each grid cell the class post maps are used. All the complexities are shown in gory details including individual populations in a specific grid point. The downside is that these are overlayed on top of each other which makes the graph extremely messy after June or so. These are not ready for publication and should be used as raw verification outputs.
+
+```{r}
 runScripter("Mothtxt2ClassPost.BAS",cfg$SimOutFold)
 ```
 
-require scripter
+After the post-processing is done the last graph is used. Without too much manipulation, these graphs were arrived upon for showing the data as they are. It takes an netCDF output of one of the statistics used, mixing ratio or first occurrence as well as a table of scrubbed validation data. It has flags to manipulate the number of bins and if color is used.
+
 ```{r}
-runScripter("Mothtxt2contour.BAS",cfg$SimOutFold)
+pathMix <- paste(cfg$SimOutFold, "SimMixRatio.nc",sep='/')
+pathFirst <- paste(cfg$SimOutFold, "SimFirstOcc.nc",sep='/')
+pathHap <- "C:/Users/Siddarta.Jairam/Documents/Documentation/hapDat2013.csv"
+pathSum <- "C:/Users/Siddarta.Jairam/Documents/Documentation/sumTrapHap2013.csv"
+
+runScripter("ncdf2contour.BAS", c(pathMap, 3, "bw", pathHap, 3, 2, 8, 1))
+runScripter("ncdf2contour.BAS", c(pathFirst, 4, "bw", pathSum, 3, 2, 4, 0, "First Occ (PestWatch wk)"))
 ```
 
+The order of the flags (the character vector given after the script name) are:
 
+1. Simulation netCDF location
+2. Number of levels = 5
+3. Color or bw? = BW
+4. Class post table location
+5. Longitude column = 1
+6. Latitude column = 2
+7. Z column = 3
+8. offset? = 0
+9. Class post title = "Haplotype Ratio (h2/h4)"
+
+## Tools and documentation
+
+For the pre-processing, this document should suffice as the individual steps may change with the specific project. As with all the functions, roxygen comments are used to produce the final man pages for more detailed documentation.
+
+An attempt to summarize the biophysical models that go into the model can be found in "docs/BiologicalEqs.rmd". An explanation of the HYSPLIT model can be located at the [NOAA](http://www.arl.noaa.gov/HYSPLIT_info.php) website.
+
+batchRun.R in the scripts folder details the modeling steps while running a multiple runs in a single source call. 
+
+The most complete collection of the post processing steps and scientific underpinnings can be found in "docs/AutoReport.rmd". This is a parameterized report that compares two or more runs with each other and largely runs through the post-processing steps. It has a required parameter other than the specific runs so the call in the final output grid as follows:
+
+```{r}
+rmarkdown::render(system.file("docs", "AutoReport.rmd", package = "biosplit"),
+	params = list(
+	runs = rep("runWithCanada",4),
+	years = c(2011, 2012, 2013, 2014),
+	niceGrid = niceGrid
+	)
+)
+```

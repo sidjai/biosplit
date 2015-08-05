@@ -2,7 +2,6 @@
 title: "Auto Report"
 author: "Siddarta Jairam"
 date: '`r strftime(Sys.time(),"%A, %B %d, %Y")`'
-geometry: margin=1in
 output: 
   word_document:
     reference_docx: rmdTemp.docx
@@ -109,7 +108,7 @@ There are 5 main areas of mixing that are of interest to this project; Southern 
 
 $$Mix_{ratio} =\frac{\log_{10} (FLMoth + 1) - \log_{10} (TXMoth + 1)}{\log_{10} (FLMoth + 1) + \log_{10} (TXMoth + 1)}$$
 
-This is done to normalize the output on a range of -1 (All TX moths) to 1 (all FL moths). Also this puts it on a similar scale as the Haplotype ratio h2/h4 which goes from 0 (All TX) to > 2 (mostly FL) with the mixing region between 0.5 to 1.5. For this example the Moth populations in question will be all moths in the region summed over the entire year. The basic use is to do the calculation for every grid cell for every week of the year. Below is the summary for each of the regions and these values.
+This is done to normalize the output on a range of -1 (All TX moths) to 1 (all FL moths). Also this puts it on a similar scale as the Haplotype ratio h2/h4 which goes from 0 (All TX) to > 2 (mostly FL) with the mixing region between 0.5 to 1.5. For this example, the Moth populations in question will be all moths that enter the region summed over the entire year. Below is the summary for each of the regions and these values.
 
 ```{r simStats, warning = FALSE}
 baseArea <- "C:/Users/Siddarta.Jairam/Documents/Documentation/"
@@ -134,7 +133,7 @@ figList <- updateCntList(figList,"mixTable")
 figList <- updateCntList(figList,"arrTable")
 ```
 
-####Table `r figList$mixTable`. The mixing ratio of the simulation in specific regions. The spatial range is the region and the temporal range is a summation of the whole year. The result is the average of this range.
+####Table `r figList$mixTable`. The mixing ratio of the simulation in specific regions. The spatial range is the region and the temporal range is a summation of the whole year. The result is the average of all the moths that enter this region.
 `r kable(mixTable)`
 
 ####Table `r figList$arrTable`. The simulation first arrival for both populations in the specific regions. The first arrival is reported as a pair of the different populations (FL first occurance, TX first occurance) in weeks in the year.
@@ -152,10 +151,9 @@ From this data we can compare the same output variables as that was looked at in
 
 ```{r qual}
 qualTable <- rbind(
-	c("-1 - -0.5", "0 - 0.5", "Mostly Texas"),
-	c("0.5 - 0","0.5 - 1", "Mixed - Majority Texas"),
-	c("0 - 0.5","1 - 1.5", "Mixed - Majority Florida"),
-	c("0.5 - 1", "1.5 - inf", "Mostly Florida")
+	c("-1 - -0.33", "0 - 0.5", "Mostly Texas"),
+	c("-0.33 - 0.33","0.5 - 1.5", "Mixed population"),
+	c("0..33 - 1", "1.5 - inf", "Mostly Florida")
 )
 colnames(qualTable) <- c("Sim Mixing ratio", "h2/h4 ratio", "Qualitative meaning")
 figList <- updateCntList(figList,"qualTable")
@@ -190,10 +188,10 @@ figList <- updateCntList(figList,"valMix")
 
 The validation results for the defined areas of interest is shown below.
 
-####Table `r figList$valMix`. The mixing ratio of the simulation in specific regions. The spatial range is the region and the temporal range is a summation of the whole year. The result is the average of this range.
+####Table `r figList$valMix`. The mixing ratio of thetrap captures in specific regions. The spatial range is the region specified and the temporal range is the whole year. The result is the average of all the moths captured in this range.
 `r kable(valMixTable)`
 
-####Table `r figList$valFirstOcc`. The PestWatch data for first arrival for both populations in the specific regions. The first arrival is reported as weeks in the year.
+####Table `r figList$valFirstOcc`. The PestWatch data for first arrival for either population in the specific regions. The first arrival is reported as weeks in the year.
 `r kable(valArrTable)`
 
 To show the exact spatial differences, the full map extent is shown below. For both the mixing and first occurrence, the contour plots are the simulation values and the points are the validation data. The shade of gray represents the mixing amount or the progression through the seasons.

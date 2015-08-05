@@ -24,7 +24,7 @@ inp = CStr(Command$)
 'Defaults
 args(0) = "no File"
 args(1) = "5"
-args(2) = "color"
+args(2) = "bw"
 args(3) = "no classPost overlay"
 args(4) = "1"
 args(5) = "2"
