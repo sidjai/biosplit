@@ -1,0 +1,49 @@
+make simopennc open it as a raster stack
+
+add a masking function that accepts a bunch of variables and outputs a dim( rec, 1) logical vector
+
+Integrate newer versions of HYSPLIT
+-now with more fine ending times (with minutes)
+
+make runnable with linux
+-mostly the shell prompts
+
+Give an alternative to surfer
+-either ggmap or qgis or meteoInfo
+
+config.txt
+-make the listable numbers able to be inputted without backticks
+-Gut since its so old
+-must include some tests since its the thing that will handle most user input
+-add meteoInfo locations and validation locations to the config
+-give a function for niceGrid so you could call it like cfg$getNiceGrid()
+--doesn't have the weight of the grid itself and its easy to call
+
+make new program map with the postprocessing steps
+-add new section on readme
+
+Database some of the begining calls so everything definetly fits in memory
+
+Get actual numbers for canada
+
+Climate change actually working
+-check with the given fortran code using .fortran in R
+-maybe output a textfile with all the data that can be manually copied and pasted into the interactive session in hysplit
+
+Citation
+-Add date, vol, pages etc. when the foundational paper is actually published
+
+Change migCareerLimit name to migCareerLength
+
+throw the flags like lifespan, migCareerLimit into intital paramaters that are subtracted and checked only for >0
+-would reduce connectedness of the system
+-much cleaner
+-Easier to check different functions
+
+
+Make more tests for core functions in iterate.
+growth
+clean
+migrate death
+
+Delete duplicate EggsperInfest in cleanGrowmoths
