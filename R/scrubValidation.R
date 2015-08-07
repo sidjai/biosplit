@@ -291,7 +291,7 @@ scrubTrap <- function(pathXlsx, year,
 #'  works as a byproduct by writing a csvFile
 #' @export
 summarizeValid <- function(trapIn, year,
-	hapIn = NULL,
+	hapDat = NULL,
 	addDat = NULL,
 	pathCsvOut = "",
 	firstMethod = c("real", "pred")[1]) {
@@ -344,8 +344,8 @@ summarizeValid <- function(trapIn, year,
 	sumDat <- trapXYZ
 	
 	#Haplotype data
-	if(!is.null(hapIn)){
-		hapRatio <- parseHapData(hapIn, 
+	if(!is.null(hapDat)){
+		hapRatio <- parseHapData(hapDat, 
 			trapXYZ[,1],
 			trapXYZ[,2],
 			shAvgYear = TRUE)

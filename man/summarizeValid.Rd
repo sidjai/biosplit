@@ -4,8 +4,8 @@
 \alias{summarizeValid}
 \title{Summarize the validation data}
 \usage{
-summarizeValid(trapIn, year, hapIn = NULL, addDat = NULL, pathCsvOut = "",
-  firstMethod = c("real", "pred")[1])
+summarizeValid(trapIn, year, hapDat = NULL, addDat = NULL,
+  pathCsvOut = "", firstMethod = c("real", "pred")[1])
 }
 \arguments{
 \item{trapIn}{Either the path to the pest watch dump,
@@ -13,6 +13,9 @@ the csv of the scrubing result,
 or the list of trap records}
 
 \item{year}{numerical year where the data should be extracted}
+
+\item{hapDat}{The haplotype data as the path to the csv output of the scrubbing
+or the matrix of the csv data.}
 
 \item{addDat}{additional data that you want to be included that must have the
 same row numbers as the original trap data. Either a vector or
@@ -24,9 +27,6 @@ a list of vectors of the multiple pieces of data that you want to combine.}
  using the "real" method that takes the first time moths were actually captured,
  or the "pred" method that gets the first time the trap record could have traps in
  in that grid cell as determined by the length of the catch period.}
-
-\item{hapDat}{The haplotype data as the path to the csv output of the scrubbing
-or the matrix of the csv data.}
 }
 \value{
 outputs a matrix of the csv output or if pathCsvOut is specified,

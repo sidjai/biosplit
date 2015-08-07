@@ -56,7 +56,7 @@ The other side is ploting the results as contour and post maps in the folder "/j
 
 ##Acknowledgement
 
-This project was supported by USDA project number 6036-22000-025-06.
+This project was supported by USDA project number 6036-22000-025-06 and AFRI grant number 2011-67003-30209
 
 
 ##References
