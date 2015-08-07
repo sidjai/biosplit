@@ -4,16 +4,17 @@ map2block <- makeMapConverter(seq(.1, .5, by=.1),
 															seq(.1, .5, by=.1),
 															tol = .05)
 
-ctx <- list()
-
-ctx$xs <- ctx$ys <- 1
-ctx$CornGDD <- 90
-ctx$infestLmt <- 10
-ctx$lifeSpan <- 10
-ctx$infestThres <- 1
-ctx$eggsPerInfest <- 4
-ctx$oviDay <- 1
-ctx$capEggs <- 5
+ctx <- list(
+	xs = 1,
+	ys = 1,
+	CornGDD = 90,
+	infestLmt = 10,
+	lifeSpan = 10,
+	infestThres = 1,
+	eggsPerInfest = 4,
+	oviDay = 1,
+	capEggs = 5
+)
 
 moth <- makeLife(1,cbind(.2,.2, 1), 4, 1, 5)
 
