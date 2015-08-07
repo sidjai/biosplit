@@ -612,14 +612,12 @@ getNightDur <- function(lat, lon, day){
 		sunLight <- insol::daylength(lat,lon,day,1)[,3]
 	} else {
 		#from: http://mathforum.org/library/drmath/view/56478.html
-		part <- asin(.39795*cos(.2163108 + 2*atan(.9671396*tan(.00860(day-186)))))
+		part <- asin(.39795*cos(.2163108 + 2*atan(.9671396*tan(.00860*(day-186)))))
 		sunLight <- 24 - (24/pi)*
 			acos((sin(0.8333*pi/180) + sin(lat*pi/180)*sin(part))
 				/(cos(lat*pi/180)*cos(part)))
 	}
 	names(sunLight) <- NULL
-	if(is.nan(sunLight[1])) stop(paste0("Astro calc messed up royally with NaNs used vals:",paste(lat, lon, day)))
-	if(sunLight[1]<0 || sunLight[1]>24) stop(paste0("Astro calc came up with weird response of:",sunLight))
 	return(round((24-sunLight)-1,0))
 }
 makeHysplitInputChanger <- function(hyDir, cornMap, delNightDurFlag, map2block){
