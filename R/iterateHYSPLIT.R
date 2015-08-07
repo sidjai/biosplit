@@ -22,7 +22,7 @@ runBiosplit <- function(cfg){
 	Harvest <- att.get.ncdf(nc,0,"HarvestTimes")$value
 	CornThres <- att.get.ncdf(nc,0,"CornThres")$value
 	
-	apr<-lapply(varNames, function(x) get.var.ncdf(nc,x))
+	apr <- lapply(varNames, function(x) get.var.ncdf(nc,x))
 	names(apr) <- varNames
 	close.ncdf(nc)
 	xmapvec <- nc$dim$lon$vals
@@ -32,7 +32,7 @@ runBiosplit <- function(cfg){
 	bndy <- c(min(ymapvec),max(ymapvec))
 	
 	#do some tests on apr to make sure it was done correctly
-	apr$CornGDD[is.na(apr$CornGDD)] <- 40000
+	
 	if(any(is.na(apr$CornGDD))){
 		stop("aprioriVars messed up | there are NAs in cornGDD")
 	}
@@ -48,12 +48,12 @@ runBiosplit <- function(cfg){
 	endAss <- charmatch('relAmtFL',names(cfg))
 	Assump <- vapply(stAss:endAss,function(x) paste(names(cfg[x]),cfg[x],sep=' = '),"")
 	
-	Assump <-paste(Assump,collapse = '; ')
+	Assump <- paste(Assump, collapse = '; ')
 	
 	
 	#Get from the simulation criteria as supplied in the setup.cfg file
-		#Should have been changed before simulation if you want non-default
-		#The options secified in the config file under simulation assumptions will change but nothing else
+		#Should have been changed earlier for non-default HYSPLIT simulations
+		#Control file will change during the run, but setup is constant
 	
 
 	simEmploy <- switch(cfg$simType, single=2, Fake=3, 1)
@@ -87,12 +87,12 @@ runBiosplit <- function(cfg){
 	
 	
 	makeREADME(cfg$READMELoc,
-						 cfg$SimOutFold,
-						 cfg$runName,
-						 cfg$codeChanges,
-						 Assump,
-						 simData,
-						 cfg$makeReadmeFlag)
+             cfg$SimOutFold,
+             cfg$runName,
+             cfg$codeChanges,
+             Assump,
+             simData,
+             cfg$makeReadmeFlag)
 	
 	#Make closures
 	map2block <- makeMapConverter(xmapvec, ymapvec, tol = .29)
@@ -119,7 +119,9 @@ runBiosplit <- function(cfg){
 	wk <- 1
 	numFlights <- c()
 	
-	mMothOut <- CohortOut <- list(array(0, dim=c(dim(apr$Corn),52)),array(0, dim=c(dim(apr$Corn),52)))
+	mMothOut <- CohortOut <- list(
+		array(0, dim=c(dim(apr$Corn),52)),
+		array(0, dim=c(dim(apr$Corn),52)))
 	
 	#Get the input cohort areas
 	
@@ -144,7 +146,9 @@ runBiosplit <- function(cfg){
 	#Check if the overwinter population sum to the start amount
 	checkAmt <- sum(makePopTable(winterPop)[,3])
 	if(abs(checkAmt-cfg$stAmount) > 10){
-		stop(paste0("The overwinter population calculation did not go right, calc Pop:",checkAmt, " specified amount:", cfg$stAmount))
+		stop(paste0("The overwinter population calculation did not go right,",
+			" calc Pop:", checkAmt, 
+			" specified amount:", cfg$stAmount))
 	}
 	
 	midFLPop <- viableLoc[which((viableLoc - (numFLWin/2))>0)[1]]
@@ -173,26 +177,26 @@ runBiosplit <- function(cfg){
 		if (length(youngAdults)>0){
 			for (ya in seq(1, length(youngAdults))){
 				ctxya <- getPopContext(youngAdults[[ya]], map2block,
-														 apr$CornGDD[, , di],
-														 cfg$infestLmt,
-														 cfg$infestThres,
-														 cfg$flightPropBeforeSilk,
-														 cfg$flightPropAfterSilk)
+					apr$CornGDD[, , di],
+					cfg$infestLmt,
+					cfg$infestThres,
+					cfg$flightPropBeforeSilk,
+					cfg$flightPropAfterSilk)
 				
 				tSplit <- willFly(youngAdults[[ya]], 1 , ctxya)
 				
 				if (colSums(tSplit[[1]]$grid, na.rm = TRUE)[3] > cfg$mothThres){
-					Moth <- lappend(Moth,tSplit[[1]])
+					Moth <- lappend(Moth, tSplit[[1]])
 				}
 				
 				sp <- cleanPop(tSplit[[2]])
 				if (length(sp)>0 
 						&& colSums(makePopTable(sp), na.rm = TRUE)[3] > cfg$mothThres){
-					youngMig <- rbind(youngMig,tSplit[[2]])
+					youngMig <- rbind(youngMig, tSplit[[2]])
 				}
-				
+
 			}
-			youngAdults=list()	
+			youngAdults <- list()	
 		}
 		
 		siz <- dim(youngMig)
@@ -222,17 +226,17 @@ runBiosplit <- function(cfg){
 			mi <- length(mMoth)
 			while (mi > 0){
 				ctx <- getPopContext(mMoth[[mi]], map2block,
-														 apr$Corn,
-														 apr$CornGDD[, , di],
-														 cfg$infestLmt,
-														 cfg$infestThres,
-														 cfg$flightPropBeforeSilk,
-														 cfg$flightPropAfterSilk)
+					apr$Corn,
+					apr$CornGDD[, , di],
+					cfg$infestLmt,
+					cfg$infestThres,
+					cfg$flightPropBeforeSilk,
+					cfg$flightPropAfterSilk)
 				
 				tSplit <- willFly(mMoth[[mi]], 0, ctx)
 				condLowAmt <- lapply(tSplit,function(x){
 					dim(x$grid)[1] == 0 ||
-						colSums(x$grid)[3] < cfg$mothThres*dim(x$grid)[1]
+					colSums(x$grid)[3] < cfg$mothThres * dim(x$grid)[1]
 				})
 				
 				condRetired <- (mMoth[[mi]]$flights >= cfg$migCareerLimit)
@@ -240,11 +244,11 @@ runBiosplit <- function(cfg){
 				#What to do with the Local population?
 				if (!condLowAmt$stay || condRetired){
 					Moth<-lappend(Moth,
-												if(condRetired){
-													mMoth[[mi]]
-												} else { 
-													tSplit[[1]]
-												})
+						if(condRetired){
+							mMoth[[mi]]
+						} else { 
+							tSplit[[1]]
+						})
 				}
 				
 				#What to do with the Migrants?
@@ -252,14 +256,14 @@ runBiosplit <- function(cfg){
 				else{
 					#Got Moths that want to fly but are they able to fly?
 					testPos <- cbind(ctx$xs, ctx$ys, di)
-					condSk <- (length(which(cfg$skip==di))!=0)
-					condTired <- (mMoth[[mi]]$flights %% cfg$succFlightLim)==0
-					if (any(condSk,
-									condTired,
-									apr$windStopTO[testPos],
-									apr$precStopTO[testPos],
-									apr$tempStopTO[testPos],
-									na.rm = TRUE)){
+					condSk <- (any(cfg$skip == di))
+					condTired <- (mMoth[[mi]]$flights %% cfg$succFlightLim) == 0
+					condTakeOffHalt <- any(
+						apr$windStopTO[testPos],
+						apr$precStopTO[testPos],
+						apr$tempStopTO[testPos], na.rm = TRUE)
+					
+					if (condSk || condTired || condTakeOffHalt){
 						
 						mMoth[[mi]] <- tSplit[[2]]
 						mMoth[[mi]]$flights <- mMoth[[mi]]$flights+.1
@@ -284,17 +288,16 @@ runBiosplit <- function(cfg){
 						mig <- mig+1
 						
 						ctx <- getPopContext(mMoth[[mi]], map2block,
-																 apr$Corn,
-																 apr$CornGDD[, , di],
-																 cfg$altCornDay,
-																 cfg$infestThres)
+							apr$Corn,
+							apr$CornGDD[, , di],
+							cfg$altCornDay,
+							cfg$infestThres)
 
 						#get rid of the Moths that went out of bounds
 						mMoth[[mi]] <- migrateDeath(mMoth[[mi]], di, ctx)
-						if (dim(mMoth[[mi]]$grid)[1]==0)  mMoth <- mMoth[-mi,drop = FALSE]
+						if (dim(mMoth[[mi]]$grid)[1]==0)  mMoth <- mMoth[-mi, drop = FALSE]
 						else {
-							mMoth[[mi]]$flights <- round(mMoth[[mi]]$flights + 1,0)
-							
+							mMoth[[mi]]$flights <- round(mMoth[[mi]]$flights + 1, 0)
 						}
 					}
 				}
@@ -312,17 +315,18 @@ runBiosplit <- function(cfg){
 		#Test to see if it needs to output every day
 		txtFlag <- (di==sort(c(cfg$outEveryDayStart,cfg$outEveryDayEnd,di))[2])
 		if(txtFlag){
-			if(length(mMoth)>0) try(mMothOut <- makeOutput(mMoth,mMothOut, tPos, map2block,
-																										 cfg$SimOutFold,
-																										 lpop2 = Moth,
-																										 onlyTxt = FALSE,
-																										 shWrite = cfg$writeFlag))
+			if(length(mMoth)>0) try(
+				mMothOut <- makeOutput(mMoth, mMothOut, tPos, map2block,
+					cfg$SimOutFold,
+					lpop2 = Moth,
+					onlyTxt = FALSE,
+					shWrite = cfg$writeFlag))
 		}
 		
 		###########################
 		#do end of week calculations
 		###########################
-		if (di%%7==1 & di<=359){
+		if (di%%7==1 && di<=359){
 			#End of week
 			
 			
@@ -330,26 +334,31 @@ runBiosplit <- function(cfg){
 			
 			youngMig <- list()
 			if (di < 130){
-				fldie <- c("TX")
-				fldie <- c(fldie,vapply(Cohort,function(x)x$origin,""))
-				fldie <- c(fldie,vapply(Moth,function(x)x$origin,""))
-				fldie <- c(fldie,vapply(mMoth,function(x)x$origin,""))
-				fldie <- c(fldie,vapply(Eggs,function(x)x$origin,""))
+				fldie <- c("TX",
+					vapply(Cohort,function(x)x$origin,""),
+					vapply(Moth,function(x)x$origin,""),
+					vapply(mMoth,function(x)x$origin,""),
+					vapply(Eggs,function(x)x$origin,"")
+				)
 				
-				if(length(which(fldie=="FL"))==0){
-					stop("FL died off, abandon ship")
+				if(!any(fldie == "FL")){
+					stop(paste("Day:", di, "FL died off, abandon ship"))
 				}
 			}
 			
 			#get all the outputs
 			
-			if (length(Cohort)>0) CohortOut <- makeOutput(Cohort, CohortOut, tPos, map2block, 
-																										cfg$SimOutFold, shWrite = cfg$writeFlag)
+			if (length(Cohort)>0){
+				CohortOut <- makeOutput(Cohort, CohortOut, tPos, map2block, 
+					cfg$SimOutFold, shWrite = cfg$writeFlag)
+			}
+
 			if (length(mMoth)>0){
-				cat("End week", wk,"\n")
-				mMothOut <- makeOutput(mMoth,mMothOut, tPos, map2block, cfg$SimOutFold,
-															 lpop2 = Moth,
-															 shWrite = cfg$writeFlag)
+				cat("End week", wk, "\n")
+				mMothOut <- makeOutput(mMoth,mMothOut, tPos, map2block,
+					cfg$SimOutFold,
+					lpop2 = Moth,
+					shWrite = cfg$writeFlag)
 				wk <- wk + 1
 			}
 			
@@ -368,7 +377,7 @@ runBiosplit <- function(cfg){
 			if (length(Cohort)>0){
 				#Clean cohort
 				tCoh <- growCohort(Cohort, map2block, di, apr, 
-													 cfg$altCornDay, cfg$infestThres, cfg$cohortGDDThres, cfg$capEggs)
+					cfg$altCornDay, cfg$infestThres, cfg$cohortGDDThres, cfg$capEggs)
 				
 				#Clean cohort
 				Cohort <- cleanAll(tCoh[[1]],cfg$cohortThres)
@@ -382,15 +391,17 @@ runBiosplit <- function(cfg){
 	
 	#Clean up + final output
 	if (cfg$writeFlag){
-		dims <-list(nc$dim$lon,
-								nc$dim$lat,
-								dim.def.ncdf( "Time", "weeks", 1:52, unlim=TRUE ))
+		dims <-list(
+			nc$dim$lon,
+			nc$dim$lat,
+			dim.def.ncdf( "Time", "weeks", 1:52, unlim=TRUE ))
 		
-		fVars<- list(var.def.ncdf('TXCohort', '#Immature moths',dims,1.e30),
-								 var.def.ncdf('FLCohort', '#Immature moths',dims,1.e30),
-								 var.def.ncdf('TXMoth', '#Moths',dims,1.e30),
-								 var.def.ncdf('FLMoth', '#Moths',dims,1.e30))
-		onc <-create.ncdf(paste(cfg$SimOutFold,"Final.nc",sep="/"),fVars)
+		fVars<- list(
+			var.def.ncdf('TXCohort', '#Immature moths',dims,1.e30),
+			var.def.ncdf('FLCohort', '#Immature moths',dims,1.e30),
+			var.def.ncdf('TXMoth', '#Moths',dims,1.e30),
+			var.def.ncdf('FLMoth', '#Moths',dims,1.e30))
+		onc <- create.ncdf(paste(cfg$SimOutFold,"Final.nc",sep="/"), fVars)
 		
 		put.var.ncdf(onc,"TXCohort",CohortOut[[1]])
 		put.var.ncdf(onc,"FLCohort",CohortOut[[2]])
@@ -402,39 +413,36 @@ runBiosplit <- function(cfg){
 		close.ncdf(onc)
 	}
 	
-	toc <- round(as.double(Sys.time() - tic, units = "hours"),2)
-	cat("Time elapsed:",toc,"hrs","\n")
+	toc <- round(as.double(Sys.time() - tic, units = "hours"), 2)
+	cat("Time elapsed:", toc, "hrs", "\n")
 	if (cfg$makeReadmeFlag){
 		mat <- readLines(cfg$READMELoc)
-		log <- vapply(mat,function(x) grepl("Duration",x),TRUE)
+		log <- vapply(mat, function(x){ grepl("Duration", x) }, TRUE)
 		ind <- which(log)[1]
 		
-		mat[ind] <- paste0(mat[ind],toc,' hrs')
-		jnk <- writeLines(mat,con=cfg$READMELoc)
+		mat[ind] <- paste0(mat[ind], toc, ' hrs')
+		jnk <- writeLines(mat, con = cfg$READMELoc)
 	}
-	jnk <- writeLines(
-		paste(numFlights,collapse='\n'),
-		con=paste(cfg$SimOutFold,"numFlights.txt",sep='/'))
-	toc	
 	
+	return(toc)
 }
 
 changeControlInitial <- function(path, ARLFold, vertMotion, topModel){
 	newCon <- befCon <- readLines(path)
 	
-	indVert <- charmatch("C:/",befCon)-3
+	indVert <- charmatch("C:/",befCon) - 3
 	newCon[indVert] <- vertMotion
 	
 	#top of the model in two places
-	endLevel <- charmatch("cdump",newCon)+2
-	newCon[indVert+1] <- topModel
+	endLevel <- charmatch("cdump",newCon) + 2
+	newCon[indVert + 1] <- topModel
 	newCon[endLevel] <- topModel
 	
-	newCon[indVert+3] <- paste0(ARLFold,'/')
+	newCon[indVert + 3] <- paste0(ARLFold,'/')
 	
 	#Done so write
 	writeLines(newCon,path)
-	depo <- newCon[(endLevel+5):length(newCon)]
+	depo <- newCon[(endLevel + 5):length(newCon)]
 	
 	return(paste(depo ,collapse = '|'))
 }
@@ -463,12 +471,12 @@ makeLife <- function(flagMoth,loc,GDD,origin,capEggs){
 }
 
 makeREADME <- function(readmeLoc,
-											 rundirec,
-											 runName,
-											 codeChanges,
-											 Assump,
-											 simData,
-											 masFlag = TRUE){
+                       rundirec,
+                       runName,
+                       codeChanges,
+                       Assump,
+                       simData,
+                       masFlag = TRUE){
 	
 	indvReadme <- rbind(
 		runName,
@@ -593,9 +601,9 @@ howLivable <- function(cGrowth, infestThres){
 }
 
 genFlightProp <- function(cGrowth,infestLmt, beforeSilk, afterSilk){
-	val <- ifelse(cGrowth==0,1,
+	val <- ifelse(cGrowth == 0, 1,
 		ifelse(cGrowth < 1400, beforeSilk,
-		ifelse(cGrowth < infestLmt, afterSilk,1)))
+		ifelse(cGrowth < infestLmt, afterSilk, 1)))
 	return(val)
 }
 
@@ -604,9 +612,10 @@ getNightDur <- function(lat, lon, day){
 		sunLight <- insol::daylength(lat,lon,day,1)[,3]
 	} else {
 		#from: http://mathforum.org/library/drmath/view/56478.html
-		part = asin(.39795*cos(.2163108 + 2*atan(.9671396*tan(.00860(day-186)))))
-		sunLight = 24 - (24/pi)*acos((sin(0.8333*pi/180) + sin(lat*pi/180)*sin(part))
-																 /(cos(lat*pi/180)*cos(part)))
+		part <- asin(.39795*cos(.2163108 + 2*atan(.9671396*tan(.00860(day-186)))))
+		sunLight <- 24 - (24/pi)*
+			acos((sin(0.8333*pi/180) + sin(lat*pi/180)*sin(part))
+				/(cos(lat*pi/180)*cos(part)))
 	}
 	names(sunLight) <- NULL
 	if(is.nan(sunLight[1])) stop(paste0("Astro calc messed up royally with NaNs used vals:",paste(lat, lon, day)))
@@ -684,7 +693,7 @@ makeHysplitInputChanger <- function(hyDir, cornMap, delNightDurFlag, map2block){
 			
 			newCon[endTimeInd] <- strftime(date, paste("%y %m %d", flightTime, "00"))
 			newCon[endTimeInd+1] <- paste("01", flightTime, "00")
-																		 
+			
 		} else {
 			newCon[indMon-5] <- "12"
 			newCon[endTimeInd] <- strftime(date, "%y %m %d 12 00")
@@ -744,7 +753,8 @@ makeHysplitCaller <- function(hyDir, hyExePath){
 				} else {
 					Sys.sleep(3)
 					callHy(hold,PID)
-					#stop(paste("run",PID,"too little computing space, supply more or limit model\n Using pop",mi,'\n',cond)))
+					#stop(paste("run", PID, "too little computing space,",
+					#"supply more or limit model\n Using pop", mi, '\n', cond)))
 				}
 			}
 		)
@@ -861,12 +871,9 @@ round2number <- function(val,num){
 	val <- val - val%%(num)
 	return(val)
 }
-#test <- multiHysplit(gog,0,tPos,1)
-#changeInput(0,tPos,gog,PID=1)
-#test2 <- runHysplit(.1,1,hold=TRUE,call=TRUE,PID=1)
 
 multiHysplit <- function(hyDir, pop, date, shPlotFlag,
-												 changeInput, callHysplit, manHysplit){
+                         changeInput, callHysplit, manHysplit){
 	totPopLen <- dim(pop$grid)[1]
 	if (totPopLen>9){
 		inPop <- list(pop,pop,pop)
@@ -1023,26 +1030,29 @@ checkContext <- function(ctx, ...){
 willFly <- function(pop, genFlag, ctx){
 	#From the population figure out how many fly than make two knew populations (stayFAW and mFAW)
 	checkContext(ctx, 
-							 "CornGDD",
-							 "infestLmt",
-							 "infestThres",
-							 "flightPropBeforeSilk",
-							 "flightPropAfterSilk")
+               "CornGDD",
+               "infestLmt",
+               "infestThres",
+               "flightPropBeforeSilk",
+               "flightPropAfterSilk")
 	
 	
 	stayFaw <- mFaw <- pop
 	
 	cGDD <- ctx$CornGDD/10
 	
-	if (genFlag) {expVal <- pop$grid[,3] * genFlightProp(cGDD,
-																											 ctx$infestLmt,
-																											 ctx$flightPropBeforeSilk,
-																											 ctx$flightPropAfterSilk)
+	if (genFlag) {
+		expVal <- (pop$grid[,3] * 
+			genFlightProp(cGDD,
+			ctx$infestLmt,
+			ctx$flightPropBeforeSilk,
+			ctx$flightPropAfterSilk))
+		
 	} else expVal <- pop$grid[,3] * (1-howLivable(cGDD, ctx$infestThres))
 	
 	expVal[(is.na(expVal)| expVal < 0) ] <- 0
 	
-	numFly <- vector("numeric",length(expVal))
+	numFly <- vector("numeric", length(expVal))
 	
 	larSet <- which(expVal>10^6.5)
 	smallSet <- which((expVal>0 & expVal<10^6.5))
@@ -1061,7 +1071,7 @@ willFly <- function(pop, genFlag, ctx){
 	#spread out over 7 days if its a generational flight component
 	if (genFlag){
 		spread <- vector("list",7)
-		s <-1:6
+		s <- 1:6
 		amt <- vapply(s, function(x) exp(-(x-1)/2)-exp(-(x)/2),1)
 		amt <- c(amt,1-sum(amt))
 		for (si in seq(1,7)){
@@ -1080,11 +1090,13 @@ willFly <- function(pop, genFlag, ctx){
 
 growMoths <- function(pop, ctx){
 	checkContext(ctx, 
-							 "CornGDD",
-							 "lifeSpan",
-							 "infestLmt",
-							 "infestThres",
-							 "eggsPerInfest", "oviDay", "eggsPerInfest", "capEggs")
+	             "CornGDD",
+               "lifeSpan",
+               "infestLmt",
+               "infestThres",
+               "eggsPerInfest",
+               "oviDay",
+               "capEggs")
 	
 	grdLen <- length(ctx$xs)
 
@@ -1120,9 +1132,10 @@ growMoths <- function(pop, ctx){
 		
 		remEggs[laySet] <- pop$numEggs - ctx$eggsPerInfest
 		
-		nEggPos <- cbind(pop$grid[laySet, 1],
-										 pop$grid[laySet, 2],
-										 ctx$eggsPerInfest * pop$grid[laySet, 3])
+		nEggPos <- cbind(
+			pop$grid[laySet, 1],
+			pop$grid[laySet, 2],
+			ctx$eggsPerInfest * pop$grid[laySet, 3])
 		
 		newEggs <- lapply(1:dim(nEggPos)[1], function(x){
 			makeLife(0, nEggPos[x, ], 0, pop$origin, ctx$capEggs)
@@ -1152,7 +1165,7 @@ growMoths <- function(pop, ctx){
 }
 
 growCohort <- function(lpop, map2block, di, apr,
-											 altCornDay, infestThres, cohortGDDThres, capEggs){
+                       altCornDay, infestThres, cohortGDDThres, capEggs){
 	
 	if (length(lpop)<1) return(lpop)
 	
@@ -1170,7 +1183,7 @@ growCohort <- function(lpop, map2block, di, apr,
 	#tests for death and adulthood
 	if (di < altCornDay) {deadTest <- (apr$Corn[cbind(xs,ys)] < 1)
 	}	else {
-		deadTest <- (apr$CornGDD[cbind(xs,ys,di)] /10 < infestThres)
+		deadTest <- (apr$CornGDD[cbind(xs,ys,di)] / 10 < infestThres)
 	}
 	
 	adultTest <- (aDD > cohortGDDThres)
@@ -1217,25 +1230,23 @@ migrateDeath <- function(pop, di, ctx){
 deconst <- function(lpop){
 
 	if (length(lpop)>0){
-	numRow <- vapply(lpop, function(x) dim(x$grid)[1],1)
-	needsDecon <- which(numRow>1)
-	if (length(needsDecon)>0){
-	for (n in needsDecon){
-		for (r in seq(2,numRow[n])){
-			lpop<-lappend(lpop,lpop[[n]])
-			lpop[[length(lpop)]]$grid<-lpop[[n]]$grid[r,,drop=FALSE]
+		numRow <- vapply(lpop, function(x) dim(x$grid)[1],1)
+		needsDecon <- which(numRow>1)
+		for (n in needsDecon){
+			for (r in seq(2,numRow[n])){
+				lpop<-lappend(lpop,lpop[[n]])
+				lpop[[length(lpop)]]$grid<-lpop[[n]]$grid[r,,drop=FALSE]
+			}
+			lpop[[n]]$grid<-lpop[[n]]$grid[1,,drop = FALSE]
 		}
-		lpop[[n]]$grid<-lpop[[n]]$grid[1,,drop = FALSE]
-	}
-	}
 	}
 	
 	return(lpop)
 }
 
 makeRowVec<-function(x){
-	vec <-as.matrix(x)
-	if (dim(vec)[1]>1 && dim(vec)[2]==1) vec<-t(vec)
+	vec <- as.matrix(x)
+	if (dim(vec)[1]>1 && dim(vec)[2]==1) vec <- t(vec)
 	return(vec)
 }
 
@@ -1244,7 +1255,7 @@ makePopTable <- function(lpop,desOrigin=0,verboseNames=FALSE){
 	else {
 		orgs <- vapply(lpop,function(x)x$origin,"")
 		vec <- charmatch(orgs,desOrigin)
-		subpop <-lpop[vec]
+		subpop <- lpop[vec]
 	}
 	if ( length(subpop)>0){
 
@@ -1255,7 +1266,7 @@ makePopTable <- function(lpop,desOrigin=0,verboseNames=FALSE){
 		cbind(x$grid,
 			x[[3]],
 			switch(x$origin,TX=0,FL=1))
-		},c(1,1,1,1,1), USE.NAMES=FALSE))
+		}, rep(1, 5), USE.NAMES=FALSE))
 	
 	if(verboseNames){
 		colnames(mat) <- c("Lon","Lat","Amt","Age","Origin")
@@ -1364,8 +1375,8 @@ combinelPop <- function(lpop, map2block){
 
 
 makeOutput <- function(lpop, out, date, map2block, dirSim, lpop2=0,
-											 onlyTxt = FALSE,
-											 shWrite = TRUE){
+                       onlyTxt = FALSE,
+                       shWrite = TRUE){
 	
 	#lpop is for migrants, lpop2 is for stationary moths
 	xsMap <- as.list(environment(map2block))$xaxis
@@ -1395,7 +1406,7 @@ makeOutput <- function(lpop, out, date, map2block, dirSim, lpop2=0,
 	slice <- list(array(0, dim=dimSlice), array(0, dim=dimSlice))
 	
 	for (ae in seq(1,dim(tab)[1])){
-		type <-tab[ae,5]+1
+		type <- tab[ae,5]+1
 		slice[[type]][xs[ae],ys[ae]]  <- slice[[type]][xs[ae],ys[ae]] + tab[ae,3]
 	}
 	if (!onlyTxt){
@@ -1438,14 +1449,13 @@ cleangrowMoths <- function(lpop, lEggs, di, cfg, apr, map2block){
 		lpop <- cleanPop(lpop)
 		for (mi in seq(1, length(lpop))){
 			ctx <- getPopContext(lpop[[mi]], map2block,
-													 apr$CornGDD[, , di],
-													 cfg$infestLmt,
-													 cfg$lifeSpan,
-													 cfg$infestThres,
-													 cfg$eggsPerInfest,
-													 cfg$oviDay,
-													 cfg$eggsPerInfest,
-													 cfg$capEggs
+                           apr$CornGDD[, , di],
+                           cfg$infestLmt,
+                           cfg$lifeSpan,
+                           cfg$infestThres,
+                           cfg$eggsPerInfest,
+                           cfg$oviDay,
+                           cfg$capEggs
 													 )
 			
 			tres <- growMoths(lpop[[mi]], ctx)
@@ -1456,7 +1466,7 @@ cleangrowMoths <- function(lpop, lEggs, di, cfg, apr, map2block){
 				lpop[[mi]] <- tres[[1]][[1]]
 				addMoth <- lappend(addMoth,tres[[1]][2:length(tres)])
 			}
-			lEggs <-lappend(lEggs,tres[[2]])
+			lEggs <-lappend(lEggs, tres[[2]])
 		}
 		lpop <- lappend(lpop,addMoth)
 		#lpop <- lapply(lpop,function(x) cleanGrid(x, thres=mothThres))
