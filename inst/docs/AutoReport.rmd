@@ -116,7 +116,7 @@ areas <- c("Southern MSAL.kml", "Northern MSAL.kml", "Western PA.kml", "Central 
 
 regStats <- vapply(fullDir,function(f){
 	vapply(areas, function(area){
-		return(c(simAreaStats(f, paste0(baseArea, area)),recursive=TRUE))
+		return(c(simAreaStats(f, paste0(baseArea, area), TRUE),recursive=TRUE))
 	}, rep(1,3))
 	
 }, matrix(0, nrow = 3, ncol = length(areas)))
@@ -170,7 +170,7 @@ The genetic information is on a much smaller scale than the entire pestwatch sys
 valStats <- vapply(params$years, function(yr){
 	trapRec <- scrubTrap(params$trapDump, yr)
 	csvVal <- summarizeValid(trapRec, yr,
-		hapIn = sprintf(params$scrubbedHap, yr),
+		hapDat = sprintf(params$scrubbedHap, yr),
 		pathCsvOut = sprintf(params$summarizedVal, yr))
 	vapply(areas, function(area){
 		c(valAreaStats(csvVal, paste0(baseArea, area), params$niceGrid), recursive = TRUE)

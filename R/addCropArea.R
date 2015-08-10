@@ -70,10 +70,18 @@ addCropArea <- function(pathIn, shapeAdd, cropAmt, pathOut = ''){
 #' @return a list of the first occurance for both the populations and the
 #' mixing area for the entire area and the entire year
 #' @export
-simAreaStats <- function(dirSim, pathShape){
+simAreaStats <- function(dirSim, pathShape, useSum = FALSE){
+	if(useSum){
+		pathIn <- paste0(dirSim, "/FinalRebuildSum.nc")
+		if(!file.exists(pathIn)){
+			rebuildNc(dirSim, file2year(dirSim), flagSum = TRUE, shWrite = TRUE)
+		}
+	} else {
+		pathIn <- paste0(dirSim, "/Final.nc")
+	}
 	
-	simTX <- raster::stack(paste0(dirSim, "/Final.nc"), varname = "TXMoth")
-	simFL <- raster::stack(paste0(dirSim, "/Final.nc"), varname = "FLMoth")
+	simTX <- raster::stack(pathIn, varname = "TXMoth")
+	simFL <- raster::stack(pathIn, varname = "FLMoth")
 	
 	
 	areaMask <- readKML(pathShape, res(simTX))

@@ -44,10 +44,10 @@ ncdf2trapdata <- function(dirSim,
 	mod <- dat$sim
 	
 	
-	if (!useCombined) mod <- rebuildNc(dirSim, dim(mod$TXMoth), year)
+	if (!useCombined) mod <- rebuildNc(dirSim, year)
 	
 	if(shUseSum){
-		mod <- rebuildNc(dirSim, dim(mod$TXMoth), year, TRUE)
+		mod <- rebuildNc(dirSim, year, TRUE)
 		names(mod)[3] <- 'fullWeek'
 	}
 	
@@ -282,7 +282,7 @@ ncdf2trapgrid <- function(dirSim,
 	year <- file2year(dirSim)
 	
 	if(shUseSum){
-		mod <- rebuildNc(dirSim, dim(mod$TXMoth), year, TRUE)
+		mod <- rebuildNc(dirSim, year, TRUE)
 		names(mod)[3] <- 'fullWeek'
 	}
 	
@@ -402,29 +402,33 @@ parseHapData <- function(pathHap, trapLat, trapLon, shAvgYear = FALSE){
 
 
 
-openSimNC <- function(dirSim){
+openSimNC <- function(dirSim, asRaster = FALSE){
 	pathNc <- paste(dirSim, "Final.nc", sep="/")
 	if(!file.exists(pathNc)){
 		stop(sprintf("File: %s does not exist, Simulation did not completly finish",
 								 pathNc))
 	}
+	
+	if(asRaster){
+		out <- raster::raster(pathNc)
+	} else {
+		nc <- ncdf::open.ncdf(pathNc)
 		
-	nc <- ncdf::open.ncdf(pathNc)
-	
-	varNames <- names(nc$var)
-	sim <- lapply(varNames, function(x) ncdf::get.var.ncdf(nc,x))
-	names(sim) <- varNames
-	
-	
-	out <- list(sim = sim,
-							assump = ncdf::att.get.ncdf(nc,0,"Assumptions")$value,
-							simData = ncdf::att.get.ncdf(nc,0,"simData")$value,
-							lat = nc$dim$lat$vals,
-							lon = nc$dim$lon$vals
-	)
-	
-	
-	ncdf::close.ncdf(nc)
+		varNames <- names(nc$var)
+		sim <- lapply(varNames, function(x) ncdf::get.var.ncdf(nc,x))
+		names(sim) <- varNames
+		
+		
+		out <- list(sim = sim,
+								assump = ncdf::att.get.ncdf(nc,0,"Assumptions")$value,
+								simData = ncdf::att.get.ncdf(nc,0,"simData")$value,
+								lat = nc$dim$lat$vals,
+								lon = nc$dim$lon$vals
+		)
+		
+		
+		ncdf::close.ncdf(nc)
+	}
 	
 	return(out)
 	
@@ -509,13 +513,18 @@ quickOpenNCDF <- function(p, var = "Count"){
 	return(out)
 }
 
-rebuildNc <- function(dirSim, outDim, yr, flagSum = FALSE){
+rebuildNc <- function(dirSim, yr, flagSum = FALSE, shWrite = FALSE){
 	days <- seq(8,365,7)
 	dates <- getDayStamp(days, yr, '_%m%d%y.nc')
 	
+	#get a sample of output to define bounds
+	samplePath <- list.files(paste0(dirSim, "/ncs"), "FLMoth", full.names = TRUE)[1]
+	basenc <- ncdf::open.ncdf(samplePath)
+	outDim <- c(basenc$var$Count$size, length(days))
+	
 	out <- list(array(0, dim = outDim),
 							array(0, dim = outDim),
-							array(FALSE, dim = c(length(days))))
+							array(FALSE, dim = outDim[3]))
 	
 	bakersgrid <- array(NaN, dim = outDim[c(1,2)])
 	
@@ -551,6 +560,30 @@ rebuildNc <- function(dirSim, outDim, yr, flagSum = FALSE){
 		}
 	}
 	names(out) <- popName
-	return(out)
+	if(shWrite){
+		tempOut <- paste(dirSim,
+			paste0("FinalRebuild", ifelse(flagSum, "Sum", "Snap"), ".nc"), 
+			sep="/")
+		
+		
+		dims <- list( 
+			basenc$dim$lon,
+			basenc$dim$lat,
+			ncdf::dim.def.ncdf( "Time", "weeks", 1:52, unlim=TRUE ))
+		fVars<- list(
+			var.def.ncdf('TXMoth', '#Moths',dims,1.e30),
+			var.def.ncdf('FLMoth', '#Moths',dims,1.e30))
+		
+		onc <- create.ncdf(tempOut, fVars)
+		
+		put.var.ncdf(onc, "TXMoth", out[[1]])
+		put.var.ncdf(onc, "FLMoth", out[[2]])
+		
+		close.ncdf(onc)
+		
+		return(invisible(out))
+	} else {
+		return(out)
+	}
 }
 

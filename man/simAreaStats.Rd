@@ -4,7 +4,7 @@
 \alias{simAreaStats}
 \title{simAreaStats: Interrogate the final simulation on specific areas}
 \usage{
-simAreaStats(dirSim, pathShape)
+simAreaStats(dirSim, pathShape, useSum = FALSE)
 }
 \arguments{
 \item{dirSim}{The simulation output folder}

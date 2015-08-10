@@ -1,5 +1,3 @@
-make simopennc open it as a raster stack
-
 add a masking function that accepts a bunch of variables and outputs a dim( rec, 1) logical vector
 
 Integrate newer versions of HYSPLIT
