@@ -2,15 +2,23 @@
 #'
 #'Simulates continental moth migration over the course of a year. 
 #'	Requires HYSPLIT to be installed.
-#'@param cfg The configuration object returned by loadConfig 
+#'@param cfg The configuration object returned by \code{\link{loadConfig}}
 #'	or from loading the cfg.RData in the config.txt location
+#'@param plotOutputFreq The freqency of raw hysplit plots to produce and save, 
+#'	so a value of 10 would mean making only the 10th simulation plot.
 #'@import ncdf
 #'
 #'@return Time stamp. if called for in cfg, also writes the weekly snapshots of
-#'	 populations, in .txt and .nc format. 
-#'	 It also outputs a final nc file after everything is completed.
+#'	populations, in .txt and .nc format. 
+#'	It also outputs a final nc file after everything is completed.
+#'@details Starts a population of eggs at an over wintering area (source area) 
+#'	and grows them through the cycles of maturation, flight, reproduction and 
+#'	death until the simulation end date in the cfg. For details on the 
+#'	biological equations used see 'docs/BiologicalEqs.docx'. 
+#'	The flight is handled	using a passive dispersion model during the night with
+#'	the HYSPLIT program from NOAA, \url{http://www.arl.noaa.gov/HYSPLIT_info.php}
 #'@export
-runBiosplit <- function(cfg){
+runBiosplit <- function(cfg, plotOutputFreq = 10){
 	
 	tic <- Sys.time()
 	realWd <- system.file(package = "biosplit")
@@ -275,7 +283,9 @@ runBiosplit <- function(cfg){
 						#####################################################
 						#Migrate the species
 						#####################################################
-						shouldPlot <-ifelse((di >=cfg$invPlotFlag && mig%%10==0),1,0)
+						shouldPlot <-ifelse(
+							(di >= cfg$invPlotFlag && mig%%plotOutputFreq == 0),
+							1, 0)
 						if (simEmploy == 1){
 							mMoth[[mi]]$grid <- multiHysplit(cfg$HyWorking, tSplit[[2]], tPos, shouldPlot, 
 																							 changeInput, callHysplit, manHysplit)
@@ -816,7 +826,8 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 				
 			if (length(textFile)<1){
 				if(numCalls>10) {
-					stop(paste("run", PID, "did not out into cdump properly (con2asc failed) check message and config"))
+					stop(paste("run", PID, "did not out into cdump properly",
+						"(con2asc failed) check message and config"))
 				} else {
 					numCalls <- numCalls+1
 					callHysplit(hold=TRUE,PID)
@@ -846,7 +857,8 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 		
 		#round to the nearest digit in cutoff
 		if ((cutoff %% 1) != 0) {
-	        	dig <-nchar(strsplit(sub('0+$', '', as.character(cutoff)), ".", fixed=TRUE)[[1]][[2]])
+	        	dig <- nchar(strsplit(
+	        		sub('0+$', '', as.character(cutoff)), ".", fixed=TRUE)[[1]][[2]])
 	    	} else {
 	        	dig <- 0
 	    	}
@@ -977,7 +989,8 @@ cleanAll<- function(lpop,thres=1){
 
 getPopContext <- function(pop, map2block, ...){
 	if(!any(grepl("grid", names(pop)))){
-		stop(paste("getPopContext wasn't supplied with a population, pop =", substitute(pop)[2]))
+		stop(paste("getPopContext wasn't supplied with a population, pop =",
+			substitute(pop)[2]))
 	}
 	
 	args <- list(...)
@@ -1018,15 +1031,17 @@ checkContext <- function(ctx, ...){
 	}, TRUE)
 	missVars <- reqVars[!test]
 	if(length(missVars) > 0){
-		 stop(paste0(rev(names(sys.frames()))[1], ": did not recieve these variables in ctx\n", 
-		 						paste(missVars, collapse = "\n")
+		 stop(paste0(rev(names(sys.frames()))[1],
+		 	": did not recieve these variables in ctx\n", 
+		 	paste(missVars, collapse = "\n")
 		 ))
 	}
 	invisible(0)
 }
 
 willFly <- function(pop, genFlag, ctx){
-	#From the population figure out how many fly than make two knew populations (stayFAW and mFAW)
+	#From the population figure out how many fly
+	#than make two new populations (stayFAW and mFAW)
 	checkContext(ctx, 
                "CornGDD",
                "infestLmt",
@@ -1055,7 +1070,9 @@ willFly <- function(pop, genFlag, ctx){
 	larSet <- which(expVal>10^6.5)
 	smallSet <- which((expVal>0 & expVal<10^6.5))
 	if (length(larSet)>0){
-		numFly[larSet] <- vapply(larSet,function(x) rnorm(1,mean=expVal[x],sd=sqrt(expVal[x])),1)
+		numFly[larSet] <- vapply(larSet,function(x){
+			rnorm(1,mean=expVal[x],sd=sqrt(expVal[x]))
+		},1)
 	}
 	if (length(smallSet)>0){
 		numFly[smallSet] <- vapply(smallSet,function(x) rpois(1, expVal[x]),1)

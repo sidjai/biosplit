@@ -4,19 +4,30 @@
 \alias{runBiosplit}
 \title{Run the biosplit model for a year}
 \usage{
-runBiosplit(cfg)
+runBiosplit(cfg, plotOutputFreq = 10)
 }
 \arguments{
-\item{cfg}{The configuration object returned by loadConfig
+\item{cfg}{The configuration object returned by \code{\link{loadConfig}}
 or from loading the cfg.RData in the config.txt location}
+
+\item{plotOutputFreq}{The freqency of raw hysplit plots to produce and save,
+so a value of 10 would mean making only the 10th simulation plot.}
 }
 \value{
 Time stamp. if called for in cfg, also writes the weekly snapshots of
-	 populations, in .txt and .nc format.
-	 It also outputs a final nc file after everything is completed.
+	populations, in .txt and .nc format.
+	It also outputs a final nc file after everything is completed.
 }
 \description{
 Simulates continental moth migration over the course of a year.
 	Requires HYSPLIT to be installed.
+}
+\details{
+Starts a population of eggs at an over wintering area (source area)
+	and grows them through the cycles of maturation, flight, reproduction and
+	death until the simulation end date in the cfg. For details on the
+	biological equations used see 'docs/BiologicalEqs.docx'.
+	The flight is handled	using a passive dispersion model during the night with
+	the HYSPLIT program from NOAA, \url{http://www.arl.noaa.gov/HYSPLIT_info.php}
 }
 
