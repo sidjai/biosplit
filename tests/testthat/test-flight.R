@@ -17,8 +17,6 @@ ctx <- list(
 moth <- makeLife(1,cbind(.2,.2, 100), 4, 1, 5)
 
 test_that("Right amount of Gen moths stay",{
-	#get rid of randomness for test
-	with_mock(rpois = function(num, val){ rep(val, num) })
 	
 	negctx <- lapply(1:4, function(x)(ctx))
 	negctx[[1]]$CornGDD <- 0 #Barren wasteland so all should fly
@@ -26,6 +24,7 @@ test_that("Right amount of Gen moths stay",{
 	negctx[[3]]$CornGDD <- 15000 #Silking so have 10% stay
 	negctx[[4]]$CornGDD <- 999999999 #Too ripe so everyone should go
 	
+	#Get rid of randomness just for the test
 	amount <- c(NA, 90, 10, NA)
 	mapply(function(mockctx, val){
 		tStay <- with_mock(rpois = function(num, val){ rep(val, num) },
