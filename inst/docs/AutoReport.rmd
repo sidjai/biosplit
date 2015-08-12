@@ -23,7 +23,9 @@ knitr::opts_chunk$set(echo=FALSE, comment='>', dpi=600)
 realWd <- system.file(package = "biosplit", "docs")
 figList <- list()
 source(paste(realWd,"rmdUtils.R",sep='/'))
-
+naiveOffset <- function(popNum, intDivide = 7){
+	return(round(1 - (2*log10(intDivide) / (log10(popNum) + log10(popNum))), 2))
+}
 ```
 
 This report will compare these runs:
@@ -108,7 +110,29 @@ There are 5 main areas of mixing that are of interest to this project; Southern 
 
 $$Mix_{ratio} =\frac{\log_{10} (FLMoth + 1) - \log_{10} (TXMoth + 1)}{\log_{10} (FLMoth + 1) + \log_{10} (TXMoth + 1)}$$
 
-This is done to normalize the output on a range of -1 (All TX moths) to 1 (all FL moths). Also this puts it on a similar scale as the Haplotype ratio h2/h4 which goes from 0 (All TX) to > 2 (mostly FL) with the mixing region between 0.5 to 1.5. For this example, the Moth populations in question will be all moths that enter the region summed over the entire year. Below is the summary for each of the regions and these values.
+This is done to normalize the output on a range of -1 (All TX moths) to 1 (all FL moths). Also this puts it on a similar scale as the Haplotype ratio h2/h4 which goes from 0 (All TX) to > 2 (mostly FL) with the mixing region between 0.5 to 1.5.
+
+For the moth populations there are 2 different datasets that are produced, the Sum which is a summation for that whole week, or Snap, which is a snapshot of the moths at the end of the week. By design Sum double counts a population if they are there for multiple days in a week. The thinking behind doing this was that the validation data is on a trap is active over a period of time. At this point, we don't know when the moths actually entered the trap and they are all pooled at the end of the week of that trap period. The haplotype data is pooled even more aggressively, sometimes over a month. Comparing these validation datasets 1 to 1 with a per day snap shot from the model is a not fair. Using the Sum "pools" the potential population over that time which is a better comparison with the validation  data.
+
+However, this presents questions about these aggregate statistics of firstOcc and Mix. firstOcc would only query the population one out of 7 days for the presence of moths. For this test, Sum would query the simulation every day. Both values would only give an answer in the order of weeks and the difference is only going to be a week because of the spreading of the emitted population over 7 days.
+
+Mix is much more complicated because the population studied is different. In Snap the population is still defined by raw simulation. In Sum, the population is something like "the exposure of that grid to moths given in units of moth * day." This can be explained as "the average moths in this grid over this week" by dividing by 7 days. Mix does not make that much sense on units of "moth * day" so this population should be divided by 7 each time. This does not seem like a big issue except when the calculations are carried out (assuming large values for moth counts).
+
+$$Mix_{ratio, naive} =\frac{\log_{10} (FLMoth_{sum} + 1) - \log_{10} (TXMoth_{sum} + 1)}{\log_{10} (FLMoth_{sum} + 1) + \log_{10} (TXMoth_{sum} + 1)}$$
+
+$$Mix_{ratio, real} =\frac{\log_{10} (\frac{FLMoth_{sum}}{7} + 1) - \log_{10} (\frac{TXMoth_{sum}}{7}  + 1)}{\log_{10} (\frac{FLMoth_{sum}}{7} + 1) + \log_{10} (\frac{TXMoth_{sum}}{7}  + 1)}$$
+
+$$Mix_{ratio, real} =\frac{\log_{10} (FLMoth_{sum} + 1) - \log_{10} (7) - \log_{10} (TXMoth_{sum} + 1) + \log_{10} (7)}{\log_{10} (FLMoth_{sum} + 1) - \log_{10} (7) + \log_{10} (TXMoth_{sum} + 1) - \log_{10} (7)}$$
+
+$$Mix_{ratio, real} =\frac{\log_{10} (FLMoth_{sum} + 1) - \log_{10} (TXMoth_{sum} + 1)}{\log_{10} (FLMoth_{sum} + 1) + \log_{10} (TXMoth_{sum} + 1) - 2*\log_{10} (7)}$$
+
+$$Mix_{ratio, real} = Mix_{ratio, naive} * (1 - \frac{2*\log_{10} (7)}{\log_{10} (FLMoth_{sum} + 1) + \log_{10} (TXMoth_{sum} + 1)}$$
+
+For the qualitative definition of Mix being the mixing ratio between the two strains, one would assume that a factor of 7 in both populations would cancel out. This is not the case and is actually a large factor difference. For small but equal population of 500 moths this factor is `r naiveOffset(500)` while for a large population of 500,000,000 moths the factor is still `r naiveOffset(500000000)`. Now this can be dismissed as having an implicit denominator of 1 moth just to get rid of the units in the regular formula and when using the Sum population would have a denominator of 1 moth*day. This begs the question "What does this new equation mean?"
+
+More generally, Mix should be done on real populations to preserve its meaning. Doing it on the Snap values individually is perfectly fine since they are real simulation outputs. We can assume that weekly sums does not have too much double counting due to the conditions changing over this period, the cohorts grow on this time scale and the lifetime of the moths after flight is on the order of 1 week. This allows even the summation of all the weekly Snap populations to be applicable with Mix since the population is "all the moths that enter the grid cell through the year". The problem is when something other than actual populations are passed through. This includes the Sum dataset, spatial averages of the population and other aggregate statistics.
+
+For this example, the Moth populations in question will be all moths that enter the region summed over the entire year. For the firstOcc, the Sum population will be used, while for Mix the Snap dataset will be used. Below is the summary for each of the regions and these values.
 
 ```{r simStats, warning = FALSE}
 baseArea <- "C:/Users/Siddarta.Jairam/Documents/Documentation/"
@@ -116,7 +140,9 @@ areas <- c("Southern MSAL.kml", "Northern MSAL.kml", "Western PA.kml", "Central 
 
 regStats <- vapply(fullDir,function(f){
 	vapply(areas, function(area){
-		return(c(simAreaStats(f, paste0(baseArea, area), TRUE),recursive=TRUE))
+		return(c(
+			simAreaStats(f, paste0(baseArea, area), useSum = TRUE)[1:2],
+			simAreaStats(f, paste0(baseArea, area))[[3]], recursive=TRUE))
 	}, rep(1,3))
 	
 }, matrix(0, nrow = 3, ncol = length(areas)))

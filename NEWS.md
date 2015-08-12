@@ -1,4 +1,4 @@
-biosplit v0.2.2 (Release 8/07/2015)
+##biosplit v0.2.2 (Release 8/12/2015 on GitHub)
 -----------------------------------
 
 -added Simulation and vaildation statistics for regions
