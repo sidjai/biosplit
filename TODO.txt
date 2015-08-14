@@ -17,8 +17,7 @@ config.txt
 -give a function for niceGrid so you could call it like cfg$getNiceGrid()
 --doesn't have the weight of the grid itself and its easy to call
 
-make new program map with the postprocessing steps
--add new section on readme
+-turn the preproccesing diagram into a draw.io diagram or find a way to reproduce the postprocessing diagram in R
 
 Database some of the begining calls so everything definetly fits in memory
 
