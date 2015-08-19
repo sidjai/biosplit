@@ -39,7 +39,7 @@ Nightly flight of the moth populations is simulated as a dispersion of particles
 
 This section is split into two main threads; Crop data and meteorological data. The crop data comes from CropScape web API that is queried in "NASS2TIFs.R". The Meteorological data comes from the EDAS ARL dataset from NOAA. This is parsed using a GIS called MeteoInfo using the automation tool written in Jython. Both of these are processed using R for the required extent, projection, units and format for the simulation. These are combined in one netCDF file with aggregated variables of the different biological assumptions in "aprioriVars.R" This structure is shown below:
 
-[Pre-processing!](inst/docs/DataDiagram.jpeg)
+![Pre-processing](inst/docs/pre-processing.jpg)
 
 Mostly, the two sources on the far left can be changed out for either other data files or scripts to query other databases. With the appropriate changes to the config file and the grid definitions, the rest of the process should run smoothly. This is an active area of development so if you run into problems please place a bug report.
 
@@ -52,7 +52,7 @@ The raw output of the model is 3 fold:
 
 The third output is mostly for verification and some details of exactly what is happening in the process. The first two outputs can be manipulated by a variety of different programs, languages, and GIS applications. The full post processing diagram is shown below. Some dependencies and options have been simplified for the sake of the graphic but the main workflows are accurate.
 
-[Post-processing!](inst/docs/post-processing-drawio.jpg)
+![Post-processing](inst/docs/post-processing-drawio.jpg)
 
 One side of the post-processing is to compare the output to trap captures at a few selected sites. This is done in R with in the file "ncdf2trapdata.R". Later the resultant .csv files were used with SAS's JMP and Golden Software's MapViewer for statistical analysis and more complicated plots seen in the foundational paper (Westbrook et. al, 2015). This was deemed too specific for this project to be included in the package and can be made available on request.
 

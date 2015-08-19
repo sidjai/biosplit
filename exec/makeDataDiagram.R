@@ -1,10 +1,8 @@
-#! C:/Program Files/R/R-3.1.1/bin/x64/Rscript.exe
-realWd <- gsub("/r_code","",ifelse(grepl("ystem",getwd()),dirname(sys.frame(1)$ofile),getwd()))
+library(diagram)
 
-
-require(diagram)
+realWd <- system.file(package = "biosplit")
 # Make diagram
-outFile <- paste(realWd,'docs','DataDiagram.jpeg',sep='/')
+outFile <- paste(realWd,'docs','DataDiagram.jpg',sep='/')
 
 arrowMat <- matrix(nrow = 10, ncol = 10, byrow = TRUE, data = 0)
 arrowMat[2,1] <- "MeteoInfo"
@@ -37,4 +35,4 @@ plotmat(arrowMat, pos = position, name = textbox,
 				dtext=.8, box.size=.05,cex=1,box.cex=1,box.prop=.5,my=-.2,mx=-.08,shadow.size=0)
 
 dev.off()
-shell(outFile)
+system(outFile)
