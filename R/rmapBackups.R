@@ -16,10 +16,13 @@ makeDiagnosticMap <- function(
 	ras <- parseLayerInput(arr)
 
 	pl <- intwBaseMap(bbox = raster::extent(ras)[])
-	baseOpt <- intBaseOpt()
+	myOpt <- intBaseOpt()
 
 
-	pl <- addLayer(type, ras, opt)
+	pl <- do.call(
+		addLayer,
+		c(list(type = type, layer = ras), myOpt)
+	)
 
 	if(nzchar(save)){
 		saveMapJpg(pl, save)
@@ -33,16 +36,19 @@ intwBaseMap <- function(bbox){
 }
 
 intBaseOpt <- function(){
-	opt <- list()
+	opt <- list(
+		nLevels = 5
+		)
 }
 
-addLayer <- function(type, layer, opt){
+addLayer <- function(type, layer, ...){
 
 	if(type == "contour"){
 		raster::contour(
 			layer,
-			levels = opt$levels,
-			add = TRUE)
+			add = TRUE,
+			...)
+
 	} else {
 		posts <- postMaperize(layer, classes = opt$classes)
 		points(
