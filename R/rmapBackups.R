@@ -24,7 +24,7 @@ makeDiagnosticMap <- function(
 		c(list(type = type, layer = ras), myOpt)
 	)
 
-	if(nzchar(save)){
+	if(nzchar(pathSave)){
 		saveMapJpg(pl, save)
 	}
 	return(pl)

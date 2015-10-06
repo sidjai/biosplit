@@ -15,7 +15,8 @@ Imports:
 	ncdf,
 	raster,
 	rgdal,
-	readxl,
+	readxl
+Depends:
   maps
 Suggests:
 	readr,
