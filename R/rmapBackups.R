@@ -25,7 +25,12 @@ makeDiagnosticMap <- function(
 	)
 
 	if(nzchar(pathSave)){
-		dev.copy(jpeg, pathSave)
+		dev.copy(jpeg, pathSave,
+			units = "in",
+			width = (par("pin")[1] + sum(par("mai")[c(2,4)])),
+			height = (par("pin")[2] + sum(par("mai")[c(1,3)])),
+			res = 100,
+			quality = 100)
 		dev.off()
 	}
 	return(invisible(0))
@@ -33,7 +38,8 @@ makeDiagnosticMap <- function(
 
 #' @import maps
 intwBaseMap <- function(bbox){
-	map("state", xlim = bbox[1:2], ylim = bbox[3:4])
+	map("state", xlim = bbox[1:2], ylim = bbox[3:4], mar = c(4.1, 4.1, 0, 0))
+	map.axes()
 }
 
 intBaseOpt <- function(){
@@ -96,15 +102,13 @@ getFromClass <- function(pts, cvec){
 	return(cvec[findInterval(pts, cvec)])
 }
 
-saveMapJpg <- function(map, path){
-	JPEG(map, path)
-}
-
 parseLayerInput <- function(mapin){
 	fir <- tryCatch(
 		raster::raster(mapin),
-		finally = function(cond) {error("Input cannot be read by raster with this error",
-			cond, "/n") }
+		finally = function(cond){
+			error("Input cannot be read by raster with this error",
+			cond, "/n")
+		}
 
 	)
 }
