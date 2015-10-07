@@ -25,9 +25,10 @@ makeDiagnosticMap <- function(
 	)
 
 	if(nzchar(pathSave)){
-		saveMapJpg(pl, save)
+		dev.copy(jpeg, pathSave)
+		dev.off()
 	}
-	return(pl)
+	return(invisible(0))
 }
 
 #' @import maps
