@@ -17,12 +17,10 @@ makeRunFun <- function(driver, ext){
 	
 	base <- system.file(package = "biosplit")
 	
-	scrDir <- paste(base, 
-								 switch(ext, R="scripts", BAS="surfer", py="jython")
-								 ,sep='/')
-	if (!is.na(match(ext, 'R'))){
-		scrDir <- "C:/Users/Siddarta.Jairam/Documents/MothMigrationModel/scripts"
-	}
+	scrDir <- paste(
+		base,
+		switch(ext, R="exec", BAS="surfer", py="jython"),
+		sep = '/')
 	
 	driver <- if(langFlag == 1){
 		#R scripts
@@ -30,34 +28,50 @@ makeRunFun <- function(driver, ext){
 	} else if(langFlag ==2){
 		paste(quoteIt(paste(driver, "Scripter", "Scripter.exe", sep="/")), "-x")
 	} else {
-		quoteIt(paste(driver, "meteoinfo.bat", sep="/"))
+		if(isUnix()){
+			sprintf("cd %s && ./%s -b", driver, "meteoinfo.sh")
+		} else {
+			quoteIt(paste(driver, "meteoinfo.bat", sep="/"))
+		}
 	}
 	
 	return(function(scrName, args="",
 									verbose = 1){
 		
 		if (!grepl(paste0('[.]', ext), scrName)){
-			stop(paste("Code:", scrName, "| is not of a supported language"))
+			stop(paste("Code:", scrName, "| is not a '", ext, "' file"))
 		}
 		
 		if (!file.exists(paste(scrDir, scrName, sep="/"))){
 			stop(paste("Code:", scrName, "| Does not exist"))
 		}
 		
-		command <- paste("CD", scrDir)
+		if(isUnix()){
+			command <- sprintf("%s %s/%s %s",
+				driver,
+				scrDir,
+				scrName,
+				paste(quoteIt(args), collapse = " ")
+			)
+		} else {
+			command <- paste("cd", scrDir)
+			command[2] <- paste(driver, scrName, paste(quoteIt(args), collapse = " "))
+		}
 		
-		command[2] <- paste(driver, scrName, paste(quoteIt(args), collapse = " "))
+		input <- paste(command, collapse=" && ")
 		
-		input <- paste(command,collapse=" && ")
 		if(verbose > 0){
 			cat("\n","#######", paste("calling", scrName),"\n")
 			
 			if(verbose > 1) cat(input)
 		}
 		
-		jk <- shell(input,mustWork=TRUE, intern = verbose > 1)
-		if(verbose > 1) cat('\n',jk,'\n')
+		jk <- system(input, intern = verbose > 1)
+		if(length(jk) == 1 && jk == -1L){
+			stop(paste("Shell command:", input, "did not work"))
+		}
 		
+		if(verbose > 1) cat('\n',jk,'\n')
 	})
 }
 quoteIt <- function(instr){

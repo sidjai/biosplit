@@ -55,3 +55,7 @@ boundNumLine <- function(data, boundLow, boundHigh, inclusive = FALSE){
 	
 	return(data)
 }
+
+isUnix <- function(){
+	grepl("unix", .Platform$OS.type)
+}
