@@ -1,36 +1,54 @@
 #' Make a diagonstic map for a layer
 #'
-#' A one layer map with the designated layer.
+#' A one layer map on top of a base map 
 #' @param arr Anything that can be loaded in by 'raster' package
-#' @param type The type of map that you want printe
-#' @param pathSave The path that you want the saved jpeg to be in. Default is that the function does not save but just plot
-#' @param ... additional parameters to \code{\link[graphics]{contour}} from the graphics package through the raster package or \code{\link[graphics]{points}}
+#' @param type The type of map that you want print
+#' @param shNewMap Should the program grab a new map or use the exisiting one
+#' @param pathSave The path that you want the saved jpeg to be in. Default is
+#'   that the function does not save but just plot
+#' @param ... additional parameters as explained in details.
+#' 
+#' @details The additional variables that can be passed are to the
+#'   \code{\link[graphics]{contour}} from the graphics package through the
+#'   raster package or \code{\link[graphics]{points}} for class post maps.
+#'   Convience parameters for the levels are given as follows:
+#' \describe{
+#'   \item{levelThres}{Minimum amount shown in the plot}
+#'   
+#'   \item{levelLimit}{The max level shown on the map}
+#'   \item{nLevels = 5}{The number of levels plotted on the map}
+#'   \item{levelType = c("linear, log")[1]}{The type of spacing for the levels}
+#' }
 #'
 #' @return A plot with 2 layers, the base map and the array
 #' @export
 makeDiagnosticMap <- function(
 	arr,
 	type = c("contour", "post")[1],
+	shNewMap = TRUE,
 	pathSave = "",
 	...
 	){
 
 	ras <- parseLayerInput(arr)
+	
+	if(shNewMap){
+		pl <- intwBaseMap(bbox = raster::extent(ras)[])
+	} else {
+		if(!existsPlot()){
+			stop(paste("If you don't want to make a new map 'shNewMap = FALSE',",
+				"then there has to be a map already present. There isn't one."))
+		}
+	}
+	
+	baseOpts <- intBaseOpt()
+	myOpts <- combineOpts(baseOpts, list(...))
 
-	pl <- intwBaseMap(bbox = raster::extent(ras)[])
-	myOpt <- intBaseOpt()
-	provOpts <- list(...)
-
-	pDups <- match(names(provOpts, myOpt))
-	pDups[is.na(pDups)] <- NULL
-
-	myOpts[pDups] <- provOpts[myOpt]
-	provOpts[!is.null(pDubs)] <- NULL
-
+	
 
 	pl <- do.call(
 		addLayer,
-		c(list(type = type, layer = ras), myOpt, provOpts)
+		c(list(type = type, layer = ras), myOpts)
 	)
 
 	if(nzchar(pathSave)){
@@ -60,23 +78,36 @@ intBaseOpt <- function(){
 intLevels <- function(
 	levelThres,
 	levelLimit,
-	nLevels = 5
-	type = c("linear, log")[1],
+	nLevels = 5,
+	levelType = c("linear", "log")[1]
 	){
+	
+	if(levelType == "log" && levelThres == 0) levelThres = 1
 
-	return(switch(type,
+	return(switch(levelType,
 		linear = seq(levelThres, levelLimit, length.out = nLevels),
 		log = exp(seq(log(levelThres), log(levelLimit), length.out = nLevels)))
 	)
 
 }
 
-addLayer <- function(type, layer, ...){
-	check <- didProvideVar(..., c(levelThres, levelLimit))
+combineOpts <- function(baseOpts, addOpts){
+	pDups <- match(names(addOpts), names(baseOpts))
+	if(length(pDups) > 0 && !all(is.na(pDups))){
+		pDups[is.na(pDups)] <- NULL
+		
+		baseOpts[pDups] <- addOpts
+		addOpts[!is.null(pDups)] <- NULL
+	}
+	return(c(baseOpts, addOpts))
+}
 
-	myLevels <- intLayers(
-		levelThres = (if(check[1]) levelThres else min(layer)),
-		levelLimit = (if(check[2]) levelLimit else max(layer)),
+addLayer <- function(type, layer, ...){
+	check <- didProvideVar(vars = c("levelThres", "levelLimit"), ...)
+
+	myLevels <- intLevels(
+		levelThres = (if(check[1]) levelThres else cellStats(layer, stat='min')),
+		levelLimit = (if(check[2]) levelLimit else cellStats(layer, stat='max')),
 		...
 	)
 
@@ -98,7 +129,12 @@ addLayer <- function(type, layer, ...){
 
 }
 
-postMaperize <- function(layer, levels, classes = matrix(NA, nrow = 5, ncol = 3)){
+postMaperize <- function(
+	layer,
+	levels,
+	classes = matrix(NA, nrow = 5, ncol = 3)
+	){
+	
 	ptsSet <- (layer > thres)
 	ptsMat <- which(ptsSet, arr.ind = TRUE)
 

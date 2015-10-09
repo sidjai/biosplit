@@ -60,11 +60,21 @@ isUnix <- function(){
 	grepl("unix", .Platform$OS.type)
 }
 
-didProvideVar(..., vars){
+didProvideVar <- function(vars, ...){
 	lell <- list(...)
 	if(length(list) == 0){
 		return(FALSE)
 	} else {
-		return(is.na(match(vars, names(lell))))
+		return(!is.na(match(vars, names(lell))))
 	}
+}
+
+existsPlot <- function(){
+	check <- TRUE
+	tryCatch(par(new = TRUE),
+		warning = function(cond){
+			check <- !grepl("no plot", cond)
+		})
+	
+	return(check)
 }
