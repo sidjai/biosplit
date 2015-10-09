@@ -4,24 +4,34 @@
 #' @param arr Anything that can be loaded in by 'raster' package
 #' @param type The type of map that you want printe
 #' @param pathSave The path that you want the saved jpeg to be in. Default is that the function does not save but just plot
+#' @param ... additional parameters to \code{\link[graphics]{contour}} from the graphics package through the raster package or \code{\link[graphics]{points}}
 #'
 #' @return A plot with 2 layers, the base map and the array
 #' @export
 makeDiagnosticMap <- function(
 	arr,
 	type = c("contour", "post")[1],
-	pathSave = ""
+	levelType = c("linear, log")[1]
+	pathSave = "",
+	...
 	){
 
 	ras <- parseLayerInput(arr)
 
 	pl <- intwBaseMap(bbox = raster::extent(ras)[])
 	myOpt <- intBaseOpt()
+	provOpts <- list(...)
+
+	pDups <- match(names(provOpts, myOpt))
+	pDups[is.na(pDups)] <- NULL
+
+	myOpts[pDups] <- provOpts[myOpt]
+	provOpts[!is.null(pDubs)] <- NULL
 
 
 	pl <- do.call(
 		addLayer,
-		c(list(type = type, layer = ras), myOpt)
+		c(list(type = type, layer = ras), myOpt, provOpts)
 	)
 
 	if(nzchar(pathSave)){
@@ -57,7 +67,7 @@ addLayer <- function(type, layer, ...){
 			...)
 
 	} else {
-		posts <- postMaperize(layer, classes = opt$classes)
+		posts <- postMaperize(layer, classes = classes)
 		points(
 			posts$pts,
 			bg = points$color,

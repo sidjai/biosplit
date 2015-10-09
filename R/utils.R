@@ -2,13 +2,13 @@ parseFiles <- function(dirIn, exten = "", shReverse = FALSE){
 	if(!dir.exists(dirIn)){
 		stop(paste("Directory:", dirIn, "does not exist or can't be assessed."))
 	}
-	
+
 	rawFiles <- list.files(dirIn,pattern = paste0(exten, '$') ,full.names = TRUE)
-	
+
 	if(length(rawFiles) < 1){
 		stop(paste("Directory:", dirIn, "does not have any files with extension:", exten))
 	}
-	
+
 	if (shReverse) rawFiles <- rev(rawFiles)
 	return(rawFiles)
 }
@@ -52,10 +52,19 @@ boundNumLine <- function(data, boundLow, boundHigh, inclusive = FALSE){
 		data[data > boundHigh] <- boundHigh
 		data[data < boundLow] <- boundLow
 	}
-	
+
 	return(data)
 }
 
 isUnix <- function(){
 	grepl("unix", .Platform$OS.type)
+}
+
+didProvideVar(..., vars){
+	lell <- list(...)
+	if(length(list) == 0){
+		return(FALSE)
+	} else {
+		return(is.na(match(vars, names(lell))))
+	}
 }
