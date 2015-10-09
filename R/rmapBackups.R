@@ -11,7 +11,6 @@
 makeDiagnosticMap <- function(
 	arr,
 	type = c("contour", "post")[1],
-	levelType = c("linear, log")[1]
 	pathSave = "",
 	...
 	){
@@ -58,16 +57,38 @@ intBaseOpt <- function(){
 		)
 }
 
+intLevels <- function(
+	levelThres,
+	levelLimit,
+	nLevels = 5
+	type = c("linear, log")[1],
+	){
+
+	return(switch(type,
+		linear = seq(levelThres, levelLimit, length.out = nLevels),
+		log = exp(seq(log(levelThres), log(levelLimit), length.out = nLevels)))
+	)
+
+}
+
 addLayer <- function(type, layer, ...){
+	check <- didProvideVar(..., c(levelThres, levelLimit))
+
+	myLevels <- intLayers(
+		levelThres = (if(check[1]) levelThres else min(layer)),
+		levelLimit = (if(check[2]) levelLimit else max(layer)),
+		...
+	)
 
 	if(type == "contour"){
 		raster::contour(
 			layer,
+			levels = myLevels,
 			add = TRUE,
 			...)
 
 	} else {
-		posts <- postMaperize(layer, classes = classes)
+		posts <- postMaperize(layer, levels = myLevels)
 		points(
 			posts$pts,
 			bg = points$color,
@@ -77,7 +98,7 @@ addLayer <- function(type, layer, ...){
 
 }
 
-postMaperize <- function(layer, classes = matrix(NA, nrow = 5, ncol = 3)){
+postMaperize <- function(layer, levels, classes = matrix(NA, nrow = 5, ncol = 3)){
 	ptsSet <- (layer > thres)
 	ptsMat <- which(ptsSet, arr.ind = TRUE)
 
@@ -88,10 +109,7 @@ postMaperize <- function(layer, classes = matrix(NA, nrow = 5, ncol = 3)){
 		is.na(classes[, x])
 	}, TRUE)
 
-	bot <- min(layers)
-	top <- max(layers)
-	classes[badSet[, "Begin Interval"], "Begin Interval"] <- {
-		seq(bot, top, by = top/5)[badSet[, "Begin Interval"]]}
+	classes[, "Begin Interval"] <- levels
 
 	classes[badSet[, "Symbol"], "Symbol"] <- c(1, 0, 2, 5, 11)[badSet[, "Symbol"]]
 
