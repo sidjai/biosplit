@@ -71,22 +71,22 @@ intwBaseMap <- function(bbox){
 
 intBaseOpt <- function(){
 	opt <- list(
-		nLevels = 5
+		numLevels = 5
 		)
 }
 
 intLevels <- function(
 	levelThres,
 	levelLimit,
-	nLevels = 5,
+	numLevels = 5,
 	levelType = c("linear", "log")[1]
 	){
 	
 	if(levelType == "log" && levelThres == 0) levelThres = 1
 
 	return(switch(levelType,
-		linear = seq(levelThres, levelLimit, length.out = nLevels),
-		log = exp(seq(log(levelThres), log(levelLimit), length.out = nLevels)))
+		linear = seq(levelThres, levelLimit, length.out = numLevels),
+		log = exp(seq(log(levelThres), log(levelLimit), length.out = numLevels)))
 	)
 
 }
@@ -103,13 +103,19 @@ combineOpts <- function(baseOpts, addOpts){
 }
 
 addLayer <- function(type, layer, ...){
-	check <- didProvideVar(vars = c("levelThres", "levelLimit"), ...)
-
-	myLevels <- intLevels(
-		levelThres = (if(check[1]) levelThres else cellStats(layer, stat='min')),
-		levelLimit = (if(check[2]) levelLimit else cellStats(layer, stat='max')),
-		...
-	)
+	levelVars <- c("levelThres", "levelLimit", "numLevels", "levelType")
+	check <- didProvideVar(vars = levelVars, ...)
+	
+	levelParams <- list(...)[levelVars[check]]
+	
+	if(!check[1]){
+		levelParams$levelThres <- cellStats(layer, stat='min')
+	}
+	if(!check[2]){
+		levelParams$levelLimit <- cellStats(layer, stat='max')
+	}
+	
+	myLevels <- do.call(intLevels, levelParams)
 
 	if(type == "contour"){
 		raster::contour(
