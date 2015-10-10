@@ -1,20 +1,20 @@
 #' Make a diagonstic map for a layer
 #'
-#' A one layer map on top of a base map 
+#' A one layer map on top of a base map
 #' @param arr Anything that can be loaded in by 'raster' package
 #' @param type The type of map that you want print
 #' @param shNewMap Should the program grab a new map or use the exisiting one
 #' @param pathSave The path that you want the saved jpeg to be in. Default is
 #'   that the function does not save but just plot
 #' @param ... additional parameters as explained in details.
-#' 
+#'
 #' @details The additional variables that can be passed are to the
 #'   \code{\link[graphics]{contour}} from the graphics package through the
 #'   raster package or \code{\link[graphics]{points}} for class post maps.
 #'   Convience parameters for the levels are given as follows:
 #' \describe{
 #'   \item{levelThres}{Minimum amount shown in the plot}
-#'   
+#'
 #'   \item{levelLimit}{The max level shown on the map}
 #'   \item{nLevels = 5}{The number of levels plotted on the map}
 #'   \item{levelType = c("linear, log")[1]}{The type of spacing for the levels}
@@ -24,14 +24,14 @@
 #' @export
 makeDiagnosticMap <- function(
 	arr,
-	type = c("contour", "post")[1],
+	type = c("contour", "filledContour", "post")[1],
 	shNewMap = TRUE,
 	pathSave = "",
 	...
 	){
 
 	ras <- parseLayerInput(arr)
-	
+
 	if(shNewMap){
 		pl <- intwBaseMap(bbox = raster::extent(ras)[])
 	} else {
@@ -40,11 +40,11 @@ makeDiagnosticMap <- function(
 				"then there has to be a map already present. There isn't one."))
 		}
 	}
-	
+
 	baseOpts <- intBaseOpt()
 	myOpts <- combineOpts(baseOpts, list(...))
 
-	
+
 
 	pl <- do.call(
 		addLayer,
@@ -81,7 +81,7 @@ intLevels <- function(
 	numLevels = 5,
 	levelType = c("linear", "log")[1]
 	){
-	
+
 	if(levelType == "log" && levelThres == 0) levelThres = 1
 
 	return(switch(levelType,
@@ -95,7 +95,7 @@ combineOpts <- function(baseOpts, addOpts){
 	pDups <- match(names(addOpts), names(baseOpts))
 	if(length(pDups) > 0 && !all(is.na(pDups))){
 		pDups[is.na(pDups)] <- NULL
-		
+
 		baseOpts[pDups] <- addOpts
 		addOpts[!is.null(pDups)] <- NULL
 	}
@@ -105,33 +105,41 @@ combineOpts <- function(baseOpts, addOpts){
 addLayer <- function(type, layer, ...){
 	levelVars <- c("levelThres", "levelLimit", "numLevels", "levelType")
 	check <- didProvideVar(vars = levelVars, ...)
-	
+
 	levelParams <- list(...)[levelVars[check]]
-	
+
 	if(!check[1]){
 		levelParams$levelThres <- cellStats(layer, stat='min')
 	}
 	if(!check[2]){
 		levelParams$levelLimit <- cellStats(layer, stat='max')
 	}
-	
+
 	myLevels <- do.call(intLevels, levelParams)
 
-	if(type == "contour"){
+	switch(type,
+		contour = {
 		raster::contour(
 			layer,
 			levels = myLevels,
 			add = TRUE,
 			...)
 
-	} else {
+	}, filledContour = {
+		raster::filledContour(
+			layer,
+			levels = myLevels,
+			add = TRUE,
+			...)
+			
+	}, post = {
 		posts <- postMaperize(layer, levels = myLevels)
 		points(
 			posts$pts,
 			bg = points$color,
 			pch = points$shape,
 			add = TRUE)
-	}
+	})
 
 }
 
@@ -141,8 +149,7 @@ postMaperize <- function(
 	classes = matrix(NA, nrow = 5, ncol = 3)
 	){
 	
-	ptsSet <- (layer > thres)
-	ptsMat <- which(ptsSet, arr.ind = TRUE)
+	ptsMat <- raster::rasterToPoints(layer, fun = function(x){ x > levels[1] })
 
 	#Translate the x y coordinates
 
