@@ -83,12 +83,13 @@ intLevels <- function(
 	){
 
 	if(levelType == "log" && levelThres == 0) levelThres = 1
+	numBBs <- numLevels + 1
 
-	return(switch(levelType,
-		linear = seq(levelThres, levelLimit, length.out = numLevels),
-		log = exp(seq(log(levelThres), log(levelLimit), length.out = numLevels)))
-	)
-
+	levels <- switch(levelType,
+		linear = seq(levelThres, levelLimit, length.out = numBBs ),
+		log = exp(seq(log(levelThres), log(levelLimit), length.out = numBBs)))
+	
+	return(levels)
 }
 
 combineOpts <- function(baseOpts, addOpts){
@@ -136,9 +137,8 @@ addLayer <- function(type, layer, ...){
 		posts <- postMaperize(layer, levels = myLevels)
 		points(
 			posts$pts,
-			bg = points$color,
-			pch = points$shape,
-			add = TRUE)
+			bg = posts$color,
+			pch = posts$shape)
 	})
 
 }
@@ -146,37 +146,35 @@ addLayer <- function(type, layer, ...){
 postMaperize <- function(
 	layer,
 	levels,
-	classes = matrix(NA, nrow = 5, ncol = 3)
+	classes = matrix(NA, nrow = length(levels), ncol = 3)
 	){
 	
-	ptsMat <- raster::rasterToPoints(layer, fun = function(x){ x > levels[1] })
+	ptsMat <- raster::rasterToPoints(layer, fun = function(x){
+		x > levels[1] & x < levels[length(levels)]
+	})
 
 	#Translate the x y coordinates
 
 	colnames(classes) <- c("Begin Interval", "Symbol", "Color")
 	badSet <- vapply(colnames(classes), function(x){
 		is.na(classes[, x])
-	}, TRUE)
+	}, rep(TRUE, length(levels)))
 
 	classes[, "Begin Interval"] <- levels
-
 	classes[badSet[, "Symbol"], "Symbol"] <- c(1, 0, 2, 5, 11)[badSet[, "Symbol"]]
+	classes[badSet[, "Color"], "Color"] <- rep("black", sum(badSet[, "Color"]))
+	
+	
+	indClass <- findInterval(ptsMat[,3], levels)
 
-	classes[badSet[, "Color"], "Color"] <- rep("black", sum(badSet[, "Symbol"]))
-
-
-	colMat <- getFromClass(ptsMat[, 3], classes[, "Color"])
-	shapeMat <- getFromClass(ptsMat[, 3], classes[, "Shape"])
+	colMat <- classes[, "Color"][indClass]
+	shapeMat <- classes[, "Symbol"][indClass]
 
 	return(list(
 		pts = ptsMat,
 		color = colMat,
 		shape = shapeMat
 	))
-}
-
-getFromClass <- function(pts, cvec){
-	return(cvec[findInterval(pts, cvec)])
 }
 
 parseLayerInput <- function(mapin){
