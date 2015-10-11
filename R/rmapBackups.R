@@ -100,9 +100,11 @@ intLabels <- function(lvls, labScientific = TRUE, labDigits = 2){
 
 makeLegend <- function(labels, classes){
 	entries <- paste(rev(rev(labels)[-1]), labels[-1], sep = " - ")
+	colnames(classes) <- gsub("bg", "pt.bg", colnames(classes))
 
 	do.call(legend,
-		c(list(x = "bottomright", legend = entries, merge = TRUE), classes[, -1]))
+		c(list(x = "bottomright", legend = entries, bty = "n", cex = 0.6),
+			classes[, -1]))
 }
 
 combineOpts <- function(baseOpts, addOpts){
@@ -118,19 +120,16 @@ combineOpts <- function(baseOpts, addOpts){
 
 addLayer <- function(type, layer, ...){
 	levelVars <- c("levelThres", "levelLimit", "numLevels", "levelType")
-	check <- didProvideVar(vars = levelVars, ...)
-
-	levelParams <- list(...)[levelVars[check]]
-
-	if(!check[1]){
+	levelParams <- didProvideVar(vars = levelVars, getVar = TRUE, ...)
+	
+	if(!"levelThres" %in% names(levelParams)){
 		levelParams$levelThres <- cellStats(layer, stat='min')
 	}
-	if(!check[2]){
+	if(!"levelLimit" %in% names(levelParams)){
 		levelParams$levelLimit <- cellStats(layer, stat='max') + 1
 	}
 
 	myLevels <- do.call(intLevels, levelParams)
-	myClasses <- intClasses(myLevels)
 
 	switch(type,
 		contour = {
@@ -148,7 +147,11 @@ addLayer <- function(type, layer, ...){
 			...)
 
 	}, post = {
-		classes <- intClasses(myLevels)
+		ccol <- didProvideVar(vars = "classColor", getVar = TRUE, ...)
+		ccol <- if(length(ccol) > 0) ccol[[1]] else "BW"
+		
+		myClasses <- intClasses(myLevels, classColor = ccol)
+		colnames(myClasses)[3] <- "bg"
 		posts <- postMaperize(layer, levels = myLevels, classes = myClasses)
 		points(
 			posts$pts,
@@ -162,14 +165,28 @@ addLayer <- function(type, layer, ...){
 
 intClasses <- function(
 	lvls,
-	baseSymbols = c(1, 0, 2, 5, 11)
+	baseSymbols = 21:25,
+	classColor = NA
 	){
+	
+	numClasses <- length(lvls) - 1
 
-	classes  <- as.data.frame(matrix(NA, nrow = (length(lvls) - 1), ncol = 3))
+	classes  <- as.data.frame(matrix(NA, nrow = numClasses, ncol = 3))
 	colnames(classes) <- c("lvls", "pch", "col")
 	classes$lvls <- rev(rev(lvls)[-1])
-	classes$pch <- baseSymbols
-	classes$col <- rep("black", length(lvls) - 1)
+	
+	
+	classes$pch <- rep(baseSymbols, length.out = numClasses)
+	
+	classes$col <- 
+		if(class(classColor) == "function"){
+			classColor(numClasses)
+		} else if(is.na(classColor)){
+			rep("black", numClasses)
+		} else if(classColor == "BW"){
+			rev(gray.colors(numClasses))
+		}
+	
 	return(classes)
 }
 
@@ -185,7 +202,7 @@ postMaperize <- function(
 
 	indClass <- findInterval(ptsMat[, 3], levels)
 
-	colMat <- classes$col[indClass]
+	colMat <- classes$bg[indClass]
 	shapeMat <- classes$pch[indClass]
 
 	return(list(

@@ -60,12 +60,18 @@ isUnix <- function(){
 	grepl("unix", .Platform$OS.type)
 }
 
-didProvideVar <- function(vars, ...){
+didProvideVar <- function(vars, getVar = FALSE, ...){
 	lell <- list(...)
-	if(length(list) == 0){
-		return(FALSE)
+	check <- if(length(lell) == 0){
+		FALSE
 	} else {
-		return(!is.na(match(vars, names(lell))))
+		!is.na(match(vars, names(lell)))
+	}
+	
+	if(getVar){
+		return(lell[vars[check]])
+	} else {
+		return(check)
 	}
 }
 
