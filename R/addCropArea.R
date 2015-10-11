@@ -66,6 +66,8 @@ addCropArea <- function(pathIn, shapeAdd, cropAmt, pathOut = ''){
 #'
 #' @param pathShape The path to a kml polygon to define the extent
 #' @inheritParams ncdf2trapdata
+#' @param useSum Either uses the final combined sum nc file or creates it using
+#'   "rebuildNc"
 #' 
 #' @return a list of the first occurance for both the populations and the
 #' mixing area for the entire area and the entire year

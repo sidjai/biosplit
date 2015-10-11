@@ -4,6 +4,7 @@
 #' @param arr Anything that can be loaded in by 'raster' package
 #' @param type The type of map that you want print
 #' @param shNewMap Should the program grab a new map or use the exisiting one
+#' @param shPath2Title Should the file provided be turned into a title for the plot? Gives a warning if a path wasn't supplied.
 #' @param pathSave The path that you want the saved jpeg to be in. Default is
 #'   that the function does not save but just plot
 #' @param ... additional parameters as explained in details.
@@ -39,6 +40,7 @@ makeDiagnosticMap <- function(
 	arr,
 	type = c("contour", "filledContour", "post")[1],
 	shNewMap = TRUE,
+	shPath2Title = FALSE,
 	pathSave = "",
 	...
 	){
@@ -56,6 +58,19 @@ makeDiagnosticMap <- function(
 
 	baseOpts <- intBaseOpt()
 	myOpts <- combineOpts(baseOpts, list(...))
+	
+	if(shPath2Title){
+		
+		if(is.character(arr) && file.exists(arr)){
+			plotTitle <- gsub("_", " ", basename(arr))
+			extStart <- regexpr("\\.[^\\.]*$", plotTitle)
+			title(substr(plotTitle, 1, (extStart - 1)))
+			
+		} else {
+			warning("Can't make title since input is not a file")
+		}
+		
+	}
 
 
 
@@ -78,7 +93,7 @@ makeDiagnosticMap <- function(
 
 #' @import maps
 intwBaseMap <- function(bbox){
-	map("state", xlim = bbox[1:2], ylim = bbox[3:4], mar = c(4.1, 4.1, 0, 0))
+	map("state", xlim = bbox[1:2], ylim = bbox[3:4], mar = c(4.1, 4.1, 1.1, 0))
 	map.axes()
 }
 

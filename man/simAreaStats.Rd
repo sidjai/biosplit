@@ -10,6 +10,9 @@ simAreaStats(dirSim, pathShape, useSum = FALSE)
 \item{dirSim}{The simulation output folder}
 
 \item{pathShape}{The path to a kml polygon to define the extent}
+
+\item{useSum}{Either uses the final combined sum nc file or creates it using
+  "rebuildNc"}
 }
 \value{
 a list of the first occurance for both the populations and the
