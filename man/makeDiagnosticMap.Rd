@@ -4,19 +4,53 @@
 \alias{makeDiagnosticMap}
 \title{Make a diagonstic map for a layer}
 \usage{
-makeDiagnosticMap(arr, type = c("contour", "post")[1], pathSave = "")
+makeDiagnosticMap(arr, type = c("contour", "filledContour", "post")[1],
+  shNewMap = TRUE, pathSave = "", ...)
 }
 \arguments{
 \item{arr}{Anything that can be loaded in by 'raster' package}
 
-\item{type}{The type of map that you want printe}
+\item{type}{The type of map that you want print}
 
-\item{pathSave}{The path that you want the saved jpeg to be in. Default is that the function does not save but just plot}
+\item{shNewMap}{Should the program grab a new map or use the exisiting one}
+
+\item{pathSave}{The path that you want the saved jpeg to be in. Default is
+that the function does not save but just plot}
+
+\item{...}{additional parameters as explained in details.}
 }
 \value{
-A plot with 2 layers, the base map and the array
+A plot with 2 layers, the base map and the array, or just the array
+  if 'shNewMap = FALSE'
 }
 \description{
-A one layer map with the designated layer.
+A one layer map on top of a base map
+}
+\details{
+The additional variables that can be passed are to the
+  \code{\link[graphics]{contour}} from the graphics package through the
+  raster package or \code{\link[graphics]{points}} for class post maps.
+  Convience parameters for the levels are given as follows:
+\describe{
+  \item{levelThres}{Minimum amount shown in the plot}
+
+  \item{levelLimit}{The max level shown on the map}
+  \item{nLevels = 5}{The number of levels plotted on the map}
+  \item{levelType = c("linear", "log")[1]}{The type of spacing for the levels}
+  \item{classColor = NA}{The color specification for the graphs. It can be
+  given in any of the three ways described in the "Color Specification' section}
+}
+}
+\section{Color specification options}{
+
+
+\describe{
+  \item{NA}{ Paint it all black }
+  \item{"BW"}{ gray scale classes from white to black }
+  \item{function}{ Any function that gives a character vector of color
+  	specifications with a single required input of the number of colors
+  	wanted. This means any number of packages can be used to specify color
+  	with at most a simple wrapper function.}
+}
 }
 

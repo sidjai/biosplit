@@ -17,10 +17,23 @@
 #'
 #'   \item{levelLimit}{The max level shown on the map}
 #'   \item{nLevels = 5}{The number of levels plotted on the map}
-#'   \item{levelType = c("linear, log")[1]}{The type of spacing for the levels}
+#'   \item{levelType = c("linear", "log")[1]}{The type of spacing for the levels}
+#'   \item{classColor = NA}{The color specification for the graphs. It can be
+#'   given in any of the three ways described in the "Color Specification' section}
+#' }
+#'@section Color specification options:
+#'
+#' \describe{
+#'   \item{NA}{ Paint it all black }
+#'   \item{"BW"}{ gray scale classes from white to black }
+#'   \item{function}{ Any function that gives a character vector of color
+#'   	specifications with a single required input of the number of colors
+#'   	wanted. This means any number of packages can be used to specify color
+#'   	with at most a simple wrapper function.}
 #' }
 #'
-#' @return A plot with 2 layers, the base map and the array
+#' @return A plot with 2 layers, the base map and the array, or just the array
+#'   if 'shNewMap = FALSE'
 #' @export
 makeDiagnosticMap <- function(
 	arr,
@@ -216,8 +229,8 @@ parseLayerInput <- function(mapin){
 	fir <- tryCatch(
 		raster::raster(mapin),
 		finally = function(cond){
-			error("Input cannot be read by raster with this error",
-			cond, "/n")
+			stop(paste("Input cannot be read by raster with this error",
+			cond, sep = "/n"))
 		}
 
 	)
