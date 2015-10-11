@@ -88,8 +88,21 @@ intLevels <- function(
 	levels <- switch(levelType,
 		linear = seq(levelThres, levelLimit, length.out = numBBs ),
 		log = exp(seq(log(levelThres), log(levelLimit), length.out = numBBs)))
-	
+
 	return(levels)
+}
+
+intLabels <- function(lvls, labScientific = TRUE, labDigits = 2){
+	labs <- signif(lvls, labDigits)
+	labs <- format(labs, scientific = labScientific)
+	return(labs)
+}
+
+makeLegend <- function(labels, classes){
+	entries <- paste(rev(rev(labels)[-1]), labels[-1], sep = " - ")
+
+	do.call(legend,
+		c(list(x = "bottomright", legend = entries, merge = TRUE), classes[, -1]))
 }
 
 combineOpts <- function(baseOpts, addOpts){
@@ -113,10 +126,11 @@ addLayer <- function(type, layer, ...){
 		levelParams$levelThres <- cellStats(layer, stat='min')
 	}
 	if(!check[2]){
-		levelParams$levelLimit <- cellStats(layer, stat='max')
+		levelParams$levelLimit <- cellStats(layer, stat='max') + 1
 	}
 
 	myLevels <- do.call(intLevels, levelParams)
+	myClasses <- intClasses(myLevels)
 
 	switch(type,
 		contour = {
@@ -132,43 +146,47 @@ addLayer <- function(type, layer, ...){
 			levels = myLevels,
 			add = TRUE,
 			...)
-			
+
 	}, post = {
-		posts <- postMaperize(layer, levels = myLevels)
+		classes <- intClasses(myLevels)
+		posts <- postMaperize(layer, levels = myLevels, classes = myClasses)
 		points(
 			posts$pts,
 			bg = posts$color,
 			pch = posts$shape)
+
+		makeLegend(intLabels(myLevels), myClasses)
 	})
 
+}
+
+intClasses <- function(
+	lvls,
+	baseSymbols = c(1, 0, 2, 5, 11)
+	){
+
+	classes  <- as.data.frame(matrix(NA, nrow = (length(lvls) - 1), ncol = 3))
+	colnames(classes) <- c("lvls", "pch", "col")
+	classes$lvls <- rev(rev(lvls)[-1])
+	classes$pch <- baseSymbols
+	classes$col <- rep("black", length(lvls) - 1)
+	return(classes)
 }
 
 postMaperize <- function(
 	layer,
 	levels,
-	classes = matrix(NA, nrow = length(levels), ncol = 3)
+	classes
 	){
-	
+
 	ptsMat <- raster::rasterToPoints(layer, fun = function(x){
 		x > levels[1] & x < levels[length(levels)]
 	})
 
-	#Translate the x y coordinates
+	indClass <- findInterval(ptsMat[, 3], levels)
 
-	colnames(classes) <- c("Begin Interval", "Symbol", "Color")
-	badSet <- vapply(colnames(classes), function(x){
-		is.na(classes[, x])
-	}, rep(TRUE, length(levels)))
-
-	classes[, "Begin Interval"] <- levels
-	classes[badSet[, "Symbol"], "Symbol"] <- c(1, 0, 2, 5, 11)[badSet[, "Symbol"]]
-	classes[badSet[, "Color"], "Color"] <- rep("black", sum(badSet[, "Color"]))
-	
-	
-	indClass <- findInterval(ptsMat[,3], levels)
-
-	colMat <- classes[, "Color"][indClass]
-	shapeMat <- classes[, "Symbol"][indClass]
+	colMat <- classes$col[indClass]
+	shapeMat <- classes$pch[indClass]
 
 	return(list(
 		pts = ptsMat,
