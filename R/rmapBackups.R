@@ -99,19 +99,19 @@ intwBaseMap <- function(bbox){
 
 intBaseOpt <- function(){
 	opt <- list(
-		numLevels = 5
+		nLevels = 5
 		)
 }
 
 intLevels <- function(
 	levelThres,
 	levelLimit,
-	numLevels = 5,
+	nLevels = 5,
 	levelType = c("linear", "log")[1]
 	){
 
 	if(levelType == "log" && levelThres == 0) levelThres = 1
-	numBBs <- numLevels + 1
+	numBBs <- nLevels + 1
 
 	levels <- switch(levelType,
 		linear = seq(levelThres, levelLimit, length.out = numBBs ),
@@ -147,7 +147,7 @@ combineOpts <- function(baseOpts, addOpts){
 }
 
 addLayer <- function(type, layer, ...){
-	levelVars <- c("levelThres", "levelLimit", "numLevels", "levelType")
+	levelVars <- c("levelThres", "levelLimit", "nLevels", "levelType")
 	levelParams <- didProvideVar(vars = levelVars, getVar = TRUE, ...)
 	
 	if(!"levelThres" %in% names(levelParams)){
@@ -158,12 +158,20 @@ addLayer <- function(type, layer, ...){
 	}
 
 	myLevels <- do.call(intLevels, levelParams)
-
+	
+	ccol <- didProvideVar(vars = "classColor", getVar = TRUE, ...)
+	ccol <- if(length(ccol) > 0) ccol[[1]] else "BW"
+	
+	myClasses <- intClasses(myLevels, classColor = ccol)
+	myLabels <- intLabels(myLevels)
+	
 	switch(type,
 		contour = {
 		raster::contour(
 			layer,
 			levels = myLevels,
+			labels = myLabels,
+			col = myClasses$col,
 			add = TRUE,
 			...)
 
@@ -171,14 +179,13 @@ addLayer <- function(type, layer, ...){
 		raster::filledContour(
 			layer,
 			levels = myLevels,
+			labels = myLabels,
+			col = myClasses$col,
 			add = TRUE,
 			...)
 
 	}, post = {
-		ccol <- didProvideVar(vars = "classColor", getVar = TRUE, ...)
-		ccol <- if(length(ccol) > 0) ccol[[1]] else "BW"
 		
-		myClasses <- intClasses(myLevels, classColor = ccol)
 		colnames(myClasses)[3] <- "bg"
 		posts <- postMaperize(layer, levels = myLevels, classes = myClasses)
 		points(
@@ -186,8 +193,9 @@ addLayer <- function(type, layer, ...){
 			bg = posts$color,
 			pch = posts$shape)
 
-		makeLegend(intLabels(myLevels), myClasses)
+		
 	})
+	makeLegend(myLabels, myClasses)
 
 }
 
