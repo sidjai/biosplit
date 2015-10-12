@@ -5,7 +5,8 @@
 \title{Make a diagonstic map for a layer}
 \usage{
 makeDiagnosticMap(arr, type = c("contour", "filledContour", "post")[1],
-  shNewMap = TRUE, shPath2Title = FALSE, pathSave = "", ...)
+  shNewMap = TRUE, shPath2Title = FALSE, shReturnInfo = FALSE,
+  pathSave = "", ...)
 }
 \arguments{
 \item{arr}{Anything that can be loaded in by 'raster' package}
@@ -14,7 +15,11 @@ makeDiagnosticMap(arr, type = c("contour", "filledContour", "post")[1],
 
 \item{shNewMap}{Should the program grab a new map or use the exisiting one}
 
-\item{shPath2Title}{Should the file provided be turned into a title for the plot? Gives a warning if a path wasn't supplied.}
+\item{shPath2Title}{Should the file provided be turned into a title for the
+plot? Gives a warning if a path wasn't supplied.}
+
+\item{shReturnInfo}{Should the information on the plotting (classes, levels
+and labels) be returned as a list?}
 
 \item{pathSave}{The path that you want the saved jpeg to be in. Default is
 that the function does not save but just plot}
@@ -38,6 +43,7 @@ The additional variables that can be passed are to the
 
   \item{levelLimit}{The max level shown on the map}
   \item{nLevels = 5}{The number of levels plotted on the map}
+  \item{levels}{a numeric vector specifing the levels}
   \item{levelType = c("linear", "log")[1]}{The type of spacing for the levels}
   \item{classColor = NA}{The color specification for the graphs. It can be
   given in any of the three ways described in the "Color Specification' section}

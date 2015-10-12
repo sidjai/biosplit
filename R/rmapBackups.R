@@ -4,7 +4,10 @@
 #' @param arr Anything that can be loaded in by 'raster' package
 #' @param type The type of map that you want print
 #' @param shNewMap Should the program grab a new map or use the exisiting one
-#' @param shPath2Title Should the file provided be turned into a title for the plot? Gives a warning if a path wasn't supplied.
+#' @param shPath2Title Should the file provided be turned into a title for the
+#'   plot? Gives a warning if a path wasn't supplied.
+#' @param shReturnInfo Should the information on the plotting (classes, levels
+#'   and labels) be returned as a list?
 #' @param pathSave The path that you want the saved jpeg to be in. Default is
 #'   that the function does not save but just plot
 #' @param ... additional parameters as explained in details.
@@ -18,6 +21,7 @@
 #'
 #'   \item{levelLimit}{The max level shown on the map}
 #'   \item{nLevels = 5}{The number of levels plotted on the map}
+#'   \item{levels}{a numeric vector specifing the levels}
 #'   \item{levelType = c("linear", "log")[1]}{The type of spacing for the levels}
 #'   \item{classColor = NA}{The color specification for the graphs. It can be
 #'   given in any of the three ways described in the "Color Specification' section}
@@ -41,6 +45,7 @@ makeDiagnosticMap <- function(
 	type = c("contour", "filledContour", "post")[1],
 	shNewMap = TRUE,
 	shPath2Title = FALSE,
+	shReturnInfo = FALSE,
 	pathSave = "",
 	...
 	){
@@ -58,23 +63,23 @@ makeDiagnosticMap <- function(
 
 	baseOpts <- intBaseOpt()
 	myOpts <- combineOpts(baseOpts, list(...))
-	
+
 	if(shPath2Title){
-		
+
 		if(is.character(arr) && file.exists(arr)){
 			plotTitle <- gsub("_", " ", basename(arr))
 			extStart <- regexpr("\\.[^\\.]*$", plotTitle)
 			title(substr(plotTitle, 1, (extStart - 1)))
-			
+
 		} else {
 			warning("Can't make title since input is not a file")
 		}
-		
+
 	}
 
 
 
-	pl <- do.call(
+	info <- do.call(
 		addLayer,
 		c(list(type = type, layer = ras), myOpts)
 	)
@@ -88,7 +93,9 @@ makeDiagnosticMap <- function(
 			quality = 100)
 		dev.off()
 	}
-	return(invisible(0))
+
+	if(shReturnInfo) return(info)
+	else return(invisible(0))
 }
 
 #' @import maps
@@ -149,7 +156,7 @@ combineOpts <- function(baseOpts, addOpts){
 addLayer <- function(type, layer, ...){
 	levelVars <- c("levelThres", "levelLimit", "nLevels", "levelType")
 	levelParams <- didProvideVar(vars = levelVars, getVar = TRUE, ...)
-	
+
 	if(!"levelThres" %in% names(levelParams)){
 		levelParams$levelThres <- cellStats(layer, stat='min')
 	}
@@ -157,16 +164,19 @@ addLayer <- function(type, layer, ...){
 		levelParams$levelLimit <- cellStats(layer, stat='max') + 1
 	}
 
-	myLevels <- do.call(intLevels, levelParams)
-	
+	if(didProvideVar(vars = "levels")){
+		myLevels <- list(...)$levels
+	} else {
+		myLevels <- do.call(intLevels, levelParams)
+	}
 	ccol <- didProvideVar(vars = "classColor", getVar = TRUE, ...)
 	ccol <- if(length(ccol) > 0) ccol[[1]] else "BW"
-	
+
 	myLabels <- intLabels(myLevels)
-	
+
 	switch(type,
 		contour = {
-		
+
 		myClasses <- intClasses(myLevels,
 			symName = "lty",
 			baseSymbols = 1,
@@ -187,10 +197,9 @@ addLayer <- function(type, layer, ...){
 		raster::filledContour(
 			layer,
 			levels = myLevels,
-			labels = myLabels,
 			col = myClasses$col,
-			add = TRUE,
-			...)
+			plot.axes = {intwBaseMap(bbox = raster::extent(layer)[])},
+			frame.plot = FALSE)
 
 	}, post = {
 		myClasses <- intClasses(myLevels, colName = "bg", classColor = ccol)
@@ -200,9 +209,14 @@ addLayer <- function(type, layer, ...){
 			bg = posts$color,
 			pch = posts$shape)
 
-		
+
 	})
 	makeLegend(myLabels, myClasses)
+
+	return(list(
+		classes = myClasses,
+		levels = myLevels,
+		labels = myLabels))
 
 }
 
@@ -213,17 +227,17 @@ intClasses <- function(
 	symName = "pch",
 	colName = "col"
 	){
-	
+
 	numClasses <- length(lvls) - 1
 
 	classes  <- as.data.frame(matrix(NA, nrow = numClasses, ncol = 3))
 	colnames(classes) <- c("lvls", symName, colName)
 	classes$lvls <- rev(rev(lvls)[-1])
-	
-	
+
+
 	classes[, symName] <- rep(baseSymbols, length.out = numClasses)
-	
-	classes[, colName] <- 
+
+	classes[, colName] <-
 		if(class(classColor) == "function"){
 			classColor(numClasses)
 		} else if(is.na(classColor)){
@@ -231,7 +245,7 @@ intClasses <- function(
 		} else if(classColor == "BW"){
 			rev(gray.colors(numClasses))
 		}
-	
+
 	return(classes)
 }
 
