@@ -16,13 +16,24 @@ mosaicImage <- function(pathMat,
 												leftAlignYaxis = FALSE,
                         onlyScale = FALSE){
 	
-	labelx <- cleanLabel(gsub("/", "\n", labelx))
-	labely <- cleanLabel(gsub("/", "\n", labely))
 	pathMat <- as.matrix(pathMat)
 	
+	if(is.null(labelx)){
+		marb <- marb - 0.1
+		labelx <- ''
+	} else {
+		labelx <- cleanLabel(gsub("/", "\n", labelx))
+		if(!nzchar(labelx[1])) labelx <- paste0('x',1:dim(pathMat)[2])
+	}
 	
-	if(!nzchar(labelx[1])) labelx <- paste0('x',1:dim(pathMat)[2])
-	if(!nzchar(labely[1])) labely <- paste0('y',1:dim(pathMat)[1])
+	if(is.null(labely)){
+		marl <- marl - 0.1
+		labely <- ''
+	} else {
+		labely <- cleanLabel(gsub("/", "\n", labely))
+		if(!nzchar(labely[1])) labely <- paste0('y',1:dim(pathMat)[2])
+	}
+	
 	
 	xlen <- dim(pathMat)[2]
 	ylen <- dim(pathMat)[1]
