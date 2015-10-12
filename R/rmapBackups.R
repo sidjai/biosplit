@@ -8,6 +8,7 @@
 #'   plot? Gives a warning if a path wasn't supplied.
 #' @param shReturnInfo Should the information on the plotting (classes, levels
 #'   and labels) be returned as a list?
+#' @param shLegend Shouild a legend be ploted?
 #' @param pathSave The path that you want the saved jpeg to be in. Default is
 #'   that the function does not save but just plot
 #' @param ... additional parameters as explained in details.
@@ -46,6 +47,7 @@ makeDiagnosticMap <- function(
 	shNewMap = TRUE,
 	shPath2Title = FALSE,
 	shReturnInfo = FALSE,
+	shLegend = TRUE,
 	pathSave = "",
 	...
 	){
@@ -84,6 +86,8 @@ makeDiagnosticMap <- function(
 		c(list(type = type, layer = ras), myOpts)
 	)
 
+	if(shLegend) makeLegend(info$labels, info$classes)
+
 	if(nzchar(pathSave)){
 		dev.copy(jpeg, pathSave,
 			units = "in",
@@ -102,7 +106,7 @@ makeDiagnosticMap <- function(
 intwBaseMap <- function(bbox){
 	usBox <- raster::extent(c(-125, -70, 25, 50))
 	givBox <- raster::extent(bbox)
-	intBox <- intersectExtent(usBox, givBox, validate = FALSE)
+	intBox <- raster::intersect(usBox, givBox)
 	if(is.null(intBox)){
 		map("world", xlim = bbox[1:2], ylim = bbox[3:4], mar = c(4.1, 4.1, 1.1, 0))
 		map.axes()
@@ -219,7 +223,6 @@ addLayer <- function(type, layer, ...){
 
 
 	})
-	makeLegend(myLabels, myClasses)
 
 	return(list(
 		classes = myClasses,
@@ -280,12 +283,23 @@ postMaperize <- function(
 }
 
 parseLayerInput <- function(mapin){
-	fir <- tryCatch(
-		raster::raster(mapin),
-		finally = function(cond){
-			stop(paste("Input cannot be read by raster with this error",
-			cond, sep = "/n"))
-		}
-
-	)
+	if(class(mapin) == "RasterLayer"){ out <- mapin
+	} else {
+		out <- tryCatch(
+			raster::raster(mapin),
+			finally = function(cond){
+				stop(paste("Input cannot be read by raster with this error",
+				cond, sep = "/n"))
+			}
+	
+		)
+		
+	}
+	
+	if(!raster::hasValues(out)){
+		stop(paste("The input layer is empty ... see look",
+			head(raster::rasterToPoints(out))))
+	}
+	
+	return(out)
 }
