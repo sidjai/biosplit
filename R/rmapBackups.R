@@ -100,8 +100,16 @@ makeDiagnosticMap <- function(
 
 #' @import maps
 intwBaseMap <- function(bbox){
-	map("state", xlim = bbox[1:2], ylim = bbox[3:4], mar = c(4.1, 4.1, 1.1, 0))
-	map.axes()
+	usBox <- raster::extent(c(-125, -70, 25, 50))
+	givBox <- raster::extent(bbox)
+	intBox <- intersectExtent(usBox, givBox, validate = FALSE)
+	if(is.null(intBox)){
+		map("world", xlim = bbox[1:2], ylim = bbox[3:4], mar = c(4.1, 4.1, 1.1, 0))
+		map.axes()
+	} else {
+		map("state", xlim = bbox[1:2], ylim = bbox[3:4], mar = c(4.1, 4.1, 1.1, 0))
+		map.axes()
+	}
 }
 
 intBaseOpt <- function(){
