@@ -162,11 +162,15 @@ addLayer <- function(type, layer, ...){
 	ccol <- didProvideVar(vars = "classColor", getVar = TRUE, ...)
 	ccol <- if(length(ccol) > 0) ccol[[1]] else "BW"
 	
-	myClasses <- intClasses(myLevels, classColor = ccol)
 	myLabels <- intLabels(myLevels)
 	
 	switch(type,
 		contour = {
+		
+		myClasses <- intClasses(myLevels,
+			symName = "lty",
+			baseSymbols = 1,
+			classColor = ccol)
 		raster::contour(
 			layer,
 			levels = myLevels,
@@ -176,6 +180,10 @@ addLayer <- function(type, layer, ...){
 			...)
 
 	}, filledContour = {
+		myClasses <- intClasses(myLevels,
+			symName = "lty",
+			baseSymbols = 1,
+			classColor = ccol)
 		raster::filledContour(
 			layer,
 			levels = myLevels,
@@ -185,8 +193,7 @@ addLayer <- function(type, layer, ...){
 			...)
 
 	}, post = {
-		
-		colnames(myClasses)[3] <- "bg"
+		myClasses <- intClasses(myLevels, colName = "bg", classColor = ccol)
 		posts <- postMaperize(layer, levels = myLevels, classes = myClasses)
 		points(
 			posts$pts,
@@ -202,19 +209,21 @@ addLayer <- function(type, layer, ...){
 intClasses <- function(
 	lvls,
 	baseSymbols = 21:25,
-	classColor = NA
+	classColor = NA,
+	symName = "pch",
+	colName = "col"
 	){
 	
 	numClasses <- length(lvls) - 1
 
 	classes  <- as.data.frame(matrix(NA, nrow = numClasses, ncol = 3))
-	colnames(classes) <- c("lvls", "pch", "col")
+	colnames(classes) <- c("lvls", symName, colName)
 	classes$lvls <- rev(rev(lvls)[-1])
 	
 	
-	classes$pch <- rep(baseSymbols, length.out = numClasses)
+	classes[, symName] <- rep(baseSymbols, length.out = numClasses)
 	
-	classes$col <- 
+	classes[, colName] <- 
 		if(class(classColor) == "function"){
 			classColor(numClasses)
 		} else if(is.na(classColor)){
