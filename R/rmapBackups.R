@@ -22,7 +22,8 @@
 #'
 #'   \item{levelLimit}{The max level shown on the map}
 #'   \item{nLevels = 5}{The number of levels plotted on the map}
-#'   \item{levels}{a numeric vector specifing the levels}
+#'   \item{exLevels}{a numeric vector specifing the levels that were already
+#'   formulated i.e they existed before}
 #'   \item{levelType = c("linear", "log")[1]}{The type of spacing for the levels}
 #'   \item{classColor = NA}{The color specification for the graphs. It can be
 #'   given in any of the three ways described in the "Color Specification' section}
@@ -52,7 +53,12 @@ makeDiagnosticMap <- function(
 	...
 	){
 
-	ras <- parseLayerInput(arr)
+	ncParams <- didProvideVar(vars = c("ncVar", "ncLayer"), getVar = TRUE, ...)
+	#turn into proper names for ncdf package through raster
+	names(ncParams) <- gsub("ncVar", "varname", 
+		gsub("ncLayer", "band", 
+			names(ncParams)))
+	ras <- do.call(parseLayerInput, c(list(mapin = arr), ncParams))
 
 	if(shNewMap){
 		pl <- intwBaseMap(bbox = raster::extent(ras)[])
@@ -71,7 +77,14 @@ makeDiagnosticMap <- function(
 		if(is.character(arr) && file.exists(arr)){
 			plotTitle <- gsub("_", " ", basename(arr))
 			extStart <- regexpr("\\.[^\\.]*$", plotTitle)
-			title(substr(plotTitle, 1, (extStart - 1)))
+			plotTitle <- substr(plotTitle, 1, (extStart - 1))
+			if(length(ncParams) > 0){
+				plotTitle <- paste(
+					c(plotTitle, paste(names(ncParams), ncParams, sep = " = ")),
+					collapse = ", ")
+			}
+
+			title(plotTitle)
 
 		} else {
 			warning("Can't make title since input is not a file")
@@ -118,7 +131,9 @@ intwBaseMap <- function(bbox){
 
 intBaseOpt <- function(){
 	opt <- list(
-		nLevels = 5
+		nLevels = 5,
+		lwd = 2,
+		vfont = c("sans serif", "bold")
 		)
 }
 
@@ -176,8 +191,8 @@ addLayer <- function(type, layer, ...){
 		levelParams$levelLimit <- cellStats(layer, stat='max') + 1
 	}
 
-	if(didProvideVar(vars = "levels")){
-		myLevels <- list(...)$levels
+	if(didProvideVar(vars = "exLevels", ...)){
+		myLevels <- list(...)$exLevels
 	} else {
 		myLevels <- do.call(intLevels, levelParams)
 	}
@@ -282,24 +297,24 @@ postMaperize <- function(
 	))
 }
 
-parseLayerInput <- function(mapin){
+parseLayerInput <- function(mapin, ...){
 	if(class(mapin) == "RasterLayer"){ out <- mapin
 	} else {
 		out <- tryCatch(
-			raster::raster(mapin),
+			raster::raster(mapin, ...),
 			finally = function(cond){
 				stop(paste("Input cannot be read by raster with this error",
 				cond, sep = "/n"))
 			}
-	
+
 		)
-		
+
 	}
-	
+
 	if(!raster::hasValues(out)){
 		stop(paste("The input layer is empty ... see look",
 			head(raster::rasterToPoints(out))))
 	}
-	
+
 	return(out)
 }

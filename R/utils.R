@@ -76,11 +76,9 @@ didProvideVar <- function(vars, getVar = FALSE, ...){
 }
 
 existsPlot <- function(){
-	check <- TRUE
-	check <- tryCatch(par(new = TRUE),
+	check <- is.list(tryCatch(par(new = TRUE),
 		warning = function(cond){
 			!grepl("no plot", cond)
-		})
-	
+		}))
 	return(check)
 }

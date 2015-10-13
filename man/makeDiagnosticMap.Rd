@@ -45,7 +45,8 @@ The additional variables that can be passed are to the
 
   \item{levelLimit}{The max level shown on the map}
   \item{nLevels = 5}{The number of levels plotted on the map}
-  \item{levels}{a numeric vector specifing the levels}
+  \item{exLevels}{a numeric vector specifing the levels that were already
+  formulated i.e they existed before}
   \item{levelType = c("linear", "log")[1]}{The type of spacing for the levels}
   \item{classColor = NA}{The color specification for the graphs. It can be
   given in any of the three ways described in the "Color Specification' section}
