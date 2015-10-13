@@ -79,9 +79,13 @@ makeDiagnosticMap <- function(
 			extStart <- regexpr("\\.[^\\.]*$", plotTitle)
 			plotTitle <- substr(plotTitle, 1, (extStart - 1))
 			if(length(ncParams) > 0){
-				plotTitle <- paste(
-					c(plotTitle, paste(names(ncParams), ncParams, sep = " = ")),
-					collapse = ", ")
+				tNames <- gsub("varname", "var",
+					gsub("band", "wk",
+						names(ncParams)))
+				
+					text(ras@extent@xmin, (ras@extent@ymin + .05/2 * sum(ras@extent[3:4])),
+						labels = paste(tNames, ncParams, sep = " = ", collapse = ", "),
+						pos = 4)
 			}
 
 			title(plotTitle)
