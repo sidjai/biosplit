@@ -329,7 +329,7 @@ runBiosplit <- function(cfg, plotOutputFreq = 10){
 				mMothOut <- makeOutput(mMoth, mMothOut, tPos, map2block,
 					cfg$SimOutFold,
 					lpop2 = Moth,
-					onlyTxt = FALSE,
+					onlyTxt = TRUE,
 					shWrite = cfg$writeFlag))
 		}
 		
@@ -1416,7 +1416,7 @@ makeOutput <- function(lpop, out, date, map2block, dirSim, lpop2=0,
 	
 	xs <- map2block(tab[,1],1)
 	ys <- map2block(tab[,2],2)
-	week <- as.integer(strftime(date,"%U"))
+	week <- jul2Week(strftime(date,"%j"))
 	#reorganize sparse matrix into full matrix
 	slice <- list(array(0, dim=dimSlice), array(0, dim=dimSlice))
 	

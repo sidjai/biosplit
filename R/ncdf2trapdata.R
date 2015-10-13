@@ -384,9 +384,8 @@ parseHapData <- function(pathHap, trapLat, trapLon, shAvgYear = FALSE){
 	
 	hapRatio <- matrix(data = NA, nrow = length(trapLat), ncol = 52)
 	for (tele in 1:dim(hapDat)[1]){
-		days <- seq(1,365,7)
-		beg <- findInterval(as.numeric(hapDat[tele, startInd]), days)
-		last <- findInterval(as.numeric(hapDat[tele, endInd]), days)
+		beg <- jul2Week(hapDat[tele, startInd])
+		last <- jul2Week(hapDat[tele, endInd])
 		if(is.na(last)) { last <- beg }
 		hapRatio[hapDict[tele], beg:last] <- as.numeric(substr(hapDat[tele, dim(hapDat)[2]], 1,4))
 	}

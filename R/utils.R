@@ -32,6 +32,10 @@ date2Jul <- function(strIn, format){
 	return(as.integer(strftime(posTime, "%j")))
 }
 
+jul2Week <- function(jd){
+	days <- seq(1,365,7) + 1
+	return(findInterval(as.numeric(jd), days))
+}
 
 file2year <- function(path){
 	as.numeric(regmatches(path,regexpr("\\d{4}", path)))
