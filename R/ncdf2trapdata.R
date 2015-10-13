@@ -512,6 +512,17 @@ quickOpenNCDF <- function(p, var = "Count"){
 	return(out)
 }
 
+#' Rebuild the sparse matrices with raw data
+#'
+#' @param dirSim The simulation output folder 
+#' @param yr The year of the simulation
+#' @param flagSum Should the program sum all the captures for that week in this
+#'   file?
+#' @param shWrite Should the rebuilt file be written to the directory using
+#'   predefined names?
+#'
+#' @return A large list with the variables as names and 3-d matrix for the data
+#' @export
 rebuildNc <- function(dirSim, yr, flagSum = FALSE, shWrite = FALSE){
 	days <- seq(8,365,7)
 	dates <- getDayStamp(days, yr, '_%m%d%y.nc')
@@ -529,7 +540,7 @@ rebuildNc <- function(dirSim, yr, flagSum = FALSE, shWrite = FALSE){
 	
 	popName <- c("TXMoth", "FLMoth", 'fullWeek')
 	for (type in 1:2){
-		slFiles <- paste0(dirSim, '/', popName[type], dates)
+		slFiles <- paste0(dirSim, '/ncs/', popName[type], dates)
 		for (k in seq(1,length(dates))){
 			if(flagSum){
 				#Get the summation of all the captures in that week 
