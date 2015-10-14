@@ -161,6 +161,7 @@ intLevels <- function(
 intLabels <- function(lvls, labScientific = TRUE, labDigits = 2){
 	labs <- signif(lvls, labDigits)
 	labs <- format(labs, scientific = labScientific)
+	labs <- gsub("\\+", "", gsub("\\+0", "", labs))
 	return(labs)
 }
 
