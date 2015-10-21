@@ -204,7 +204,9 @@ addLayer <- function(type, layer, ...){
 	ccol <- didProvideVar(vars = "classColor", getVar = TRUE, ...)
 	ccol <- if(length(ccol) > 0) ccol[[1]] else "BW"
 
-	myLabels <- intLabels(myLevels)
+	myLabels <- do.call(intLabels, 
+		c(list(lvls = myLevels), 
+			didProvideVar(vars = c("labScientific", "labDigit"), getVar = TRUE, ...)))
 
 	switch(type,
 		contour = {
