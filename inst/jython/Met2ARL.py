@@ -31,9 +31,9 @@ pathOut = sys.argv[2]
 #{fullFile: var, ncvariable,level}
 
 varDict = {'pr':'TPP3','tas':'T02M','ps':'PRSS','uas':'U10M','vas':'V10M','husnp':'RELH0m',\
-	'hus':'RELH','ua':'UWND','va':'VWND','zg':'HGTS','ta':'TEMP'}
-groundVars = ['PRSS','T02M','U10M','V10M']
-atmVars = ['HGTS','TEMP','UWND','VWND','WWND','RELH']
+	'hus':'RELH','ua':'UWND','va':'VWND', 'wa':'WWND','zg':'HGTS','ta':'TEMP'}
+#groundVars = ['PRSS','T02M','U10M','V10M']
+#atmVars = ['HGTS','TEMP','UWND','VWND','WWND','RELH']
 
 ncDict = {"x":"hello"}
 groundVars = []
@@ -44,22 +44,19 @@ files = os.listdir(dirIn)
 for f in filterList('.nc$',files):
 	tok = re.split("[_]",f)
 	ncVar = tok[0]
-	lv = re.match('p\d+',tok[3])
-	if lv is None: 
-		lv = 0
-		groundVars += [varDict[ncVar]]
-	else:
-		lv = int(tok[3].strip('p'))
-		if lv not in levels:
-			levels += [lv]
-		if varDict[ncVar] not in atmVars:
-			atmVars += [varDict[ncVar]]
-			
-# 		if hgt < 700:
-# 			lv = 26-(hgt-50)/50
-# 		else:
-# 			lv = 13-(hgt-700)/25
-	ncDict.update({(dirIn + '/' + f):\
+	if len(tok) > 3:
+		lv = re.match('p\d+',tok[3])
+	if ncVar in varDict:
+		if lv is None:
+			lv = 0
+			groundVars += [varDict[ncVar]]
+		else:
+			lv = int(tok[3].strip('p'))
+			if lv not in levels:
+				levels += [lv]
+			if varDict[ncVar] not in atmVars:
+				atmVars += [varDict[ncVar]]
+		ncDict.update({(dirIn + '/' + f):\
 		{'arlVar':varDict[ncVar], 'ncVar':ncVar, 'level':lv}})
 junk = ncDict.pop('x')
 levels += [0]
@@ -106,7 +103,7 @@ for path, ids in ncDict.iteritems():
 		Met.setLevelIndex(ids['level'])
 		ncData = Met.getGridData(ids['ncVar'])
 		if ids['arlVar'] == 'PRSS' or ids['arlVar'] == 'WWND':
-			ncData = ncData/100
+			ncData = ncData.div(100)
 		if ids['arlVar'] == 'RELH':
 			ncData = ncData
 			#ncData = 0.263*p(pa)*ncData.mult(1/(exp((17.67*(T-273.15))/(T-29.65))))
