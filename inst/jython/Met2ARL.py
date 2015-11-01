@@ -57,9 +57,6 @@ for f in filterList('.nc$',files):
 		{'arlVar':varDict[ncVar], 'ncVar':ncVar, 'level':lv}})
 junk = ncDict.pop('x')
 levels += [0]
-print levels
-print atmVars
-print groundVars
 
 #start and end index
 #for now just posit that only the first year is wanted
@@ -81,28 +78,20 @@ ts = NCDI.getTimes()
 mns = [x.getMonth() + 1 for x in ts.iterator()]
 inYrs = [x.getYear() + 1900 for x in ts.iterator()]
 
-for mn in range(1, 12):
+for mn in range(1, 13):
 	print mn
 	ind = 0
 	yrWant = 2066
 	while not all([inYrs[ind] == yrWant, mns[ind] == mn]):
 		ind += 1
-	startInd = ind + 1
+	startInd = ind
 	
 	while all([inYrs[ind] == yrWant, mns[ind] == mn]):
 		ind += 1
-	endInd = ind
+	endInd = ind - 1 
 	
-# 	inThisYear = list([x == 2066 for x in inYrs])
-# 	inThisMonth = list([x == mn for x in mns])
-# 	
-# 	print list([inThisYear and inThisMonth])
-# 	startInd = map(f, inThisYear, inThisMonth])).index("True")
-# 	if mn == 12:
-# 		endInd = list([[x == 2067 for x in inYrs] and [x == mn for x in mns]]).index("True") - 1
-# 	else:
-# 		endInd = list([inThisYear and [x == mn + 1 for x in mns]]).index("True") - 1
-# 		
+	
+	
 	ARLDI = ARLDataInfo()
 	for lv in levels:
 		ARLDI.levels.add(lv)
@@ -110,11 +99,8 @@ for mn in range(1, 12):
 			ARLDI.LevelVarList.add(groundVars)
 		else:
 			ARLDI.LevelVarList.add(atmVars)
-	ARLDI.createDataFile(dirOut + "/" + month_abbr[mns[startInd +2]].lower() + "2066" + ".arl")
+	ARLDI.createDataFile(dirOut + "/" + "narccap." + month_abbr[mns[startInd +2]].lower() + "66")
 	
-	
-	print startInd
-	print endInd
 	for path, ids in ncDict.iteritems():
 		
 		Met.openNetCDFData(path)
