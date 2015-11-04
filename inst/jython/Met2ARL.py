@@ -74,6 +74,7 @@ Met.openNetCDFData(exmPath)
 NCDI = Met.getDataInfo()
 xs = NCDI.getXDimension().getValues()
 ys = NCDI.getYDimension().getValues()
+tDims = NCDI.getTimeDimension()
 ts = NCDI.getTimes()
 mns = [x.getMonth() + 1 for x in ts.iterator()]
 inYrs = [x.getYear() + 1900 for x in ts.iterator()]
@@ -90,8 +91,10 @@ for mn in range(1, 13):
 		ind += 1
 	endInd = ind - 1 
 	
-	
-	
+	goodTimes = ts.subList(startInd, (endInd + 1))
+
+# 	tDims.setDimLength(goodTimes.size())
+# 	tDims.setDimValues(goodTimes)
 	ARLDI = ARLDataInfo()
 	for lv in levels:
 		ARLDI.levels.add(lv)
@@ -100,13 +103,14 @@ for mn in range(1, 13):
 		else:
 			ARLDI.LevelVarList.add(atmVars)
 	ARLDI.createDataFile(dirOut + "/" + "narccap." + month_abbr[mns[startInd +2]].lower() + "66")
-	
+# 	ARLDI.setTimeDimension(getTDimension())
+# 	ARLDI.setTimes(goodTimes)
+	ARLDI.X = xs
+	ARLDI.Y = ys
 	for path, ids in ncDict.iteritems():
 		
 		Met.openNetCDFData(path)
 		NCDI = Met.getDataInfo()
-		ARLDI.X = xs
-		ARLDI.Y = ys
 		for ti in range(startInd,endInd):
 			Met.setTimeIndex(ti)
 			atime = ts.get(ti)
@@ -119,10 +123,11 @@ for mn in range(1, 13):
 			if ids['arlVar'] == 'RELH':
 				ncData = ncData
 				#ncData = 0.263*p(pa)*ncData.mult(1/(exp((17.67*(T-273.15))/(T-29.65))))
-		label = DataLabel(atime)
-		label.setLevel(ids['level'])
-		label.setVarName(ids['arlVar'])
-		label.setGrid(99)
-		label.setForecast(0)
-	ARLDI.writeGridData(label, ncData)
+			
+			label = DataLabel(atime)
+			label.setLevel(ids['level'])
+			label.setVarName(ids['arlVar'])
+			label.setGrid(99)
+			label.setForecast(0)
+			ARLDI.writeGridData(label, ncData)
 	ARLDI.closeDataFile()
