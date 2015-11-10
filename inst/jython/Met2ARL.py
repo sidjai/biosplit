@@ -31,7 +31,7 @@ dirOut = sys.argv[2]
 
 varDict = {'pr':'TPP3','tas':'T02M','ps':'PRSS','uas':'U10M','vas':'V10M','husnp':'RELH0m',\
 	'hus':'RELH','ua':'UWND','va':'VWND', 'wa':'WWND','zg':'HGTS','ta':'TEMP'}
-	
+
 ncDict = {"x":"hello"}
 groundVars = []
 atmVars = []
@@ -79,22 +79,19 @@ ts = NCDI.getTimes()
 mns = [x.getMonth() + 1 for x in ts.iterator()]
 inYrs = [x.getYear() + 1900 for x in ts.iterator()]
 
-for mn in range(1, 13):
+for mn in range(1, 2):
 	print mn
 	ind = 0
 	yrWant = 2066
 	while not all([inYrs[ind] == yrWant, mns[ind] == mn]):
 		ind += 1
 	startInd = ind
-	
+
 	while all([inYrs[ind] == yrWant, mns[ind] == mn]):
 		ind += 1
-	endInd = ind - 1 
-	
-	goodTimes = ts.subList(startInd, (endInd + 1))
+	endInd = ind - 1
 
-# 	tDims.setDimLength(goodTimes.size())
-# 	tDims.setDimValues(goodTimes)
+	goodDims = tDims.extract(startInd, endInd, 1)
 	ARLDI = ARLDataInfo()
 	for lv in levels:
 		ARLDI.levels.add(lv)
@@ -102,19 +99,21 @@ for mn in range(1, 13):
 			ARLDI.LevelVarList.add(groundVars)
 		else:
 			ARLDI.LevelVarList.add(atmVars)
+
 	ARLDI.createDataFile(dirOut + "/" + "narccap." + month_abbr[mns[startInd +2]].lower() + "66")
-# 	ARLDI.setTimeDimension(getTDimension())
-# 	ARLDI.setTimes(goodTimes)
-	ARLDI.X = xs
-	ARLDI.Y = ys
+	
 	for path, ids in ncDict.iteritems():
-		
+
 		Met.openNetCDFData(path)
 		NCDI = Met.getDataInfo()
-		for ti in range(startInd,endInd):
+		for ti in range(startInd, endInd + 1):
 			Met.setTimeIndex(ti)
-			atime = ts.get(ti)
-			dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), 'FNL1', 2)
+			ARLDI.setTimeDimension(goodDims)
+			ARLDI.X = xs
+			ARLDI.Y = ys
+			atime = NCDI.getTime(ti)
+
+			dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), 'FNL1', ids['level'])
 			ARLDI.writeIndexRecord(atime, dataHead)
 			Met.setLevelIndex(ids['level'])
 			ncData = Met.getGridData(ids['ncVar'])
@@ -123,11 +122,10 @@ for mn in range(1, 13):
 			if ids['arlVar'] == 'RELH':
 				ncData = ncData
 				#ncData = 0.263*p(pa)*ncData.mult(1/(exp((17.67*(T-273.15))/(T-29.65))))
-			
-			label = DataLabel(atime)
+
+			label = DataLabel()
+			label.setValue(tDims.getDimValue()[ti])
 			label.setLevel(ids['level'])
 			label.setVarName(ids['arlVar'])
-			label.setGrid(99)
-			label.setForecast(0)
 			ARLDI.writeGridData(label, ncData)
 	ARLDI.closeDataFile()
