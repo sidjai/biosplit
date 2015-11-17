@@ -1,12 +1,7 @@
-
-from org.meteoinfo.data import DataMath
 from org.meteoinfo.data.meteodata import MeteoDataInfo
 from org.meteoinfo.data import GridData
 from org.meteoinfo.data.meteodata.arl import ARLDataInfo, DataHead, DataLabel
-import org.meteoinfo.map.MapView
-from org.meteoinfo.projection import ProjectionInfo, Reproject
-from org.meteoinfo.global import Extent
-from org.meteoinfo.geoprocess.analysis import ResampleMethods
+from java.lang import String
 from calendar import *
 import datetime as dt
 import os.path
@@ -26,6 +21,7 @@ dirIn = sys.argv[1]
 dirOut = sys.argv[2]
 
 
+
 #take file name and splice into a dictionary of:
 #{fullFile: var, ncvariable,level}
 
@@ -33,10 +29,10 @@ varDict = {'pr':'TPP3','tas':'T02M','ps':'PRSS','uas':'U10M','vas':'V10M','husnp
 	'hus':'RELH','ua':'UWND','va':'VWND', 'wa':'WWND','zg':'HGTS','ta':'TEMP'}
 
 ncDict = {"x":"hello"}
+lvVarDict = {"x":"hello"}
 groundVars = []
 atmVars = []
 levels = []
-
 files = os.listdir(dirIn)
 for f in filterList('.nc$',files):
 	tok = re.split("[_]",f)
@@ -46,28 +42,26 @@ for f in filterList('.nc$',files):
 	if ncVar in varDict:
 		if lv is None:
 			lv = 0
-			groundVars += [varDict[ncVar]]
 		else:
 			lv = int(tok[3].strip('p'))
-			if lv not in levels:
-				levels += [lv]
-			if varDict[ncVar] not in atmVars:
-				atmVars += [varDict[ncVar]]
+
+		strVar = String(varDict[ncVar])
+		if lv in lvVarDict:
+			varList = lvVarDict[lv]
+			varList += [strVar]
+		else:
+			varList = [strVar]
+
+		lvVarDict.update({lv:varList})
 		ncDict.update({(dirIn + '/' + f):\
 		{'arlVar':varDict[ncVar], 'ncVar':ncVar, 'level':lv}})
 junk = ncDict.pop('x')
-levels += [0]
+junk = lvVarDict.pop('x')
 
-#start and end index
-#for now just posit that only the first year is wanted
-
-
+rightFullLvls = sorted(lvVarDict.keys())
+lvDict = dict(zip(range(len(rightFullLvls)), rightFullLvls))
+hg2lvDict = dict(zip(rightFullLvls, range(len(rightFullLvls))))
 Met = MeteoDataInfo()
-
-#---- Set output ARL data info
-#RH = 0.263*p(pa)*spH*1/[exp((17.67*(T-273.15))/(T-29.65))]
-# Write ARL data file
-
 
 exmPath = list(ncDict.keys())[0]
 Met.openNetCDFData(exmPath)
@@ -79,33 +73,32 @@ ts = NCDI.getTimes()
 mns = [x.getMonth() + 1 for x in ts.iterator()]
 inYrs = [x.getYear() + 1900 for x in ts.iterator()]
 
-for mn in range(1, 2):
+for mn in range(1, 13):
 	print mn
+	fileOut = dirOut + "/" + "narccap." + month_abbr[mn].lower() + "66"
 	ind = 0
 	yrWant = 2066
-	while not all([inYrs[ind] == yrWant, mns[ind] == mn]):
+	while not all([inYrs[ind] == yrWant, mns[ind] == 1]):
 		ind += 1
 	startInd = ind
 
-	while all([inYrs[ind] == yrWant, mns[ind] == mn]):
+	while all([inYrs[ind] == yrWant, mns[ind] == 1]):
 		ind += 1
 	endInd = ind - 1
 
 	goodDims = tDims.extract(startInd, endInd, 1)
 	ARLDI = ARLDataInfo()
-	for lv in levels:
-		ARLDI.levels.add(lv)
-		if lv == 0:
-			ARLDI.LevelVarList.add(groundVars)
-		else:
-			ARLDI.LevelVarList.add(atmVars)
 
-	ARLDI.createDataFile(dirOut + "/" + "narccap." + month_abbr[mns[startInd +2]].lower() + "66")
-	
+	for lind in range(len(rightFullLvls)):
+		ARLDI.levels.add(lind)
+		ARLDI.LevelVarList.add(lvVarDict[lvDict[lind]])
+
+	ARLDI.createDataFile(fileOut)
 	for path, ids in ncDict.iteritems():
-
 		Met.openNetCDFData(path)
 		NCDI = Met.getDataInfo()
+		Met.setLevelIndex(ids['level'])
+
 		for ti in range(startInd, endInd + 1):
 			Met.setTimeIndex(ti)
 			ARLDI.setTimeDimension(goodDims)
@@ -113,19 +106,18 @@ for mn in range(1, 2):
 			ARLDI.Y = ys
 			atime = NCDI.getTime(ti)
 
-			dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), 'FNL1', ids['level'])
+			dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), 'FNL1', hg2lvDict[ids['level']])
 			ARLDI.writeIndexRecord(atime, dataHead)
-			Met.setLevelIndex(ids['level'])
-			ncData = Met.getGridData(ids['ncVar'])
-			if ids['arlVar'] == 'PRSS' or ids['arlVar'] == 'WWND':
-				ncData = ncData.div(100)
-			if ids['arlVar'] == 'RELH':
-				ncData = ncData
-				#ncData = 0.263*p(pa)*ncData.mult(1/(exp((17.67*(T-273.15))/(T-29.65))))
 
-			label = DataLabel()
-			label.setValue(tDims.getDimValue()[ti])
-			label.setLevel(ids['level'])
-			label.setVarName(ids['arlVar'])
+			ncData = Met.getGridData(ids['ncVar'])
+
+			label = DataLabel(ts.get(ti))
+			label.setForecast(0)
+			label.setGrid(99)
+			label.setPrecision(1)
+			label.setValue(ti - 54)
+			label.setLevel(hg2lvDict[ids['level']])
+			label.setVarName(String(ids['arlVar']))
+			label.setExponent(1)
 			ARLDI.writeGridData(label, ncData)
 	ARLDI.closeDataFile()
