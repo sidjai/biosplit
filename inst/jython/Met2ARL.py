@@ -30,9 +30,6 @@ varDict = {'pr':'TPP3','tas':'T02M','ps':'PRSS','uas':'U10M','vas':'V10M','husnp
 
 ncDict = {"x":"hello"}
 lvVarDict = {"x":"hello"}
-groundVars = []
-atmVars = []
-levels = []
 files = os.listdir(dirIn)
 for f in filterList('.nc$',files):
 	tok = re.split("[_]",f)
@@ -58,7 +55,7 @@ for f in filterList('.nc$',files):
 junk = ncDict.pop('x')
 junk = lvVarDict.pop('x')
 
-rightFullLvls = sorted(lvVarDict.keys())
+rightFullLvls = sorted(lvVarDict.keys(), reverse=True)
 lvDict = dict(zip(range(len(rightFullLvls)), rightFullLvls))
 hg2lvDict = dict(zip(rightFullLvls, range(len(rightFullLvls))))
 Met = MeteoDataInfo()
@@ -96,28 +93,26 @@ for mn in range(1, 13):
 	ARLDI.createDataFile(fileOut)
 	for path, ids in ncDict.iteritems():
 		Met.openNetCDFData(path)
-		NCDI = Met.getDataInfo()
-		Met.setLevelIndex(ids['level'])
+		ARLDI.setTimeDimension(goodDims)
 
 		for ti in range(startInd, endInd + 1):
 			Met.setTimeIndex(ti)
-			ARLDI.setTimeDimension(goodDims)
+			ncData = Met.getGridData(ids['ncVar'])
 			ARLDI.X = xs
 			ARLDI.Y = ys
-			atime = NCDI.getTime(ti)
-
+			atime = ts.get(ti)
 			dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), 'FNL1', hg2lvDict[ids['level']])
 			ARLDI.writeIndexRecord(atime, dataHead)
+
 
 			ncData = Met.getGridData(ids['ncVar'])
 
 			label = DataLabel(ts.get(ti))
 			label.setForecast(0)
 			label.setGrid(99)
-			label.setPrecision(1)
 			label.setValue(ti - 54)
 			label.setLevel(hg2lvDict[ids['level']])
 			label.setVarName(String(ids['arlVar']))
-			label.setExponent(1)
+			ARLDI.levelNum = hg2lvDict[ids['level']]
 			ARLDI.writeGridData(label, ncData)
 	ARLDI.closeDataFile()
