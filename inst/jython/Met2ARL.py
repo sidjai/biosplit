@@ -4,6 +4,7 @@ from org.meteoinfo.data.meteodata.arl import ARLDataInfo, DataHead, DataLabel
 from java.lang import String
 from calendar import *
 import datetime as dt
+from operator import itemgetter
 import os.path
 import sys
 import os
@@ -50,17 +51,26 @@ for f in filterList('.nc$',files):
 			varList = [strVar]
 
 		lvVarDict.update({lv:varList})
-		ncDict.update({(dirIn + '/' + f):\
-		{'arlVar':varDict[ncVar], 'ncVar':ncVar, 'level':lv}})
+
+		tupAdd = [((dirIn + '/' + f), lv)]
+		if ncVar in ncDict:
+			idList = ncDict[ncVar]
+			idList += tupAdd
+		else:
+			idList = tupAdd
+		ncDict.update({ncVar:idList})
 junk = ncDict.pop('x')
 junk = lvVarDict.pop('x')
 
 rightFullLvls = sorted(lvVarDict.keys(), reverse=True)
+rightFullLvls = [rightFullLvls[-1]] + rightFullLvls[0:-1]
+
 lvDict = dict(zip(range(len(rightFullLvls)), rightFullLvls))
 hg2lvDict = dict(zip(rightFullLvls, range(len(rightFullLvls))))
-Met = MeteoDataInfo()
 
-exmPath = list(ncDict.keys())[0]
+
+Met = MeteoDataInfo()
+exmPath = ncDict.values()[0][0][0]
 Met.openNetCDFData(exmPath)
 NCDI = Met.getDataInfo()
 xs = NCDI.getXDimension().getValues()
@@ -70,49 +80,52 @@ ts = NCDI.getTimes()
 mns = [x.getMonth() + 1 for x in ts.iterator()]
 inYrs = [x.getYear() + 1900 for x in ts.iterator()]
 
-for mn in range(1, 13):
+yrWant = 2066
+tind = 0
+
+for mn in range(1, 2):
 	print mn
 	fileOut = dirOut + "/" + "narccap." + month_abbr[mn].lower() + "66"
-	ind = 0
-	yrWant = 2066
-	while not all([inYrs[ind] == yrWant, mns[ind] == 1]):
-		ind += 1
-	startInd = ind
+	if os.path.isfile(fileOut):
+		os.remove(fileOut)
 
-	while all([inYrs[ind] == yrWant, mns[ind] == 1]):
-		ind += 1
-	endInd = ind - 1
 
-	goodDims = tDims.extract(startInd, endInd, 1)
+	while not all([inYrs[tind] == yrWant, mns[tind] == mn]):
+		tind += 1
+	startInd = tind
+
 	ARLDI = ARLDataInfo()
+	ARLDI.X = xs
+	ARLDI.Y = ys
 
 	for lind in range(len(rightFullLvls)):
 		ARLDI.levels.add(lind)
 		ARLDI.LevelVarList.add(lvVarDict[lvDict[lind]])
 
 	ARLDI.createDataFile(fileOut)
-	for path, ids in ncDict.iteritems():
-		Met.openNetCDFData(path)
-		ARLDI.setTimeDimension(goodDims)
 
-		for ti in range(startInd, endInd + 1):
-			Met.setTimeIndex(ti)
-			ncData = Met.getGridData(ids['ncVar'])
-			ARLDI.X = xs
-			ARLDI.Y = ys
-			atime = ts.get(ti)
-			dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), 'FNL1', hg2lvDict[ids['level']])
-			ARLDI.writeIndexRecord(atime, dataHead)
+	while all([inYrs[tind] == yrWant, mns[tind] == mn]):
+		for ncV, ids in ncDict.iteritems():
+			ids.sort(key=itemgetter(1), reverse=True)
+			for path, hg in ids:
+				Met.openNetCDFData(path)
+				Met.setTimeIndex(tind)
+				ncData = Met.getGridData(ncV)
+				
+				dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), 'FNL1', hg2lvDict[hg])
+				ARLDI.writeIndexRecord(ts.get(tind), dataHead)
+
+				label = DataLabel(ts.get(tind))
+				label.setForecast(0)
+				label.setGrid(99)
+				label.setValue(tind - 54)
+				label.setLevel(hg2lvDict[hg])
+				label.setVarName(String(varDict[ncV]))
+				ARLDI.levelNum = hg2lvDict[hg]
+				ARLDI.writeGridData(label, ncData)
+				
 
 
-			ncData = Met.getGridData(ids['ncVar'])
-
-			label = DataLabel(ts.get(ti))
-			label.setForecast(0)
-			label.setGrid(99)
-			label.setValue(ti - 54)
-			label.setLevel(hg2lvDict[ids['level']])
-			label.setVarName(String(ids['arlVar']))
-			ARLDI.levelNum = hg2lvDict[ids['level']]
-			ARLDI.writeGridData(label, ncData)
+		tind += 1
+	ARLDI.setTimeDimension(tDims.extract(startInd, tind, 1))
 	ARLDI.closeDataFile()
