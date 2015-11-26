@@ -17,6 +17,14 @@ def filterList(flter,lst):
 		if match:
 			result += [l]
 	return result
+	
+def zstr(num, dig):
+	#return the string of the number including a zero at beg
+	guess = str(num)
+	res = len(guess)
+	if not res == dig:
+		guess = ("0" * (dig-res)) + guess
+	return guess
 
 dirIn = sys.argv[1]
 exampleNcSlice = sys.argv[2]
@@ -30,28 +38,15 @@ dirOut = sys.argv[3]
 varDict = {'pr':'TPP3','tas':'T02M','ps':'PRSS','uas':'U10M','vas':'V10M','husnp':'RELH0m',\
 	'hus':'RELH','ua':'UWND','va':'VWND', 'wa':'WWND','zg':'HGTS','ta':'TEMP'}
 
-timeDict = {"x":"hello"}
 ncDict = {"x":"hello"}
 lvVarDict = {"x":"hello"}
 files = os.listdir(dirIn)
-for f in filterList('Time',files):
-	tok = re.split("Time",f)
-	timeInd = re.split(".nc", tok[1])[0]
-	timeDict.update({int(timeInd):(dirIn + '/' + f)})
-junk = timeDict.pop('x')
 
-Met = MeteoDataInfo()
-Met.openNetCDFData(timeDict[1])
-NCDI = Met.getDataInfo()
-
-vas = NCDI.getNCVariables()
-for vaInd in range(3,vas.size()):
-	allVar = re.split("\(", re.split(" ", vas.get(vaInd).toString())[1])[0]
-	ncVar = re.sub("[0-9]", "", allVar)
-	lv = int(re.sub("[a-zA-Z]", "", allVar))
-	
-	if ncVar in varDict:
-		strVar = String(varDict[ncVar])
+for va in os.walk(dirIn).next()[1]:
+	vLev = os.walk(os.path.join(dirIn,va)).next()[1]
+	for lv in vLev:
+		lv = int(lv)
+		strVar = String(varDict[va])
 		if lv in lvVarDict:
 			varList = lvVarDict[lv]
 			varList += [strVar]
@@ -59,15 +54,19 @@ for vaInd in range(3,vas.size()):
 			varList = [strVar]
 
 		lvVarDict.update({lv:varList})
-		tupAdd = [(allVar.encode('ascii','ignore'), lv,  varDict[ncVar])]
-		if ncVar in ncDict:
-			idList = ncDict[ncVar]
-			idList += tupAdd
+		tupAdd = (lv, varDict[va])
+		if va in ncDict:
+			idList = ncDict[va]
+			idList += [tupAdd]
 		else:
-			idList = tupAdd
-		ncDict.update({ncVar:idList})
+			idList = [tupAdd]
+		ncDict.update({va:idList})
+
 junk = ncDict.pop('x')
 junk = lvVarDict.pop('x')
+
+
+Met = MeteoDataInfo()
 
 rightFullLvls = sorted(lvVarDict.keys(), reverse=True)
 rightFullLvls = [rightFullLvls[-1]] + rightFullLvls[0:-1]
@@ -94,7 +93,7 @@ endIndYr = None
 while spl < ts.size():
 	if(ts.get(spl).getYear() + 1900 == yrWant):
 		realTs += [ts.get(spl)]
-		
+
 		endIndYr = spl
 		if stIndYr is None:
 			stIndYr = spl
@@ -129,13 +128,13 @@ for mn in range(1, 2):
 
 	while mns[tind-1] == mn:
 		for ncV, ids in ncDict.iteritems():
-			ids.sort(key=itemgetter(1), reverse=True)
-			
-			for ncV, hg, arlV in ids:
-				Met.openNetCDFData(timeDict[tind])
-				NCDI = Met.getDataInfo()
-				ncData = NCDI.read(String(ncV), [1,1], [133, 108])
-				gridData = NCDI.arrayToGrid(ncData, xs, ys)
+			ids.sort(key=itemgetter(0), reverse=True)
+
+			for hg, arlV in ids:
+				fileName = str(yrWant) + "Time"+ zstr(tind, 4) + ".asc"
+				indvPath = os.path.join(dirIn, ncV, str(hg), fileName)
+				Met.openASCIIGridData(indvPath)
+				asData = Met.getGridData()
 
 				dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), 'FNL1', hg2lvDict[hg])
 				ARLDI.writeIndexRecord(ts[tind], dataHead)
@@ -147,10 +146,10 @@ for mn in range(1, 2):
 				label.setLevel(hg2lvDict[hg])
 				label.setVarName(String(arlV))
 				ARLDI.levelNum = hg2lvDict[hg]
-				ARLDI.writeGridData(label, gridData)
+				ARLDI.writeGridData(label, asData)
 
 
 
 		tind += 1
-	ARLDI.setTimeDimension(tDims.extract(startInd, tind, 1))
+	ARLDI.setTimeDimension(tDims.extract(startInd, tind - 1, 1))
 	ARLDI.closeDataFile()

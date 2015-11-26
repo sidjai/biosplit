@@ -1,6 +1,8 @@
 library(biosplit)
 library(ncdf)
-
+library(raster)
+library(rgdal)
+library(snowfall)
 source("/home/computer/Documents/rpkgs/biosplit/biosplitBundle/R/utils.R")
 dirVars <- "/home/computer/Documents/NARRCAP"
 dirTimes <- "/home/computer/Documents/timeNARCCAP"
@@ -14,22 +16,30 @@ inFiles <- list.files(dirVars, pattern = ".nc$")
 splitFiles <- strsplit(inFiles, "_")
 
 allVar <- vapply(splitFiles, function(vin){
-	if(length(vin) < 1 || is.null(varDict[[vin[1]]])) return("")
+	if(length(vin) < 1 || is.null(varDict[[vin[1]]])) return(rep("", 2))
 	
 	if(length(vin) > 4){
-		return(gsub("p", vin[1], vin[4]))
+		return(c(vin[1], gsub("p", "", vin[4])))
 	} else {
-		return(paste0(vin[1], 0))
+		return(c(vin[1], 0))
 	}
-}, "e")
+}, rep("e", 2))
 
-goodSet <- nzchar(allVar)
-
-goodVars <- vapply(splitFiles[goodSet], function(vin){ vin[1] }, "e")
+goodSet <- nzchar(allVar[1,])
+goodVars <- allVar[,goodSet]
 rightPaths <- paste(dirVars, inFiles[goodSet], sep = "/")
+rightDirs <- paste(dirTimes, goodVars[1,], goodVars[2,], sep = "/")
+vapply(rightDirs, function(d){
+	if(dir.exists(d)){
+		TRUE
+	} else {
+		dir.create(d, recursive = TRUE, showWarnings = FALSE)
+	}
+	
+},TRUE)
 
 exmnc <- ncdf::open.ncdf(rightPaths[1])
-tPos <- biosplit:::convDaysYr(exmnc$dim$time$val)
+tPos <- convDaysYr(exmnc$dim$time$val)
 rightYrSet <- (as.numeric(strftime(tPos, "%Y")) == wantYr)
 tPos <- NULL
 
@@ -38,42 +48,29 @@ dims <- list(
 	exmnc$dim$xc)
 ncdf::close.ncdf(exmnc)
 
+timeStamps <- paste0("2066Time",
+	vapply(which(rightYrSet), function(x){ zstr(x, dig = 4) } ,""),
+	".asc")
+
+timLen <- length(which(rightYrSet))
 ind <- 1
 prog <- txtProgressBar(style = 3)
 while(ind < length(rightPaths)){
 	setTxtProgressBar(prog,ind/length(rightPaths))
-	nc <- ncdf::open.ncdf(rightPaths[ind])
-	
-	for(tind in which(rightYrSet)){
-		fileOut <- paste(dirTimes, paste0("2066Time", tind, ".nc"), sep="/")
-		dat <- ncdf::get.var.ncdf(nc,
-			varid = goodVars[ind], 
-			start = c(1, 1, tind), 
-			count = c(-1, -1, 1))
-		ncVar <- ncdf::var.def.ncdf(allVar[goodSet][ind], 'Thing', dims, 9999)
-		
-		
-		if(ind == 1 && !file.exists(fileOut)){
-			onc <- create.ncdf(fileOut, ncVar)
-			put.var.ncdf(onc, allVar[goodSet][ind], dat)
-			
-		} else {
-			onc <- open.ncdf(fileOut, write = TRUE)
-			if(!allVar[goodSet][ind] %in% names(onc$var)){
-				var.add.ncdf(onc, ncVar)
-			} else {
-				ind <- length(names(onc$var))
-				ncdf::close.ncdf(nc)
-				nc <- ncdf::open.ncdf(rightPaths[ind])
-			}
-		}
-		close.ncdf(onc)
-		
+	if(length(list.files(rightDirs[ind])) < timLen){
+		pathOuts <- paste(rightDirs[ind], timeStamps, sep="/")
+		sfInit(parallel=TRUE,cpus=3)
+		sfLibrary(raster)
+		sfLibrary(rgdal)
+		sfExport("rightYrSet", "rightPaths", "goodVars", "pathOuts", "ind")
+		junk <- sfSapply(which(rightYrSet), function(ti){
+			ras <- raster(rightPaths[ind], band = ti, varname = goodVars[1,ind])
+			junk <-  writeRaster(ras, filename = pathOuts[ti],
+				format = "ascii", overwrite = TRUE)
+			TRUE
+		}, USE.NAMES = FALSE)
+		sfStop()
 	}
-	tind <- tind + 1
-	ncdf::close.ncdf(nc)
+	ind <- ind + 1
 	
 }
-
-
-
