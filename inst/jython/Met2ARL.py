@@ -1,4 +1,4 @@
-from org.meteoinfo.data.meteodata import MeteoDataInfo
+from org.meteoinfo.data.meteodata import MeteoDataInfo, Dimension
 from org.meteoinfo.data import GridData
 from org.meteoinfo.data.meteodata.arl import ARLDataInfo, DataHead, DataLabel
 from java.lang import String
@@ -37,30 +37,32 @@ dirOut = sys.argv[3]
 
 varDict = {'pr':'TPP3','tas':'T02M','ps':'PRSS','uas':'U10M','vas':'V10M','husnp':'RELH0m',\
 	'hus':'RELH','ua':'UWND','va':'VWND', 'wa':'WWND','zg':'HGTS','ta':'TEMP'}
+arl2ncDict = {str(v): str(k) for k, v in varDict.items()}
 
 ncDict = {"x":"hello"}
 lvVarDict = {"x":"hello"}
 files = os.listdir(dirIn)
 
 for va in os.walk(dirIn).next()[1]:
-	vLev = os.walk(os.path.join(dirIn,va)).next()[1]
-	for lv in vLev:
-		lv = int(lv)
-		strVar = String(varDict[va])
-		if lv in lvVarDict:
-			varList = lvVarDict[lv]
-			varList += [strVar]
-		else:
-			varList = [strVar]
-
-		lvVarDict.update({lv:varList})
-		tupAdd = (lv, varDict[va])
-		if va in ncDict:
-			idList = ncDict[va]
-			idList += [tupAdd]
-		else:
-			idList = [tupAdd]
-		ncDict.update({va:idList})
+	if va in varDict:
+		vLev = os.walk(os.path.join(dirIn,va)).next()[1]
+		for lv in vLev:
+			lv = int(lv)
+			strVar = String(varDict[va])
+			if lv in lvVarDict:
+				varList = lvVarDict[lv]
+				varList += [strVar]
+			else:
+				varList = [strVar]
+	
+			lvVarDict.update({lv:varList})
+			tupAdd = (lv, varDict[va])
+			if va in ncDict:
+				idList = ncDict[va]
+				idList += [tupAdd]
+			else:
+				idList = [tupAdd]
+			ncDict.update({va:idList})
 
 junk = ncDict.pop('x')
 junk = lvVarDict.pop('x')
@@ -74,11 +76,12 @@ rightFullLvls = [rightFullLvls[-1]] + rightFullLvls[0:-1]
 lvDict = dict(zip(range(len(rightFullLvls)), rightFullLvls))
 hg2lvDict = dict(zip(rightFullLvls, range(len(rightFullLvls))))
 
-
 Met = MeteoDataInfo()
 exmPath = exampleNcSlice
 Met.openNetCDFData(exmPath)
+proj = Met.getProjectionInfo()
 NCDI = Met.getDataInfo()
+
 xs = NCDI.getXDimension()
 ys = NCDI.getYDimension()
 tDims = NCDI.getTimeDimension()
@@ -103,6 +106,10 @@ tDims = tDims.extract(stIndYr, endIndYr, 1)
 
 mns = [x.getMonth() + 1 for x in ts[1:]]
 
+tDim = Dimension(tDims.getDimType(), 1, 1, tDims.getDimLength())
+tDim.setDimName("time")
+tDim.setDimId(3)
+tDim.setValues(range(1, tDims.getDimLength()+1))
 
 tind = 1
 for mn in range(1, 2):
@@ -119,25 +126,26 @@ for mn in range(1, 2):
 	ARLDI = ARLDataInfo()
 	ARLDI.X = xs.getValues()
 	ARLDI.Y = ys.getValues()
-
+	
 	for lind in range(len(rightFullLvls)):
 		ARLDI.levels.add(lind)
 		ARLDI.LevelVarList.add(lvVarDict[lvDict[lind]])
-
+		
 	ARLDI.createDataFile(fileOut)
 
 	while mns[tind-1] == mn:
-		for ncV, ids in ncDict.iteritems():
-			ids.sort(key=itemgetter(0), reverse=True)
-
-			for hg, arlV in ids:
+		dataHead = ARLDI.getDataHead(proj, 'NRCP', 1)
+		ARLDI.writeIndexRecord(ts[tind], dataHead)
+		for hg in rightFullLvls:
+			for arlV in lvVarDict[hg]:
+				arlV = str(arlV)
+				ncV = arl2ncDict[arlV]
+				
 				fileName = str(yrWant) + "Time"+ zstr(tind, 4) + ".asc"
 				indvPath = os.path.join(dirIn, ncV, str(hg), fileName)
 				Met.openASCIIGridData(indvPath)
 				asData = Met.getGridData()
 
-				dataHead = ARLDI.getDataHead(Met.getProjectionInfo(), 'FNL1', hg2lvDict[hg])
-				ARLDI.writeIndexRecord(ts[tind], dataHead)
 
 				label = DataLabel(ts[tind])
 				label.setForecast(0)
@@ -147,9 +155,10 @@ for mn in range(1, 2):
 				label.setVarName(String(arlV))
 				ARLDI.levelNum = hg2lvDict[hg]
 				ARLDI.writeGridData(label, asData)
+				
 
 
 
 		tind += 1
-	ARLDI.setTimeDimension(tDims.extract(startInd, tind - 1, 1))
+	ARLDI.setTimeDimension(tDim.extract(startInd, tind - 1, 1))
 	ARLDI.closeDataFile()
