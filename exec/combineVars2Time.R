@@ -65,7 +65,7 @@ while(ind < length(rightPaths)){
 		sfExport("rightYrSet", "rightPaths", "goodVars", "pathOuts", "ind")
 		junk <- sfSapply(which(rightYrSet), function(ti){
 			ras <- raster(rightPaths[ind], band = ti, varname = goodVars[1,ind])
-			junk <-  writeRaster(ras, filename = pathOuts[ti],
+			junk <-  writeRaster(ras, filename = pathOuts[which(which(rightYrSet) == ti)],
 				format = "ascii", overwrite = TRUE)
 			TRUE
 		}, USE.NAMES = FALSE)

@@ -112,7 +112,7 @@ tDim.setDimId(3)
 tDim.setValues(range(1, tDims.getDimLength()+1))
 
 tind = 1
-for mn in range(1, 2):
+for mn in range(1, 13):
 	print mn
 	fileOut = dirOut + "/" + "narccap." + month_abbr[mn].lower() + "66"
 	if os.path.isfile(fileOut):
@@ -133,7 +133,7 @@ for mn in range(1, 2):
 		
 	ARLDI.createDataFile(fileOut)
 
-	while mns[tind-1] == mn:
+	while tind <= len(mns) and mns[tind-1] == mn:
 		dataHead = ARLDI.getDataHead(proj, 'NRCP', 1)
 		ARLDI.writeIndexRecord(ts[tind], dataHead)
 		for hg in rightFullLvls:
@@ -160,5 +160,5 @@ for mn in range(1, 2):
 
 
 		tind += 1
-	ARLDI.setTimeDimension(tDim.extract(startInd, tind - 1, 1))
+	ARLDI.setTimeDimension(tDim.extract(startInd, tind - 2, 1))
 	ARLDI.closeDataFile()

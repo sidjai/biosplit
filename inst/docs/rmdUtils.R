@@ -23,7 +23,13 @@ mosaicImage <- function(pathMat,
 		labelx <- ''
 	} else {
 		labelx <- cleanLabel(gsub("/", "\n", labelx))
-		if(!nzchar(labelx[1])) labelx <- paste0('x',1:dim(pathMat)[2])
+		if(!nzchar(labelx[1])){
+			if(is.null(colnames(pathMat))){
+				labelx <- paste0('x',1:dim(pathMat)[2])
+			} else {
+				labelx <- colnames(pathMat)
+			}
+		}
 	}
 	
 	if(is.null(labely)){
@@ -31,7 +37,13 @@ mosaicImage <- function(pathMat,
 		labely <- ''
 	} else {
 		labely <- cleanLabel(gsub("/", "\n", labely))
-		if(!nzchar(labely[1])) labely <- paste0('y',1:dim(pathMat)[2])
+		if(!nzchar(labely[1])){
+			if(is.null(rownames(pathMat))){
+				labely <- paste0('y',1:dim(pathMat)[2])
+			} else {
+				labely <- rownames(pathMat)
+			}
+		}
 	}
 	
 	
