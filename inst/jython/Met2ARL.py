@@ -128,7 +128,7 @@ for mn in range(1, 13):
 	ARLDI.Y = ys.getValues()
 	
 	for lind in range(len(rightFullLvls)):
-		ARLDI.levels.add(lind)
+		ARLDI.levels.add(lvDict[lind])
 		ARLDI.LevelVarList.add(lvVarDict[lvDict[lind]])
 		
 	ARLDI.createDataFile(fileOut)
