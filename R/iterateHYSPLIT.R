@@ -66,7 +66,7 @@ runBiosplit <- function(cfg, plotOutputFreq = 10){
 
 	simEmploy <- switch(cfg$simType, single=2, Fake=3, 1)
 
-	simData <- readLines(paste(cfg$HyWorking, "setup.cfg", sep= '/'), warn=0)
+	simData <- readLines(paste(cfg$HyWorking, "SETUP.CFG", sep= '/'), warn=0)
 	simData <- as.matrix(simData)
 
 	# Set some data off the Control file
@@ -440,19 +440,20 @@ runBiosplit <- function(cfg, plotOutputFreq = 10){
 changeControlInitial <- function(path, ARLFold, vertMotion, topModel){
 	newCon <- befCon <- readLines(path)
 	
-	indVert <- charmatch("C:/",befCon) - 3
+	cdumpInd <- charmatch("cdump", newCon)
+	
+	indVert <- cdumpInd - 15
 	newCon[indVert] <- vertMotion
 	
 	#top of the model in two places
-	endLevel <- charmatch("cdump",newCon) + 2
 	newCon[indVert + 1] <- topModel
-	newCon[endLevel] <- topModel
+	newCon[cdumpInd + 2] <- topModel
 	
 	newCon[indVert + 3] <- paste0(ARLFold,'/')
 	
 	#Done so write
 	writeLines(newCon,path)
-	depo <- newCon[(endLevel + 5):length(newCon)]
+	depo <- newCon[(cdumpInd  + 7):length(newCon)]
 	
 	return(paste(depo ,collapse = '|'))
 }
@@ -745,7 +746,7 @@ makeHysplitCaller <- function(hyDir, hyExePath){
 	callHy <- function(hold,PID){
 		
 		junk <- tryCatch({
-			 shell(paste(paste("CD", hyDir), paste(hyExePath, PID), sep=" && "),
+			 shell(paste(paste("cd", hyDir), paste(hyExePath, PID), sep=" && "),
 				intern=hold, wait=hold)
 			 },
 			error = function(cond){
@@ -796,7 +797,7 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 		cdump <- paste0("cdump", PID)
 		if (plotFlag == 1){
 			#Convert to plot
-			sadg <- shell(paste(paste("CD", hyDir),
+			sadg <- shell(paste(paste("cd", hyDir),
 													paste(hyPlotExe, cdump, "-k0"),
 													sep=" && "),
 										intern=TRUE)
@@ -819,7 +820,7 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 	
 		numCalls <- 1
 		repeat{ 
-			textFile<-shell(paste(paste("CD", hyDir),
+			textFile<-shell(paste(paste("cd", hyDir),
 														paste(hyAscExe, cdump, "-m -d"),
 														sep=" && "),
 											intern=TRUE)
@@ -1526,9 +1527,9 @@ overWinter <- function(region, origin, map2block, cornMap, stAmt, relAmtFL, capE
 #dd <-sapply(Moth,function(x)x$GDD)
 #popNum <-sapply(Moth,function(x)colSums(x$grid)[3])
 #Convert to plot
-#shell(paste(paste("CD",direc),paste(cfg$HyBase,paste(plt,".exe -a1",sep=""),sep="/"),sep=" && "))
+#shell(paste(paste("cd",direc),paste(cfg$HyBase,paste(plt,".exe -a1",sep=""),sep="/"),sep=" && "))
 	
 #output plot
 #shell(paste(direc,paste(plt,".ps",sep=""),sep="/"))
-#CD C:/hysplit4/working
+#cd C:/hysplit4/working
 #C:/hysplit4/exec/hycs_std.exe
