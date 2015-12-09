@@ -37,6 +37,7 @@ dirOut = sys.argv[3]
 
 varDict = {'pr':'TPP3','tas':'T02M','ps':'PRSS','uas':'U10M','vas':'V10M','husnp':'RELH0m',\
 	'hus':'RELH','ua':'UWND','va':'VWND', 'wa':'WWND','zg':'HGTS','ta':'TEMP'}
+unAvgableVars = ['uas', 'vas', 'va', 'ua', 'zg']
 arl2ncDict = {str(v): str(k) for k, v in varDict.items()}
 
 ncDict = {"x":"hello"}
@@ -134,7 +135,7 @@ for mn in range(1, 13):
 	ARLDI.createDataFile(fileOut)
 
 	while tind <= len(mns) and mns[tind-1] == mn:
-		dataHead = ARLDI.getDataHead(proj, 'NRCP', 1)
+		dataHead = ARLDI.getDataHead(proj, 'NRCP', 2)
 		ARLDI.writeIndexRecord(ts[tind], dataHead)
 		for hg in rightFullLvls:
 			for arlV in lvVarDict[hg]:
@@ -145,6 +146,17 @@ for mn in range(1, 13):
 				indvPath = os.path.join(dirIn, ncV, str(hg), fileName)
 				Met.openASCIIGridData(indvPath)
 				asData = Met.getGridData()
+				
+				if ncV in unAvgableVars:
+					if ncV is 'zg':
+						shMin = 1
+					else:
+						shMin = 0
+					newMiss = asData.getMaxMinValue()[shMin]
+				else:
+					newMiss = asData.average()
+				
+				asData.replaceValue(asData.missingValue, newMiss, True)
 
 
 				label = DataLabel(ts[tind])
