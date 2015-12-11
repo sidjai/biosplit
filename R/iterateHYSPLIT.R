@@ -664,9 +664,10 @@ makeHysplitInputChanger <- function(hyDir, cornMap, delNightDurFlag, map2block){
 		
 		#Control file
 	
-		befCon <- readr::read_lines(paste(hyDir, paste0("CONTROL.", PID), sep='/'))
-		indMon <- charmatch("C:/", befCon)+1
-		newCon <- befCon
+		newCon <- befCon <- readr::read_lines(
+			paste(hyDir, paste0("CONTROL.", PID), sep='/'))
+		
+		indMon <- charmatch("cdump", befCon) - 11
 		
 		todayStr <- strftime(date,"%y %m %d 00")
 		dateChangeFlag <- is.na(charmatch(newCon[1], todayStr))
@@ -691,7 +692,7 @@ makeHysplitInputChanger <- function(hyDir, cornMap, delNightDurFlag, map2block){
 		#change the vales that are always gonna be different
 		#time of flight
 		
-		endTimeInd <- charmatch("cdump", newCon)+4
+		endTimeInd <- charmatch("cdump", newCon) + 4
 		
 		if(delNightDurFlag){
 			avgLon <- mean(item[, 1])
@@ -746,9 +747,9 @@ makeHysplitCaller <- function(hyDir, hyExePath){
 	callHy <- function(hold,PID){
 		
 		junk <- tryCatch({
-			 shell(paste(paste("cd", hyDir), paste(hyExePath, PID), sep=" && "),
-				intern=hold, wait=hold)
-			 },
+			system(paste(paste("cd", hyDir), paste(hyExePath, PID), sep=" && "),
+				intern = hold, wait = hold)
+			},
 			error = function(cond){
 				Sys.sleep(3)
 				callHy(hold,PID)
@@ -797,10 +798,10 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 		cdump <- paste0("cdump", PID)
 		if (plotFlag == 1){
 			#Convert to plot
-			sadg <- shell(paste(paste("cd", hyDir),
+			sadg <- sysytem2(paste(paste("cd", hyDir),
 													paste(hyPlotExe, cdump, "-k0"),
 													sep=" && "),
-										intern=TRUE)
+										intern = TRUE)
 			
 			if (shPlotWrite){
 				
@@ -811,7 +812,7 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 			} else {
 	
 				#display plot
-				shell(paste(hyDir, "concplot.ps", sep='/'))
+				system(paste(hyDir, "concplot.ps", sep='/'))
 			}
 		}
 	
@@ -820,10 +821,10 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 	
 		numCalls <- 1
 		repeat{ 
-			textFile<-shell(paste(paste("cd", hyDir),
+			textFile <- system(paste(paste("cd", hyDir),
 														paste(hyAscExe, cdump, "-m -d"),
 														sep=" && "),
-											intern=TRUE)
+											intern = TRUE)
 				
 			if (length(textFile)<1){
 				if(numCalls>10) {
@@ -836,9 +837,14 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 			} else break
 		}
 			
-	
-		datum <- read.csv(paste(hyDir, gsub("^\\s+|\\s+$", "", textFile[1]),sep='/'),
-											header = FALSE)
+		pathCdumpTxt <- paste(hyDir, gsub("^\\s+|\\s+$", "", textFile[1]), sep='/')
+		datum <- readr::read_delim(
+			pathCdumpTxt,
+			delim = ",",
+			col_names = FALSE)
+		
+		file.remove(pathCdumpTxt)
+		
 		niceDatum <- as.matrix(datum)
 		#swap cols so it goes lat lon instead of lon lat
 		niceDatum <- niceDatum[,c(2,1,3),drop=FALSE]
@@ -857,12 +863,12 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 		}
 		
 		#round to the nearest digit in cutoff
-		if ((cutoff %% 1) != 0) {
-	        	dig <- nchar(strsplit(
-	        		sub('0+$', '', as.character(cutoff)), ".", fixed=TRUE)[[1]][[2]])
-	    	} else {
-	        	dig <- 0
-	    	}
+		if ((cutoff %% 1) != 0){
+			dig <- nchar(strsplit(
+				sub('0+$', '', as.character(cutoff)), ".", fixed=TRUE)[[1]][[2]])
+			} else {
+				dig <- 0
+			}
 		if (dim(niceDatum)[1]>1){
 			niceDatum[,3] <- round(niceDatum[,3],dig)
 		}
@@ -899,15 +905,17 @@ multiHysplit <- function(hyDir, pop, date, shPlotFlag,
 		holdvec <- c(TRUE)
 	}
 	out <- matrix(nrow=1,ncol=3)
+	
+	runningProg <- if(isUnix()){ "tasklist" } else { "ps aux" }
 	#suppress the multi hysplit output going to console when using Rgui
 	sink("NUL")
 	for (gg in seq(1,length(inPop))){
 		changeInput(inPop[[gg]], date, PID=gg)
 		callHysplit(hold=holdvec[gg],PID=gg)	
 	}
-	prc <- shell("tasklist",intern=TRUE)
-	while(length(which(grepl("hycs",prc)))>0){
-		prc <- shell("tasklist",intern=TRUE)
+	prc <- system(runningProg, intern = TRUE)
+	while(length(grep("hycs",prc))>0){
+		prc <- system(runningProg, intern = TRUE)
 	}
 	sink()
 	for (gg in seq(1,length(inPop))){
@@ -1433,9 +1441,10 @@ makeOutput <- function(lpop, out, date, map2block, dirSim, lpop2=0,
 
 	str <- paste(poptype,"_week%s_%s.txt",sep="")
 	if(shWrite){
-		write.table(tab,file=paste0(dirSim, '/',
-															  sprintf(str,zstr(week), strftime(date,"%m%d%y"))),
-								col.names=FALSE, row.names=FALSE)
+		readr::write_delim(tab, 
+			path = paste0(dirSim, '/', 
+				sprintf(str,zstr(week), strftime(date,"%m%d%y"))),
+			col_names = FALSE)
 		
 		#write the nc slices
 		#definitions for the single nc files

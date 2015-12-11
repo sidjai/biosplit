@@ -73,7 +73,7 @@ aprioriVars <- function(dirTrees,
 												precTOThres){
 	bio <- as.list(match.call())
 	dat <- lapply(dirTrees, function(tree){
-		cornFlag <- grepl("Crop", tree[1])
+		cornFlag <- grepl("Crop", tree[1], ignore.case = TRUE)
 		nc <- getNcFiles(tree, cornFlag)
 		if(cornFlag){
 			return(get.var.ncdf(nc))

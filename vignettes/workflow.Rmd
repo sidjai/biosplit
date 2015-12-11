@@ -53,7 +53,7 @@ NASS2TIFs(cfg$CropFold[1], cfg$year, cropGrid)
 convert the downloaded Tiff 30m blocks to 40 km blocks and get rid of projection
 ```{r}
 finCrop <- paste(cfg$CropFold[2],paste0("aggCrop_", cfg$year, ".nc"), sep='/')
-rawCrop2nicenc(cfg$CropFold[1], outName, cropGrid)
+rawCrop2nicenc(cfg$CropFold[1], finCrop, cropGrid)
 ```
 
 add in Canada

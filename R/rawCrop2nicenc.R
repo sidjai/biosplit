@@ -51,14 +51,14 @@ rawCrop2nicenc <- function(dirIn, pathOut, cropGrid, niceGrid=""){
 	
 	
 	write.table(xyz,
-							file = gsub("nc", "dat", pathOut),
+							file = gsub("[.]nc", ".dat", pathOut),
 							quote=FALSE,row.names=FALSE,col.names=FALSE)
 	
 	ras <- rasterFromXYZ(xyz)
 	projection(ras) <- projection(cropGrid)
 	ras <- projectRaster(ras,niceGrid)
 	dataType(ras) <- 'INT4S'
-	sult <- try(writeRaster(ras,filename=gsub("dat", "nc", pathOut),
+	sult <- try(writeRaster(ras,filename=gsub("[.]dat", ".nc", pathOut),
 													format="CDF", overwrite=TRUE),silent=TRUE)
 	
 }
