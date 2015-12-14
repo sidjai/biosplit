@@ -40,7 +40,7 @@ runBiosplit <- function(cfg, plotOutputFreq = 10){
 	bndy <- c(min(ymapvec),max(ymapvec))
 	
 	#do some tests on apr to make sure it was done correctly
-	
+	apr$CornGDD[is.na(apr$CornGDD)] <- 0
 	if(any(is.na(apr$CornGDD))){
 		stop("aprioriVars messed up | there are NAs in cornGDD")
 	}
@@ -798,7 +798,7 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 		cdump <- paste0("cdump", PID)
 		if (plotFlag == 1){
 			#Convert to plot
-			sadg <- sysytem2(paste(paste("cd", hyDir),
+			sadg <- system(paste(paste("cd", hyDir),
 													paste(hyPlotExe, cdump, "-k0"),
 													sep=" && "),
 										intern = TRUE)
@@ -906,7 +906,7 @@ multiHysplit <- function(hyDir, pop, date, shPlotFlag,
 	}
 	out <- matrix(nrow=1,ncol=3)
 	
-	runningProg <- if(isUnix()){ "tasklist" } else { "ps aux" }
+	runningProg <- if(!isUnix()){ "tasklist" } else { "ps aux" }
 	#suppress the multi hysplit output going to console when using Rgui
 	sink("NUL")
 	for (gg in seq(1,length(inPop))){
@@ -1441,7 +1441,7 @@ makeOutput <- function(lpop, out, date, map2block, dirSim, lpop2=0,
 
 	str <- paste(poptype,"_week%s_%s.txt",sep="")
 	if(shWrite){
-		readr::write_delim(tab, 
+		readr::write_delim(as.data.frame(tab), 
 			path = paste0(dirSim, '/', 
 				sprintf(str,zstr(week), strftime(date,"%m%d%y"))),
 			col_names = FALSE)
