@@ -4,8 +4,9 @@
 #' @param arr Anything that can be loaded in by 'raster' package
 #' @param type The type of map that you want print
 #' @param shNewMap Should the program grab a new map or use the exisiting one
-#' @param shPath2Title Should the file provided be turned into a title for the
-#'   plot? Gives a warning if a path wasn't supplied.
+#' @param shPath2Title Should the file provided be turned into a title for the 
+#'   plot? Gives a warning if a path wasn't supplied. If given a string it will
+#'   just use it as a label instead
 #' @param shReturnInfo Should the information on the plotting (classes, levels
 #'   and labels) be returned as a list?
 #' @param shLegend Shouild a legend be ploted?
@@ -71,6 +72,13 @@ makeDiagnosticMap <- function(
 
 	baseOpts <- intBaseOpt()
 	myOpts <- combineOpts(baseOpts, list(...))
+	
+	if(is.character(shPath2Title)){
+		text(ras@extent@xmin, (ras@extent@ymin + .05/2 * sum(ras@extent[3:4])),
+			labels = shPath2Title,
+			pos = 4)
+		shPath2Title <- FALSE
+	}
 
 	if(shPath2Title){
 
@@ -91,6 +99,7 @@ makeDiagnosticMap <- function(
 			title(plotTitle)
 
 		} else {
+			
 			warning("Can't make title since input is not a file")
 		}
 

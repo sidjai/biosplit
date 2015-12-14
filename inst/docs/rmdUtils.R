@@ -14,8 +14,10 @@ mosaicImage <- function(pathMat,
 												offsetx = .1, offsety = .1,
 												marl = .1, marb = .1,
 												leftAlignYaxis = FALSE,
-                        onlyScale = FALSE){
+                        onlyScale = FALSE,
+												pathOut = ""){
 	
+	if(nzchar(pathOut)) jpeg(pathOut)
 	pathMat <- as.matrix(pathMat)
 	
 	if(is.null(labelx)){
@@ -39,7 +41,7 @@ mosaicImage <- function(pathMat,
 		labely <- cleanLabel(gsub("/", "\n", labely))
 		if(!nzchar(labely[1])){
 			if(is.null(rownames(pathMat))){
-				labely <- paste0('y',1:dim(pathMat)[2])
+				labely <- paste0('y',1:dim(pathMat)[1])
 			} else {
 				labely <- rownames(pathMat)
 			}
@@ -55,14 +57,16 @@ mosaicImage <- function(pathMat,
 	yscale <- 1
 	
 	#Get bounding box for every grid cell
+	xoffs <- ((1:xlen - 1) * -offsetx) + marl
+	yoffs <- ((1:ylen - 1) * -offsety) + marb
 	
-	xmins <- xscale * (1:xlen - 1) + marl
-	xmaxs <- xscale * (1:xlen) + offsetx + marl
-	ymins <- yscale * (ylen-(1:ylen)) + marb
-	ymaxs <- yscale * (ylen-(1:ylen) + 1) + marb + offsety
+	xmins <- xscale * (1:xlen - 1) + xoffs
+	xmaxs <- xscale * (1:xlen) + xoffs
+	ymins <- rev(yscale * (1:ylen - 1) + yoffs)
+	ymaxs <- rev(yscale * (1:ylen) + yoffs)
 	
-	absMaxx <- (xscale * xlen) + offsetx + marl
-	absMaxy <- (yscale * ylen) + offsety + marb
+	absMaxx <- rev(xmaxs)[1]
+	absMaxy <- ymaxs[1]
 	
 	if(onlyScale){
 		return(absMaxy / absMaxx)
@@ -104,6 +108,7 @@ mosaicImage <- function(pathMat,
 			
 		}
 	}
+	if(nzchar(pathOut)) invisible(dev.off())
 }
 
 getNiceTheme <- function(size=20,font="serif"){

@@ -96,6 +96,14 @@ processMet <- function(pathMet, transDict, niceGrid, convertKtoC = FALSE){
 	xyzwCrop <- xyz[inboBox,]
 	
 	ras <- raster::rasterize(xyzwCrop[,c(1,2)], niceGrid, field = xyzwCrop[,3], fun = mean)
+	
+	badCells <- is.na(values(ras))
+	if(length(badCells) / raster::ncell(ras) > 0.2){
+		wght <- focalWeight(ras, .8, "rectangle")
+		wght <- wght * length(wght)
+		rgas <- focal(ras, wght, fun = mean, na.rm = TRUE, pad = TRUE)
+		values(ras)[badCells] <- values(rgas)[badCells]
+	}
 	return(ras)
 }
 
@@ -103,7 +111,7 @@ projMet <- function(rs, dict){
 	
 	if(is.character(dict)){
 		raster::projection(rs) <- dict[1]
-		rs <- raster::projectRaster(rs,dict[2])
+		rs <- raster::projectRaster(rs, dict[2])
 		datum <- raster::rasterToPoints(rs)
 	} else {
 		points <- raster::rasterToPoints(rs)
