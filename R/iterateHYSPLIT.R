@@ -877,10 +877,15 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 		}
 			
 		pathCdumpTxt <- paste(hyDir, gsub("^\\s+|\\s+$", "", textFile[1]), sep='/')
-		datum <- readr::read_delim(
-			pathCdumpTxt,
-			delim = ",",
-			col_names = FALSE)
+		isAnyAlive <- (0 < length(readLines(pathCdumpTxt, n = 1)))
+		if(isAnyAlive){
+			datum <- readr::read_delim(
+				pathCdumpTxt,
+				delim = ",",
+				col_names = FALSE)
+		} else {
+			datum <- cbind(0,0,-9999)
+		}
 		
 		file.remove(pathCdumpTxt)
 		
