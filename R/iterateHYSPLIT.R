@@ -649,7 +649,7 @@ makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emi
 		
 		xbs <- map2block(item[, 1], 1)
 		ybs <- map2block(item[, 2], 2)
-		cornAmt <- cornMap[cbind(xbs,ybs)]*10000
+		cornAmt <- cornMap[cbind(xbs,ybs)]
 		
 		#write the emit file 
 		if(emitMethod =='emitimes'){
@@ -661,7 +661,7 @@ makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emi
 			
 		
 			
-			itDes <- paste(base, "00 0100", posDes, "500.0", item[, 3], cornAmt, "0.0")
+			itDes <- paste(base, "00 0100", posDes, "500.0", item[, 3], cornAmt * 10000, "0.0")
 			newEmit <- c(newEmit, itDes)
 			
 			#done with emit file
@@ -683,7 +683,7 @@ makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emi
 			parDes <- gsub(" ", ",", posDes)
 			rec <- list()
 			rec[[1]] <- item[,3]
-			rec[[2]] <- paste(parDes, 500, round(cornAmt / 3, 2), 0, 0, sep = ",")
+			rec[[2]] <- paste(parDes, 500, round(sqrt(cornAmt) / 6, 2), 0, 0, sep = ",")
 			rec[[3]] <- paste(60, 2, 1, 1, 1:newSrc, sep = ",")
 			newRec <- c(rbind(rec[[1]], rec[[2]], rec[[3]]))
 			writeLines(c(infoVec, headRec, newRec),
