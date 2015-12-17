@@ -750,27 +750,25 @@ makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emi
 		}
 		
 		#number of locations
-		if(emitMethod =='emitimes'){
-			newCon[2] <- newSrc
-			befSrc <- as.numeric(befCon[2])
-			diff <- befSrc-newSrc
-			if (diff<0){
-				#insert new places
-				for (er in seq(1,-diff)){
-					newCon <- append(newCon, "placeholder",2)
-				}
-				
-			} else if (diff>0){
-				#Delete lines
-				for (er in seq(1, diff)){
-					newCon <- newCon[-3]
-				}
+		newCon[2] <- newSrc
+		befSrc <- as.numeric(befCon[2])
+		diff <- befSrc-newSrc
+		if (diff<0){
+			#insert new places
+			for (er in seq(1,-diff)){
+				newCon <- append(newCon, "placeholder",2)
 			}
 			
-			#now that the places are right, just assign the sources
-			for (sr in seq(1,newSrc)){
-				newCon[2+sr] <- paste(posDes[sr], "500.0")
+		} else if (diff>0){
+			#Delete lines
+			for (er in seq(1, diff)){
+				newCon <- newCon[-3]
 			}
+		}
+		
+		#now that the places are right, just assign the sources
+		for (sr in seq(1,newSrc)){
+			newCon[2+sr] <- paste(posDes[sr], "500.0")
 		}
 	
 		#finished control 
