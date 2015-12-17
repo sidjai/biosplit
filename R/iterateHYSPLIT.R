@@ -707,7 +707,7 @@ makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emi
 		indMon <- charmatch("cdump", befCon) - 11
 		
 		emitHrOff <- switch(emitMethod, particle = 1, emitimes = 0)
-		todayStr <- paste(strftime(date,"%y %m %d"), zstr(emitHrOff, 2))
+		todayStr <- paste(strftime(date,"%y %m %d"), zstr(0, 2))
 		dateChangeFlag <- is.na(charmatch(newCon[1], todayStr))
 	
 		#Change the values that only change when the date changes
@@ -736,9 +736,9 @@ makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emi
 			avgLon <- mean(item[, 1])
 			avgLat <- mean(item[, 2])
 			flightTime <- getNightDur(
-				avgLat, avgLon, as.numeric(strftime(date, "%j"))) 
+				avgLat, avgLon, as.numeric(strftime(date, "%j"))) - emitHrOff
 			
-			newCon[indMon-5] <- paste(flightTime - emitHrOff)
+			newCon[indMon-5] <- paste(flightTime)
 			
 			newCon[endTimeInd] <- strftime(date, paste("%y %m %d", flightTime, "00"))
 			newCon[endTimeInd+1] <- paste("01", flightTime, "00")
