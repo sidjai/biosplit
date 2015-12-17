@@ -686,7 +686,7 @@ makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emi
 			rec[[2]] <- paste(parDes, 500, round(cornAmt, 2) / 3, 0, 0, sep = ",")
 			rec[[3]] <- paste(60, 2, 1, 1, 1:newSrc, sep = ",")
 			newRec <- c(rbind(rec[[1]], rec[[2]], rec[[3]]))
-			writeLines(c(infoVec, headRec, newRec, ""),
+			writeLines(c(infoVec, headRec, newRec),
 				paste(hyDir, paste0("PARASC.", PID), sep='/'))
 			
 			convCall <- sprintf("cd %s && %s/%s -i%s -o%s",
@@ -736,9 +736,9 @@ makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emi
 			avgLon <- mean(item[, 1])
 			avgLat <- mean(item[, 2])
 			flightTime <- getNightDur(
-				avgLat, avgLon, as.numeric(strftime(date, "%j"))) - emitHrOff
+				avgLat, avgLon, as.numeric(strftime(date, "%j"))) 
 			
-			newCon[indMon-5] <- paste(flightTime)
+			newCon[indMon-5] <- paste(flightTime - emitHrOff)
 			
 			newCon[endTimeInd] <- strftime(date, paste("%y %m %d", flightTime, "00"))
 			newCon[endTimeInd+1] <- paste("01", flightTime, "00")
