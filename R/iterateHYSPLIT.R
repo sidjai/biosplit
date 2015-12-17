@@ -18,7 +18,7 @@
 #'	The flight is handled	using a passive dispersion model during the night with
 #'	the HYSPLIT program from NOAA, \url{http://www.arl.noaa.gov/HYSPLIT_info.php}
 #'@export
-runBiosplit <- function(cfg, plotOutputFreq = 10){
+runBiosplit <- function(cfg, plotOutputFreq = 10, emitMethod = c("particle", "emitimes")[1]){
 	
 	tic <- Sys.time()
 	realWd <- system.file(package = "biosplit")
@@ -104,9 +104,8 @@ runBiosplit <- function(cfg, plotOutputFreq = 10){
 	
 	#Make closures
 	map2block <- makeMapConverter(xmapvec, ymapvec, tol = .29)
-	
-	changeInput <- makeHysplitInputChanger(cfg$HyWorking, apr$Corn, 
-																				 cfg$delNightDurFlag,
+	changeInput <- makeHysplitInputChanger(cfg$HyWorking, cfg$HyBase, apr$Corn, 
+																				 cfg$delNightDurFlag, emitMethod,
 																				 map2block)
 	callHysplit <- makeHysplitCaller(cfg$HyWorking,
 																	 paste(cfg$HyBase,cfg$HyConc,sep='/'))
@@ -631,36 +630,74 @@ getNightDur <- function(lat, lon, day){
 	names(sunLight) <- NULL
 	return(round((24-sunLight)-1,0))
 }
-makeHysplitInputChanger <- function(hyDir, cornMap, delNightDurFlag, map2block){
+makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emitMethod, map2block){
 	realEnv <- new.env()
 	realEnv$hyDir <- hyDir
+	realEnv$hyBase <- hyBase
 	realEnv$cornMap <- cornMap
 	realEnv$delNightDurFlag <- delNightDurFlag
 	realEnv$map2block <- map2block
+	realEnv$emitMethod <- emitMethod
+	
 	f <- function(pop, date, PID=0){
 
 		#get the place and amount of the population
 		item <- pop$grid
 		newSrc <- dim(item)[1]
-		#write the emit file 
-		newEmit<- c("YYYY MM DD HH    DURATION(hhhh) #RECORDS",
-			"YYYY MM DD HH MM DURATION(hhmm) LAT LON HGT(m) RATE(/h) AREA(m2) HEAT(w)")
-		base <- paste(strftime(date,"%Y %m %d"),"00")
 		
-		newEmit[3] <- paste(base,"0001",newSrc)
-		
-	
 		posDes <- paste(round(item[, 2],3), round(item[, 1],3))
 		
 		xbs <- map2block(item[, 1], 1)
 		ybs <- map2block(item[, 2], 2)
 		cornAmt <- cornMap[cbind(xbs,ybs)]*10000
-		itDes <- paste(base, "00 0100", posDes, "500.0", item[, 3], cornAmt, "0.0")
-		newEmit <- c(newEmit, itDes)
 		
-		#done with emit file
-		writeLines(newEmit,
-			paste(hyDir, paste0("EMITIMES", PID), sep='/'))
+		#write the emit file 
+		if(emitMethod =='emitimes'){
+			newEmit<- c("YYYY MM DD HH    DURATION(hhhh) #RECORDS",
+				"YYYY MM DD HH MM DURATION(hhmm) LAT LON HGT(m) RATE(/h) AREA(m2) HEAT(w)")
+			base <- paste(strftime(date,"%Y %m %d"),"00")
+			
+			newEmit[3] <- paste(base,"0001",newSrc)
+			
+		
+			
+			itDes <- paste(base, "00 0100", posDes, "500.0", item[, 3], cornAmt, "0.0")
+			newEmit <- c(newEmit, itDes)
+			
+			#done with emit file
+			writeLines(newEmit,
+				paste(hyDir, paste0("EMITIMES", PID), sep='/'))
+		
+		} else {
+			#Intialize with particle file
+			infoVec <- c(
+				"Header Record: NUMPAR,NUMPOL,IYR,IMO,IDA,IHR,IMN",
+				"Record 1: MASS(1:NUMPOL)",
+				"Record 2: TLAT,TLON,ZLVL,SIGH,SIGW,SIGV", 
+				"Record 3: PAGE,HDWP,PTYP,PGRD,NSORT")
+			headRec <- c(newSrc, 1, 
+				strftime(date, "%y"), 
+				strftime(date, "%m"),
+				strftime(date, "%d"), 1, 0)
+			headRec <- paste(headRec, collapse = ",")
+			parDes <- gsub(" ", ",", posDes)
+			rec <- list()
+			rec[[1]] <- item[,3]
+			rec[[2]] <- paste(parDes, 500, round(cornAmt, 2) / 3, 0, 0, sep = ",")
+			rec[[3]] <- paste(60, 2, 1, 1, 1:newSrc, sep = ",")
+			newRec <- c(rbind(rec[[1]], rec[[2]], rec[[3]]))
+			writeLines(c(infoVec, headRec, newRec, ""),
+				paste(hyDir, paste0("PARASC.", PID), sep='/'))
+			
+			convCall <- sprintf("cd %s && %s/%s -i%s -o%s",
+				hyDir,
+				hyBase,
+				"asc2par.exe",
+				paste0("PARASC.", PID),
+				paste0("PARINT.", PID)
+			)
+			system(convCall)
+		}
 		
 		#Control file
 	
@@ -669,7 +706,8 @@ makeHysplitInputChanger <- function(hyDir, cornMap, delNightDurFlag, map2block){
 		
 		indMon <- charmatch("cdump", befCon) - 11
 		
-		todayStr <- strftime(date,"%y %m %d 00")
+		emitHrOff <- switch(emitMethod, particle = 1, emitimes = 0)
+		todayStr <- paste(strftime(date,"%y %m %d"), zstr(emitHrOff, 2))
 		dateChangeFlag <- is.na(charmatch(newCon[1], todayStr))
 	
 		#Change the values that only change when the date changes
@@ -697,7 +735,8 @@ makeHysplitInputChanger <- function(hyDir, cornMap, delNightDurFlag, map2block){
 		if(delNightDurFlag){
 			avgLon <- mean(item[, 1])
 			avgLat <- mean(item[, 2])
-			flightTime <- getNightDur(avgLat, avgLon, as.numeric(strftime(date, "%j")))
+			flightTime <- getNightDur(
+				avgLat, avgLon, as.numeric(strftime(date, "%j"))) - emitHrOff
 			
 			newCon[indMon-5] <- paste(flightTime)
 			
@@ -711,25 +750,27 @@ makeHysplitInputChanger <- function(hyDir, cornMap, delNightDurFlag, map2block){
 		}
 		
 		#number of locations
-		newCon[2] <- newSrc
-		befSrc <- as.numeric(befCon[2])
-		diff <- befSrc-newSrc
-		if (diff<0){
-			#insert new places
-			for (er in seq(1,-diff)){
-				newCon <- append(newCon, "placeholder",2)
+		if(emitMethod =='emitimes'){
+			newCon[2] <- newSrc
+			befSrc <- as.numeric(befCon[2])
+			diff <- befSrc-newSrc
+			if (diff<0){
+				#insert new places
+				for (er in seq(1,-diff)){
+					newCon <- append(newCon, "placeholder",2)
+				}
+				
+			} else if (diff>0){
+				#Delete lines
+				for (er in seq(1, diff)){
+					newCon <- newCon[-3]
+				}
 			}
 			
-		} else if (diff>0){
-			#Delete lines
-			for (er in seq(1, diff)){
-				newCon <- newCon[-3]
+			#now that the places are right, just assign the sources
+			for (sr in seq(1,newSrc)){
+				newCon[2+sr] <- paste(posDes[sr], "500.0")
 			}
-		}
-		
-		#now that the places are right, just assign the sources
-		for (sr in seq(1,newSrc)){
-			newCon[2+sr] <- paste(posDes[sr], "500.0")
 		}
 	
 		#finished control 
