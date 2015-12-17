@@ -98,3 +98,10 @@ convDaysYr <- function(days, yr = 2038, timezone = "UTC"){
 		tz = timezone)
 	return(tPos)
 }
+
+allOsSystem <- function(cmd, ...){
+	if(!isUnix()){
+		cmd <- paste("C:/WINDOWS/system32/cmd.exe", "/c", cmd)
+	}
+	system(cmd, ...)
+}

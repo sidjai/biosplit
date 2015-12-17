@@ -696,7 +696,7 @@ makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emi
 				paste0("PARASC.", PID),
 				paste0("PARINT.", PID)
 			)
-			system(convCall)
+			allOsSystem(convCall)
 		}
 		
 		#Control file
@@ -786,7 +786,7 @@ makeHysplitCaller <- function(hyDir, hyExePath){
 	callHy <- function(hold,PID){
 		
 		junk <- tryCatch({
-			system(paste(paste("cd", hyDir), paste(hyExePath, PID), sep=" && "),
+			allOsSystem(paste(paste("cd", hyDir), paste(hyExePath, PID), sep=" && "),
 				intern = hold, wait = hold)
 			},
 			error = function(cond){
@@ -837,7 +837,7 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 		cdump <- paste0("cdump", PID)
 		if (plotFlag == 1){
 			#Convert to plot
-			sadg <- system(paste(paste("cd", hyDir),
+			sadg <- allOsSystem(paste(paste("cd", hyDir),
 													paste(hyPlotExe, cdump, "-k0"),
 													sep=" && "),
 										intern = TRUE)
@@ -851,7 +851,7 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 			} else {
 	
 				#display plot
-				system(paste(hyDir, "concplot.ps", sep='/'))
+				allOsSystem(paste(hyDir, "concplot.ps", sep='/'))
 			}
 		}
 	
@@ -860,7 +860,7 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 	
 		numCalls <- 1
 		repeat{ 
-			textFile <- system(paste(paste("cd", hyDir),
+			textFile <- allOsSystem(paste(paste("cd", hyDir),
 														paste(hyAscExe, cdump, "-m -d"),
 														sep=" && "),
 											intern = TRUE)
@@ -952,9 +952,9 @@ multiHysplit <- function(hyDir, pop, date, shPlotFlag,
 		changeInput(inPop[[gg]], date, PID=gg)
 		callHysplit(hold=holdvec[gg],PID=gg)	
 	}
-	prc <- system(runningProg, intern = TRUE)
+	prc <- allOsSystem(runningProg, intern = TRUE)
 	while(length(grep("hycs",prc))>0){
-		prc <- system(runningProg, intern = TRUE)
+		prc <- allOsSystem(runningProg, intern = TRUE)
 	}
 	sink()
 	for (gg in seq(1,length(inPop))){
