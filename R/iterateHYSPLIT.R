@@ -882,6 +882,7 @@ makeHysplitRunner <- function(hyDir, hyPlotExe, rawPlotOutDir,
 			datum <- readr::read_delim(
 				pathCdumpTxt,
 				delim = ",",
+				col_types = "ddd",
 				col_names = FALSE)
 		} else {
 			datum <- cbind(0,0,-9999)
