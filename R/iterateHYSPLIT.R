@@ -683,7 +683,7 @@ makeHysplitInputChanger <- function(hyDir, hyBase, cornMap, delNightDurFlag, emi
 			parDes <- gsub(" ", ",", posDes)
 			rec <- list()
 			rec[[1]] <- item[,3]
-			rec[[2]] <- paste(parDes, 500, round(cornAmt, 2) / 3, 0, 0, sep = ",")
+			rec[[2]] <- paste(parDes, 500, round(cornAmt / 3, 2), 0, 0, sep = ",")
 			rec[[3]] <- paste(60, 2, 1, 1, 1:newSrc, sep = ",")
 			newRec <- c(rbind(rec[[1]], rec[[2]], rec[[3]]))
 			writeLines(c(infoVec, headRec, newRec),
