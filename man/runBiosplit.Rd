@@ -4,7 +4,8 @@
 \alias{runBiosplit}
 \title{Run the biosplit model for a year}
 \usage{
-runBiosplit(cfg, plotOutputFreq = 10)
+runBiosplit(cfg, plotOutputFreq = 10, emitMethod = c("particle",
+  "emitimes")[1])
 }
 \arguments{
 \item{cfg}{The configuration object returned by \code{\link{loadConfig}}
@@ -12,6 +13,10 @@ or from loading the cfg.RData in the config.txt location}
 
 \item{plotOutputFreq}{The freqency of raw hysplit plots to produce and save, 
 so a value of 10 would mean making only the 10th simulation plot.}
+
+\item{emitMethod}{How should teh program emit the moths into the hysplit
+model? particle creates a particle dump file for intialization while
+emitimes makes a EMITIMES file with all the emmisions at 500 m over 1 hr}
 }
 \value{
 Time stamp. if called for in cfg, also writes the weekly snapshots of

@@ -6,7 +6,7 @@
 \usage{
 makeDiagnosticMap(arr, type = c("contour", "filledContour", "post")[1],
   shNewMap = TRUE, shPath2Title = FALSE, shReturnInfo = FALSE,
-  shLegend = TRUE, pathSave = "", ...)
+  shLegend = TRUE, legendTitle = "", pathSave = "", ...)
 }
 \arguments{
 \item{arr}{Anything that can be loaded in by 'raster' package}
@@ -22,7 +22,9 @@ just use it as a label instead}
 \item{shReturnInfo}{Should the information on the plotting (classes, levels
 and labels) be returned as a list?}
 
-\item{shLegend}{Shouild a legend be ploted?}
+\item{shLegend}{Should a legend be ploted?}
+
+\item{legendTitle}{The title for the legend}
 
 \item{pathSave}{The path that you want the saved jpeg to be in. Default is
 that the function does not save but just plot}

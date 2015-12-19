@@ -88,14 +88,8 @@ existsPlot <- function(){
 }
 
 convDaysYr <- function(days, yr = 2038, timezone = "UTC"){
-	days <- as.numeric(days)
-	addYr <- floor(days/365)
-	jd <-  floor(days - (addYr * 365)) + 1
-	hrs <- ceiling((days %% 1) * 24)
-	tPos <- strptime(
-		paste((addYr + yr), jd, hrs),
-		format = "%Y %j %H",
-		tz = timezone)
+	secs <- (days * 24 * 60 * 60 + (7 * 60 + 12))
+	tPos <- as.POSIXct(secs, origin = "2038-01-01", tz = "UTC")
 	return(tPos)
 }
 

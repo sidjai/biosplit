@@ -9,7 +9,8 @@
 #'   just use it as a label instead
 #' @param shReturnInfo Should the information on the plotting (classes, levels
 #'   and labels) be returned as a list?
-#' @param shLegend Shouild a legend be ploted?
+#' @param shLegend Should a legend be ploted?
+#' @param legendTitle The title for the legend
 #' @param pathSave The path that you want the saved jpeg to be in. Default is
 #'   that the function does not save but just plot
 #' @param ... additional parameters as explained in details.
@@ -50,6 +51,7 @@ makeDiagnosticMap <- function(
 	shPath2Title = FALSE,
 	shReturnInfo = FALSE,
 	shLegend = TRUE,
+	legendTitle = "",
 	pathSave = "",
 	...
 	){
@@ -112,7 +114,7 @@ makeDiagnosticMap <- function(
 		c(list(type = type, layer = ras), myOpts)
 	)
 
-	if(shLegend) makeLegend(info$labels, info$classes)
+	if(shLegend) makeLegend(info$labels, info$classes, title = legendTitle)
 
 	if(nzchar(pathSave)){
 		dev.copy(jpeg, pathSave,
@@ -174,13 +176,16 @@ intLabels <- function(lvls, labScientific = TRUE, labDigits = 2){
 	return(labs)
 }
 
-makeLegend <- function(labels, classes){
+makeLegend <- function(labels, classes, title = ""){
 	entries <- paste(rev(rev(labels)[-1]), labels[-1], sep = " - ")
 	colnames(classes) <- gsub("bg", "pt.bg", colnames(classes))
+	
+	opts <- c(list(x = "bottomright", legend = entries, bty = "n", cex = 0.6),
+		classes[, -1])
+	if(nzchar(title)) opts <- c(opts, list(title = title))
 
-	do.call(legend,
-		c(list(x = "bottomright", legend = entries, bty = "n", cex = 0.6),
-			classes[, -1]))
+	do.call(legend, opts)
+		
 }
 
 combineOpts <- function(baseOpts, addOpts){

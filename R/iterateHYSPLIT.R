@@ -6,6 +6,9 @@
 #'	or from loading the cfg.RData in the config.txt location
 #'@param plotOutputFreq The freqency of raw hysplit plots to produce and save, 
 #'	so a value of 10 would mean making only the 10th simulation plot.
+#'@param emitMethod How should teh program emit the moths into the hysplit
+#'  model? particle creates a particle dump file for intialization while
+#'  emitimes makes a EMITIMES file with all the emmisions at 500 m over 1 hr
 #'@import ncdf
 #'
 #'@return Time stamp. if called for in cfg, also writes the weekly snapshots of
