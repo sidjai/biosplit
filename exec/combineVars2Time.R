@@ -49,7 +49,7 @@ dims <- list(
 ncdf::close.ncdf(exmnc)
 
 timeStamps <- paste0("2066Time",
-	vapply(which(rightYrSet), function(x){ zstr(x, dig = 4) } ,""),
+	vapply(1:length(which(rightYrSet)), function(x){ zstr(x, dig = 4) } ,""),
 	".asc")
 
 timLen <- length(which(rightYrSet))

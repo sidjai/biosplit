@@ -80,7 +80,7 @@ runBiosplit <- function(cfg, plotOutputFreq = 10, emitMethod = c("particle", "em
 	} else if(simEmploy==2){
 		#Single run so just change the intial one
 		controlPaths <- paste(cfg$HyWorking, "CONTROL", sep='/')
-	}	else controlPaths <- ''
+	}	else controlPaths <- NULL
 	
 	depos <- vapply(controlPaths, function(x){
 		changeControlInitial(x, cfg$MetARLFold, cfg$verticalMotionRoutine, cfg$topOfModel)
