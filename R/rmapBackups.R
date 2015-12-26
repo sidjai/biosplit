@@ -13,6 +13,7 @@
 #' @param legendTitle The title for the legend
 #' @param pathSave The path that you want the saved jpeg to be in. Default is
 #'   that the function does not save but just plot
+#' @param saveResolution The resolution in ppi for the saved plot
 #' @param ... additional parameters as explained in details.
 #'
 #' @details The additional variables that can be passed are to the
@@ -53,6 +54,7 @@ makeDiagnosticMap <- function(
 	shLegend = TRUE,
 	legendTitle = "",
 	pathSave = "",
+	saveResolution = 100,
 	...
 	){
 
@@ -121,7 +123,7 @@ makeDiagnosticMap <- function(
 			units = "in",
 			width = (par("pin")[1] + sum(par("mai")[c(2,4)])),
 			height = (par("pin")[2] + sum(par("mai")[c(1,3)])),
-			res = 100,
+			res = saveResolution,
 			quality = 100)
 		dev.off()
 	}
