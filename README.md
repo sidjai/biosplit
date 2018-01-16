@@ -1,4 +1,4 @@
-#biosplit README
+# biosplit README
 
 This package is used to model moth migration on a continental scale across generations. The name comes from the combination of a biological model (bio-) with the HYSPLIT model by US NOAA (-split).
 
@@ -11,6 +11,8 @@ The main program can be found as a R package that can be downloaded in R as foll
 devtools::install_github("sidjai/biosplit")
 ```
 
+This program made use of ncdf package which is now depreciated on CRAN. ncdf4 changes some data types which will require some work to upgrade. For now you can download the archive at https://cran.r-project.org/src/contrib/Archive/ncdf/
+
 The HYSPLIT program can be downloaded [here](http://ready.arl.noaa.gov/HYSPLIT_hytrial.php)
 
 To work with ARL data [sets](ftp://arlftp.arlhq.noaa.gov/pub/archives/), a GIS tool is used called MeteoInfo which can be downloaded [here](http://www.meteothinker.com/Downloads.html)
@@ -20,7 +22,7 @@ To do the post-processing graphics, a proprietary GIS software, Surfer is used w
 The location of these secondary applications have to be given to the program through the config.txt file.
 
 
-##Biological Model
+## Biological Model
 
 There are two species that grow in this model, the Corn (host plant) and the Fall Armyworms (FAW). The main growth mechanism used is Growing degree days (GDD) that can track development of species with the temperature on the given days. Planting dates for the corn is assumed to be solely a function of latitude. After the corn is planted, the growth begins using the temperature until it is harvested which is, again, assumed to be solely a function of latitude. 
 
@@ -29,13 +31,13 @@ The FAW are grown during the simulation depending on where they land. The two ca
 A more detailed explanation of the model can be found in "/docs/BiologicalEqs.pdf".
 
 
-##Migration Model
+## Migration Model
 
 Nightly flight of the moth populations is simulated as a dispersion of particles in the HYSPLIT model. There are plans to include flight speed and heading but this is still in development. The moths are given a 12 hr flight time starting at nightfall. There is an optional mechanism using the "insol" package to change this base time of flight with the changing of the seasons.
 
-##Code Structure
+## Code Structure
 
-###Data Collection
+### Data Collection
 
 This section is split into two main threads; Crop data and meteorological data. The crop data comes from CropScape web API that is queried in "NASS2TIFs.R". The Meteorological data comes from the EDAS ARL dataset from NOAA. This is parsed using a GIS called MeteoInfo using the automation tool written in Jython. Both of these are processed using R for the required extent, projection, units and format for the simulation. These are combined in one netCDF file with aggregated variables of the different biological assumptions in "aprioriVars.R" This structure is shown below:
 
@@ -43,7 +45,7 @@ This section is split into two main threads; Crop data and meteorological data. 
 
 Mostly, the two sources on the far left can be changed out for either other data files or scripts to query other databases. With the appropriate changes to the config file and the grid definitions, the rest of the process should run smoothly. This is an active area of development so if you run into problems please place a bug report.
 
-###Post-processing
+### Post-processing
 
 The raw output of the model is 3 fold:
 1. xyz'att' snapshot tables of all the moth and Cohort populations at every time step.
@@ -58,12 +60,12 @@ One side of the post-processing is to compare the output to trap captures at a f
 
 The other side is plotting the results as contour and post maps in the folder "/jpeg/contour" or "/jpeg/ClassPost". This is done with Golden Software's Surfer application (using their automation tool Scripter written in wwb-com). The reason is entirely aesthetic qualities of the output and the fine manipulation tools given. The same type of plotting can be done in other programs as well. 
 
-##Acknowledgement
+## Acknowledgement
 
 This project was conducted by Siddarta Jairam, Rob L. Meagher, Jr., Rod N. Nagoshi and John K. Westbrook of the USDA-Agricultural Research Service and  Shelby J. Fleischer of Penn State University with financial supported by USDA project number 6036-22000-025-06 and from the USDA-NIFA (AFRI grant number 2011-67003-30209).  USDC-NOAA provided access to HYSPLIT PC version 4.9 atmospheric transport modeling software.  Mention of trade names or commercial products in this article is solely for the purposes of providing specific information and does not imply recommendation or endorsement by the U.S. Department of Agriculture.  USDA is an equal opportunity provider and employer.
 
 
-##References
+## References
 
 Foundational Paper
 J. K. Westbrook, R. N. Nagoshi, R. L. Meagher, and S. J. Fleischer, S. Jairam (2015), Modeling Seasonal Migration of Fall Armyworm Moths, International Journal of Biometeorology, doi: 10.1007/s00484-015-1022-x
